@@ -121,6 +121,7 @@ export default function ChamadaPage() {
   }, [historico]);
 
   const alertasFrequencia = ausenciaPorAluno.filter((item) => item.taxa >= 0.25);
+  const faltasCount = Math.max(0, alunos.length - presentesCount);
 
   const saveAttendance = async () => {
     if (!selectedTurma) {
@@ -167,15 +168,15 @@ export default function ChamadaPage() {
   };
 
   return (
-    <div className="space-y-5">
-      <Card className="border-[#DCE6F0] bg-white shadow-sm">
+    <div className="mx-auto max-w-4xl space-y-5">
+      <Card className="border-slate-200 bg-white shadow-sm">
         <CardHeader>
-          <CardTitle className="font-heading text-3xl text-[#10253B]">Chamada Digital</CardTitle>
-          <CardDescription className="text-[#6F8499]">Registro rapido em sala com historico e alerta automatico de frequencia</CardDescription>
+          <CardTitle className="font-heading text-3xl text-slate-900">Chamada Digital</CardTitle>
+          <CardDescription>Registro rapido da presenca da turma, com historico mensal e alerta de frequencia.</CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-3">
+        <CardContent className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
           <select
-            className="h-11 rounded-xl border border-[#D4E1EE] bg-white px-3 text-sm text-[#163148]"
+            className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800"
             value={selectedTurma}
             onChange={(event) => setSelectedTurma(event.target.value)}
           >
@@ -185,26 +186,46 @@ export default function ChamadaPage() {
               </option>
             ))}
           </select>
+
           <Input type="date" value={data} onChange={(event) => setData(event.target.value)} />
-          <div className="flex items-center justify-between rounded-xl border border-[#D4E1EE] bg-[#F7FAFE] px-3 py-2 text-sm text-[#4B647A]">
-            <span>Presentes: {presentesCount}/{alunos.length}</span>
-            <CalendarDays className="size-4 text-[#7D91A7]" />
+
+          <div className="flex min-w-[175px] items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+            <span>{presentesCount}/{alunos.length} presentes</span>
+            <CalendarDays className="size-4 text-slate-400" />
           </div>
         </CardContent>
       </Card>
 
-      <section className="grid gap-4 xl:grid-cols-[1.65fr_1fr]">
-        <div className="space-y-3">
-          <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
-            {alunos.map((aluno) => {
-              const state = presencas[aluno.id] ?? { presente: true, justificativa: "" };
+      <Card className="border-slate-200 bg-white shadow-sm">
+        <CardContent className="space-y-3 p-4 md:p-6">
+          {alunos.map((aluno) => {
+            const state = presencas[aluno.id] ?? { presente: true, justificativa: "" };
+            const initials = aluno.nome
+              .split(" ")
+              .filter(Boolean)
+              .slice(0, 2)
+              .map((part) => part[0])
+              .join("")
+              .toUpperCase();
 
-              return (
-                <article key={aluno.id} className="h-full rounded-2xl border border-[#DCE6F0] bg-white p-4 shadow-sm">
-                  <p className="text-base font-bold text-[#10253B]">{aluno.nome}</p>
-                  <div className="mt-3 flex gap-2">
+            return (
+              <article key={aluno.id} className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="inline-flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-rose-500 to-purple-600 text-xs font-bold text-white">
+                      {initials}
+                    </div>
+                    <p className="font-semibold text-slate-900">{aluno.nome}</p>
+                  </div>
+
+                  <div className="flex gap-2">
                     <button
-                      className={`flex flex-1 items-center justify-center gap-1 rounded-xl px-3 py-2 text-sm font-semibold ${state.presente ? "bg-[#DDF8F4] text-[#0F8F83]" : "bg-[#F1F5FF] text-[#6A638D]"}`}
+                      className={cn(
+                        "inline-flex h-11 items-center gap-1 rounded-xl border px-4 text-sm font-semibold transition",
+                        state.presente
+                          ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                          : "border-slate-200 bg-white text-slate-500 hover:border-emerald-300",
+                      )}
                       onClick={() =>
                         setPresencas((prev) => ({
                           ...prev,
@@ -215,8 +236,14 @@ export default function ChamadaPage() {
                       <CircleCheckBig className="size-4" />
                       Presente
                     </button>
+
                     <button
-                      className={`flex flex-1 items-center justify-center gap-1 rounded-xl px-3 py-2 text-sm font-semibold ${!state.presente ? "bg-[#FFE9E3] text-[#CB5A43]" : "bg-[#F1F5FF] text-[#6A638D]"}`}
+                      className={cn(
+                        "inline-flex h-11 items-center gap-1 rounded-xl border px-4 text-sm font-semibold transition",
+                        !state.presente
+                          ? "border-rose-300 bg-rose-50 text-rose-700"
+                          : "border-slate-200 bg-white text-slate-500 hover:border-rose-300",
+                      )}
                       onClick={() =>
                         setPresencas((prev) => ({
                           ...prev,
@@ -225,99 +252,102 @@ export default function ChamadaPage() {
                       }
                     >
                       <CircleX className="size-4" />
-                      Ausente
+                      Falta
                     </button>
                   </div>
-                  {!state.presente && (
-                    <Input
-                      className="mt-2"
-                      placeholder="Justificativa"
-                      value={state.justificativa}
-                      onChange={(event) =>
-                        setPresencas((prev) => ({
-                          ...prev,
-                          [aluno.id]: { ...prev[aluno.id], justificativa: event.target.value },
-                        }))
-                      }
-                    />
-                  )}
-                </article>
-              );
-            })}
-          </div>
+                </div>
+
+                {!state.presente && (
+                  <Input
+                    className="mt-3"
+                    placeholder="Justificativa da falta"
+                    value={state.justificativa}
+                    onChange={(event) =>
+                      setPresencas((prev) => ({
+                        ...prev,
+                        [aluno.id]: { ...prev[aluno.id], justificativa: event.target.value },
+                      }))
+                    }
+                  />
+                )}
+              </article>
+            );
+          })}
 
           {!alunos.length && (
-            <div className="rounded-xl border border-dashed border-[#CCD9E7] bg-[#F7FBFF] p-4 text-sm text-[#60788F]">
+            <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
               Nenhum aluno encontrado para esta turma.
             </div>
           )}
 
-          <Button className="h-11 w-full rounded-xl bg-[#0BB8A8] text-white hover:bg-[#0A9F92] md:w-auto md:px-8" onClick={saveAttendance}>
-            Salvar chamada
-          </Button>
-        </div>
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+            <p className="text-sm text-slate-600">
+              Resumo do dia: <strong className="text-emerald-600">{presentesCount} presentes</strong> e <strong className="text-rose-600">{faltasCount} faltas</strong>.
+            </p>
+            <Button className="h-11 rounded-xl bg-rose-500 px-8 text-white hover:bg-rose-600" onClick={saveAttendance}>
+              Salvar chamada
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
-        <div className="grid gap-4">
-          <Card className="border-[#DCE6F0] bg-white shadow-sm">
-            <CardHeader>
-              <CardTitle className="font-heading text-2xl text-[#10253B]">Historico do mes</CardTitle>
-              <CardDescription className="text-[#6F8499]">Ultimos registros da turma</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {historico.slice(0, 6).map((item) => {
-                const total = item.presencas.length;
-                const presentes = item.presencas.filter((p) => p.presente).length;
+      <section className="grid gap-4 lg:grid-cols-2">
+        <Card className="border-slate-200 bg-white shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-xl text-slate-900">Historico do mes</CardTitle>
+            <CardDescription>Ultimos registros da turma</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {historico.slice(0, 6).map((item) => {
+              const total = item.presencas.length;
+              const presentes = item.presencas.filter((p) => p.presente).length;
 
-                return (
-                  <div key={item.id} className="rounded-xl border border-[#E0EAF4] bg-[#F8FBFF] p-3">
-                    <p className="text-sm font-semibold text-[#17364D]">{new Date(item.data).toLocaleDateString("pt-BR")}</p>
-                    <p className="text-xs text-[#73889D]">{presentes}/{total} presentes</p>
-                  </div>
-                );
-              })}
-
-              {!historico.length && <p className="text-sm text-[#6F8499]">Sem chamadas registradas neste mes.</p>}
-            </CardContent>
-          </Card>
-
-          <Card className="border-[#DCE6F0] bg-white shadow-sm">
-            <CardHeader>
-              <CardTitle className="font-heading text-2xl text-[#10253B]">Frequencia por aluno</CardTitle>
-              <CardDescription className="text-[#6F8499]">Alerta automatico para 25%+ de faltas no mes</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {ausenciaPorAluno.slice(0, 8).map((item) => (
-                <div key={item.nome} className="rounded-xl border border-[#E0EAF4] bg-[#F8FBFF] p-3">
-                  <div className="mb-1 flex items-center justify-between text-sm text-[#17364D]">
-                    <p>{item.nome}</p>
-                    <p>{Math.round(item.taxa * 100)}%</p>
-                  </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-[#E7EEF8]">
-                    <div
-                      className={cn(
-                        "h-full rounded-full",
-                        item.taxa >= 0.25 ? "bg-[#FF7B5E]" : "bg-[#0BB8A8]",
-                      )}
-                      style={{ width: `${Math.round(item.taxa * 100)}%` }}
-                    />
-                  </div>
+              return (
+                <div key={item.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <p className="text-sm font-semibold text-slate-800">{new Date(item.data).toLocaleDateString("pt-BR")}</p>
+                  <p className="text-xs text-slate-500">{presentes}/{total} presentes</p>
                 </div>
-              ))}
+              );
+            })}
 
-              {!!alertasFrequencia.length && (
-                <div className="rounded-xl border border-[#FFE1A0] bg-[#FFF7E4] p-3 text-sm text-[#7C6415]">
-                  <div className="mb-1 flex items-center gap-2 font-medium">
-                    <TriangleAlert className="size-4" />
-                    Alerta de frequencia
-                  </div>
-                  <p>{alertasFrequencia.length} aluno(s) com 25% ou mais de faltas neste mes.</p>
+            {!historico.length && <p className="text-sm text-slate-500">Sem chamadas registradas neste mes.</p>}
+          </CardContent>
+        </Card>
+
+        <Card className="border-slate-200 bg-white shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-xl text-slate-900">Frequencia por aluno</CardTitle>
+            <CardDescription>Alerta automatico para 25%+ de faltas no mes</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {ausenciaPorAluno.slice(0, 8).map((item) => (
+              <div key={item.nome} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <div className="mb-1 flex items-center justify-between text-sm text-slate-800">
+                  <p>{item.nome}</p>
+                  <p>{Math.round(item.taxa * 100)}%</p>
                 </div>
-              )}
+                <div className="h-2 overflow-hidden rounded-full bg-slate-200">
+                  <div
+                    className={cn("h-full rounded-full", item.taxa >= 0.25 ? "bg-rose-500" : "bg-emerald-500")}
+                    style={{ width: `${Math.round(item.taxa * 100)}%` }}
+                  />
+                </div>
+              </div>
+            ))}
 
-              {!ausenciaPorAluno.length && <p className="text-sm text-[#6F8499]">Dados insuficientes para calcular frequencia.</p>}
-            </CardContent>
-          </Card>
-        </div>
+            {!!alertasFrequencia.length && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                <div className="mb-1 flex items-center gap-2 font-medium">
+                  <TriangleAlert className="size-4" />
+                  Alerta de frequencia
+                </div>
+                <p>{alertasFrequencia.length} aluno(s) com 25% ou mais de faltas neste mes.</p>
+              </div>
+            )}
+
+            {!ausenciaPorAluno.length && <p className="text-sm text-slate-500">Dados insuficientes para calcular frequencia.</p>}
+          </CardContent>
+        </Card>
       </section>
     </div>
   );

@@ -14,7 +14,7 @@ import {
   LogOut,
   NotebookPen,
   Plus,
-  Search,
+  Sparkles,
   Settings,
   UserRound,
   type LucideIcon,
@@ -23,29 +23,26 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-const mainLinks = [
+const primaryLinks = [
   { href: "/dashboard", icon: Home, label: "Dashboard" },
-  { href: "/dashboard/alunos", icon: UserRound, label: "Alunos" },
-  { href: "/dashboard/observacoes", icon: NotebookPen, label: "Observacoes" },
   { href: "/dashboard/planejamento", icon: CalendarDays, label: "Planejamentos" },
+  { href: "/dashboard/projetos", icon: FolderKanban, label: "Biblioteca" },
+  { href: "/dashboard/alunos", icon: UserRound, label: "Alunos" },
   { href: "/dashboard/chamada", icon: ClipboardCheck, label: "Chamada" },
 ];
 
-const reportLinks = [
-  { href: "/dashboard/relatorios", icon: FileBarChart, label: "Gerar PDF" },
-  { href: "/dashboard/projetos", icon: FolderKanban, label: "Biblioteca" },
-];
-
-const accountLinks = [
+const secondaryLinks = [
+  { href: "/dashboard/observacoes", icon: NotebookPen, label: "Observacoes" },
+  { href: "/dashboard/relatorios", icon: FileBarChart, label: "Relatorios" },
   { href: "/dashboard/configuracoes", icon: Settings, label: "Configuracoes" },
 ];
 
 const mobileLinks = [
   { href: "/dashboard", icon: Home, label: "Inicio" },
-  { href: "/dashboard/alunos", icon: UserRound, label: "Alunos" },
+  { href: "/dashboard/planejamento", icon: CalendarDays, label: "Plano" },
+  { href: "/dashboard/projetos", icon: FolderKanban, label: "Projetos" },
+  { href: "/dashboard/alunos", icon: UserRound, label: "Turma" },
   { href: "/dashboard/chamada", icon: ClipboardCheck, label: "Chamada" },
-  { href: "/dashboard/observacoes", icon: NotebookPen, label: "Notas" },
-  { href: "/dashboard/configuracoes", icon: Settings, label: "Conta" },
 ];
 
 interface DashboardShellProps {
@@ -54,18 +51,36 @@ interface DashboardShellProps {
   children: React.ReactNode;
 }
 
+function getPageMeta(pathname: string) {
+  if (pathname.startsWith("/dashboard/planejamento")) {
+    return { title: "Planejamento Semanal", subtitle: "Organize atividades por dia e horario" };
+  }
+  if (pathname.startsWith("/dashboard/projetos")) {
+    return { title: "Biblioteca de Projetos", subtitle: "Projetos prontos para usar na turma" };
+  }
+  if (pathname.startsWith("/dashboard/alunos")) {
+    return { title: "Minha Turma", subtitle: "Observacoes, historico e acompanhamento" };
+  }
+  if (pathname.startsWith("/dashboard/chamada")) {
+    return { title: "Chamada Digital", subtitle: "Presencas da turma em tempo real" };
+  }
+  if (pathname.startsWith("/dashboard/observacoes")) {
+    return { title: "Observacoes", subtitle: "Registros pedagogicos recentes" };
+  }
+  if (pathname.startsWith("/dashboard/relatorios")) {
+    return { title: "Relatorios", subtitle: "Textos de acompanhamento por aluno" };
+  }
+  if (pathname.startsWith("/dashboard/configuracoes")) {
+    return { title: "Configuracoes", subtitle: "Conta, plano e seguranca" };
+  }
+
+  return { title: "Visao Geral", subtitle: "Acompanhe os indicadores da semana" };
+}
+
 export function DashboardShell({ userName, userPlano, children }: DashboardShellProps) {
   const pathname = usePathname();
-  const dateLabel = useMemo(
-    () =>
-      new Intl.DateTimeFormat("pt-BR", {
-        weekday: "long",
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      }).format(new Date()),
-    [],
-  );
+  const dateLabel = useMemo(() => new Intl.DateTimeFormat("pt-BR", { dateStyle: "full" }).format(new Date()), []);
+  const pageMeta = useMemo(() => getPageMeta(pathname), [pathname]);
 
   const initials = useMemo(() => {
     const parts = userName.trim().split(" ").filter(Boolean);
@@ -88,132 +103,99 @@ export function DashboardShell({ userName, userPlano, children }: DashboardShell
         href={item.href}
         prefetch
         className={cn(
-          "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition",
+          "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition",
           isActive(item.href)
-            ? "bg-[#DDF3F1] text-[#0F9D91]"
-            : "text-[#415A73] hover:bg-[#F2F6FB] hover:text-[#10253B]",
+            ? "bg-[#FFE8EE] text-[#E11D48]"
+            : "text-slate-500 hover:bg-slate-100 hover:text-slate-900",
         )}
       >
-        <item.icon className={cn("size-4", isActive(item.href) ? "text-[#0F9D91]" : "text-[#7F93A7]")} />
+        <item.icon className={cn("size-4", isActive(item.href) ? "text-[#E11D48]" : "text-slate-400")} />
         {item.label}
       </Link>
     ));
 
   return (
-    <div className="min-h-screen bg-[#F3F6FA] text-[#10253B]">
-      <div className="grid min-h-screen xl:grid-cols-[250px_minmax(0,1fr)]">
-        <aside className="hidden border-r border-[#DFE7F0] bg-white xl:flex xl:flex-col">
-          <div className="flex items-center gap-2 border-b border-[#ECF1F6] px-5 py-4">
-            <div className="inline-flex size-9 items-center justify-center rounded-xl bg-[#10B7AA] text-sm font-black text-white">P</div>
-            <p className="font-heading text-xl text-[#129D93]">Planejei.</p>
+    <div className="min-h-screen bg-slate-50 text-slate-800">
+      <div className="flex min-h-screen">
+        <aside className="hidden h-screen w-64 flex-col border-r border-slate-200 bg-white md:flex">
+          <div className="flex items-center gap-3 border-b border-slate-200 p-5">
+            <div className="inline-flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#F43F5E] to-[#9333EA] text-white shadow-[0_8px_24px_-12px_rgba(244,63,94,0.55)]">
+              <Sparkles className="size-4" />
+            </div>
+            <p className="font-heading text-2xl text-slate-900">Planejei</p>
           </div>
 
-          <nav className="flex-1 space-y-5 p-4">
+          <nav className="flex-1 space-y-5 overflow-y-auto p-4">
             <div>
-              <p className="mb-2 px-2 text-[11px] font-black uppercase tracking-[0.12em] text-[#8BA0B5]">Principal</p>
-              <div className="space-y-1">{renderLinkGroup(mainLinks)}</div>
+              <p className="mb-2 px-2 text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">Principal</p>
+              <div className="space-y-1">{renderLinkGroup(primaryLinks)}</div>
             </div>
 
             <div>
-              <p className="mb-2 px-2 text-[11px] font-black uppercase tracking-[0.12em] text-[#8BA0B5]">Relatorios</p>
-              <div className="space-y-1">{renderLinkGroup(reportLinks)}</div>
-            </div>
-
-            <div>
-              <p className="mb-2 px-2 text-[11px] font-black uppercase tracking-[0.12em] text-[#8BA0B5]">Conta</p>
-              <div className="space-y-1">{renderLinkGroup(accountLinks)}</div>
+              <p className="mb-2 px-2 text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">Gestao</p>
+              <div className="space-y-1">{renderLinkGroup(secondaryLinks)}</div>
             </div>
           </nav>
 
-          <div className="border-t border-[#ECF1F6] p-4">
-            <div className="mb-3 flex items-center gap-2">
-              <div className="inline-flex size-9 items-center justify-center rounded-full bg-[#1578A6] text-xs font-black text-white">{initials}</div>
+          <div className="border-t border-slate-200 p-4">
+            <div className="mb-3 flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <div className="inline-flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-[#F43F5E] to-[#9333EA] text-xs font-black text-white">{initials}</div>
               <div className="min-w-0">
-                <p className="truncate text-sm font-black text-[#10253B]">{userName}</p>
-                <p className="text-xs font-semibold text-[#71859A]">{String(userPlano).toLowerCase()} plan</p>
+                <p className="truncate text-sm font-black text-slate-900">{userName}</p>
+                <p className="text-xs font-semibold text-purple-600">{String(userPlano).toUpperCase()}</p>
               </div>
             </div>
 
             <Button
               variant="outline"
               onClick={handleLogoutAll}
-              className="w-full justify-start rounded-xl border border-[#E8D6CF] bg-[#FFF7F4] text-[#B85D49] hover:bg-[#FFEDE7]"
+              className="w-full justify-start rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
             >
               <LogOut className="mr-2 size-4" />
-              Sair de todos os dispositivos
+              Sair da conta
             </Button>
           </div>
         </aside>
 
-        <section className="flex min-w-0 flex-col">
-          <header className="sticky top-0 z-20 border-b border-[#DFE7F0] bg-white/95 px-3 py-3 backdrop-blur md:px-5">
-            <div className="mx-auto flex w-full max-w-[1700px] flex-wrap items-center justify-between gap-3">
+        <section className="flex min-w-0 flex-1 flex-col">
+          <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/85 px-4 py-3 backdrop-blur md:px-6">
+            <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between gap-3">
               <div>
-                <h1 className="font-heading text-2xl text-[#10253B]">Dashboard</h1>
-                <p className="text-xs font-semibold text-[#7A8DA1]">{dateLabel}</p>
+                <h1 className="font-heading text-2xl text-slate-900">{pageMeta.title}</h1>
+                <p className="text-xs font-semibold text-slate-500">{pageMeta.subtitle} - {dateLabel}</p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="hidden items-center gap-2 rounded-full border border-[#E5ECF4] bg-[#F6F9FC] px-3 py-2 2xl:flex">
-                  <Search className="size-4 text-[#90A2B5]" />
-                  <input
-                    type="search"
-                    placeholder="Buscar aluno ou observacao..."
-                    className="w-52 bg-transparent text-xs font-semibold text-[#415A73] outline-none placeholder:text-[#9AAABA]"
-                  />
-                </div>
-
-                <button className="inline-flex size-9 items-center justify-center rounded-xl border border-[#E5ECF4] bg-[#F6F9FC] text-[#7B90A5]">
+              <div className="flex items-center gap-2">
+                <button className="inline-flex size-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:bg-slate-50">
                   <Bell className="size-4" />
-                </button>
-                <button className="inline-flex size-9 items-center justify-center rounded-xl border border-[#E5ECF4] bg-[#F6F9FC] text-[#7B90A5]">
-                  <ClipboardCheck className="size-4" />
                 </button>
 
                 <Link
                   href="/dashboard/observacoes"
                   prefetch
-                  className="inline-flex h-9 items-center justify-center gap-1 rounded-xl bg-[#10B7AA] px-3 text-sm font-bold text-white shadow-[0_10px_24px_-16px_rgba(16,183,170,0.9)] transition hover:bg-[#0E9D91]"
+                  className="inline-flex h-9 items-center justify-center gap-1 rounded-xl bg-[#F43F5E] px-3 text-sm font-bold text-white shadow-[0_10px_24px_-16px_rgba(244,63,94,0.75)] transition hover:bg-[#E11D48]"
                 >
                   <Plus className="size-4" />
                   <span className="hidden sm:inline">Nova observacao</span>
-                  <span className="sm:hidden">Novo</span>
+                  <span className="sm:hidden">Nova</span>
                 </Link>
               </div>
             </div>
-
-            <div className="mx-auto mt-3 flex w-full max-w-[1700px] gap-2 overflow-x-auto pb-1 xl:hidden">
-              {[...mainLinks, ...reportLinks, ...accountLinks].map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold",
-                    isActive(item.href)
-                      ? "border-[#BFEAE5] bg-[#E4F8F5] text-[#0F9D91]"
-                      : "border-[#E2EAF4] bg-white text-[#587087]",
-                  )}
-                >
-                  <item.icon className="size-3.5" />
-                  {item.label}
-                </Link>
-              ))}
-            </div>
           </header>
 
-          <main className="mx-auto w-full max-w-[1700px] flex-1 p-3 pb-20 sm:p-4 md:p-6 md:pb-6">{children}</main>
+          <main className="mx-auto w-full max-w-[1600px] flex-1 p-4 pb-24 md:p-6 md:pb-6">{children}</main>
         </section>
       </div>
 
-      <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-[#DCE5EF] bg-white/95 px-2 py-2 backdrop-blur xl:hidden">
-        <div className="mx-auto grid max-w-2xl grid-cols-5 gap-1">
+      <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-200 bg-white/95 px-2 py-2 backdrop-blur md:hidden">
+        <div className="mx-auto grid max-w-xl grid-cols-5 gap-1">
           {mobileLinks.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
                 "flex flex-col items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold",
-                isActive(item.href) ? "bg-[#E4F8F5] text-[#0F9D91]" : "text-[#5D748B]",
+                isActive(item.href) ? "bg-[#FFE8EE] text-[#E11D48]" : "text-slate-500",
               )}
             >
               <item.icon className="size-4" />

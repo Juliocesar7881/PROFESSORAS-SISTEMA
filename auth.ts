@@ -8,6 +8,8 @@ import { prisma } from "@/lib/prisma";
 import { hasReachableDatabaseUrl } from "@/lib/runtime";
 
 const hasReachableDatabase = hasReachableDatabaseUrl(env.DATABASE_URL);
+const isProduction = env.NODE_ENV === "production";
+const sessionCookieName = isProduction ? "__Secure-authjs.session-token" : "authjs.session-token";
 
 const providers = [
   Google({
@@ -48,14 +50,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }),
   cookies: {
     sessionToken: {
-      name: "__Secure-authjs.session-token",
+      name: sessionCookieName,
       options: {
         httpOnly: true,
         // OAuth callbacks originate from accounts.google.com; Lax ensures the
         // session cookie is sent on the first redirect back to our app.
         sameSite: "lax",
         path: "/",
-        secure: true,
+        secure: isProduction,
       },
     },
   },

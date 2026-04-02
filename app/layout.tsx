@@ -1,13 +1,19 @@
 import type { Metadata } from "next";
-import { Nunito } from "next/font/google";
+import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 
 import { Providers } from "@/app/providers";
 import "./globals.css";
 
-const nunito = Nunito({
+const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  variable: "--font-nunito",
-  weight: ["500", "600", "700", "800", "900"],
+  variable: "--font-plus-jakarta",
+  weight: ["400", "500", "600", "700", "800"],
+});
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-fraunces",
+  weight: ["400", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -27,7 +33,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
-      <body className={`${nunito.variable} theme antialiased`}>
+      <body className={`${plusJakarta.variable} ${fraunces.variable} theme antialiased`}>
         <Providers>{children}</Providers>
       </body>
     </html>

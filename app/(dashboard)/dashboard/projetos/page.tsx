@@ -20,6 +20,15 @@ type Projeto = {
   salvosPor?: Array<{ userId: string }>;
 };
 
+const categoryGradients: Record<string, string> = {
+  natureza: "from-emerald-500 to-teal-500",
+  corpo: "from-fuchsia-500 to-pink-500",
+  linguagem: "from-amber-500 to-orange-500",
+  matematica: "from-indigo-500 to-purple-500",
+  sociedade: "from-cyan-500 to-blue-500",
+  arte: "from-rose-500 to-purple-500",
+};
+
 export default function ProjetosPage() {
   const [projetos, setProjetos] = useState<Projeto[]>([]);
   const [busca, setBusca] = useState("");
@@ -65,16 +74,16 @@ export default function ProjetosPage() {
   const categorias = ["TODAS", ...Array.from(new Set(projetos.map((item) => item.categoria)))];
 
   return (
-    <div className="space-y-4">
-      <Card className="glass-card border-[#DCECF8]">
+    <div className="space-y-6">
+      <Card className="border-slate-200 bg-white shadow-sm">
         <CardHeader>
-          <CardTitle className="font-heading text-3xl text-[#1E1740]">Biblioteca de Projetos</CardTitle>
-          <CardDescription className="text-[#6A638D]">Natureza, Corpo, Arte, Matematica, Linguagem e muito mais</CardDescription>
+          <CardTitle className="font-heading text-3xl text-slate-900">Biblioteca de Projetos</CardTitle>
+          <CardDescription>Projetos organizados por tema, faixa etaria e objetivos de aprendizagem.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-2.5 size-4 text-[#8A84AD]" />
-            <Input className="pl-9" value={busca} onChange={(event) => setBusca(event.target.value)} placeholder="Buscar por titulo ou descricao" />
+            <Search className="pointer-events-none absolute left-3 top-2.5 size-4 text-slate-400" />
+            <Input className="border-slate-200 bg-slate-50 pl-9" value={busca} onChange={(event) => setBusca(event.target.value)} placeholder="Buscar por titulo ou descricao" />
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -82,7 +91,7 @@ export default function ProjetosPage() {
               <button
                 key={item}
                 type="button"
-                className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${categoria === item ? "border-[#BDEEE8] bg-[#E8FBF8] text-[#0F8F83]" : "border-[#DCECF8] bg-white text-[#6A638D] hover:border-[#BDEEE8] hover:bg-[#F2FCFA]"}`}
+                className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${categoria === item ? "border-rose-200 bg-rose-50 text-rose-600" : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"}`}
                 onClick={() => setCategoria(item)}
               >
                 {item}
@@ -95,34 +104,39 @@ export default function ProjetosPage() {
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {projetos.map((projeto) => {
           const saved = Boolean(projeto.salvosPor?.length);
+          const gradient = categoryGradients[projeto.categoria.toLowerCase()] ?? "from-slate-500 to-slate-400";
 
           return (
-            <article key={projeto.id} className="glass-card rounded-2xl border border-[#DCECF8] p-4 transition hover:-translate-y-0.5 hover:border-[#BDEEE8] hover:bg-[#F2FCFA]">
-              <div className="mb-2 flex items-center justify-between">
-                <p className="text-xs font-semibold uppercase tracking-wide text-[#7C759E]">{projeto.categoria}</p>
-                {projeto.premium ? <Crown className="size-4 text-[#E1A11E]" /> : <Bookmark className="size-4 text-[#8A84AD]" />}
+            <article key={projeto.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+              <div className={`h-24 bg-gradient-to-br ${gradient} p-3`}>
+                <div className="flex items-center justify-between">
+                  <p className="rounded-md bg-white/85 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-slate-800">{projeto.categoria}</p>
+                  {projeto.premium ? <Crown className="size-4 text-amber-200" /> : <Bookmark className="size-4 text-white/85" />}
+                </div>
               </div>
 
-              <h2 className="mt-1 font-heading text-2xl text-[#1E1740]">{projeto.titulo}</h2>
-              <p className="mt-2 line-clamp-3 text-sm text-[#50497A]">{projeto.descricao}</p>
-              <p className="mt-2 text-xs text-[#7A739E]">{projeto.faixaEtaria} • {projeto.duracao}</p>
+              <div className="p-4">
+                <h2 className="font-heading text-2xl text-slate-900">{projeto.titulo}</h2>
+                <p className="mt-2 line-clamp-3 text-sm text-slate-600">{projeto.descricao}</p>
+                <p className="mt-2 text-xs text-slate-500">{projeto.faixaEtaria} • {projeto.duracao}</p>
 
-              <div className="mt-4 flex gap-2">
-                <Link href={`/dashboard/projetos/${projeto.id}`} className={buttonVariants({ className: "bg-[#0BB8A8] text-white hover:bg-[#0A9F92]" })}>
-                  Usar no planejamento
-                </Link>
-                <Button variant="outline" className="border-[#D8E9F8] bg-white text-[#1E1740] hover:border-[#BDEEE8] hover:bg-[#F2FCFA]" onClick={() => toggleSave(projeto)}>
-                  {saved ? "Remover" : "Salvar"}
-                </Button>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Link href={`/dashboard/projetos/${projeto.id}`} className={buttonVariants({ className: "bg-rose-500 text-white hover:bg-rose-600" })}>
+                    Usar no planejamento
+                  </Link>
+                  <Button variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50" onClick={() => toggleSave(projeto)}>
+                    {saved ? "Remover" : "Salvar"}
+                  </Button>
+                </div>
+
+                {projeto.premium && <p className="mt-2 text-xs font-semibold text-amber-600">Projeto premium</p>}
               </div>
-
-              {projeto.premium && <p className="mt-2 text-xs font-semibold text-[#E1A11E]">Projeto premium</p>}
             </article>
           );
         })}
 
         {!projetos.length && (
-          <div className="rounded-2xl border border-dashed border-[#CFE2F5] bg-[#F8FBFF] p-5 text-sm text-[#6A638D] md:col-span-2 xl:col-span-3">
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-5 text-sm text-slate-600 md:col-span-2 xl:col-span-3">
             Nenhum projeto encontrado para os filtros atuais.
           </div>
         )}

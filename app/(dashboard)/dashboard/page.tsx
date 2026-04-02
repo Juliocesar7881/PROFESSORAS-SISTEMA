@@ -1,13 +1,12 @@
 import Link from "next/link";
 import {
   ArrowRight,
-  BookOpenCheck,
   CalendarClock,
   ClipboardCheck,
-  FileBarChart,
-  Sparkles,
+  FileText,
+  Play,
   TriangleAlert,
-  UserRound,
+  Users,
 } from "lucide-react";
 
 import { auth } from "@/auth";
@@ -41,196 +40,165 @@ export default async function DashboardHomePage() {
       };
 
   return (
-    <div className="space-y-4">
-      <section className="grid gap-4 xl:grid-cols-[2fr_1fr]">
-        <Card className="border-[#DBE5EF] bg-white shadow-sm">
-          <CardHeader className="space-y-3">
-            <CardDescription className="text-[#70849A]">Visao geral da turma</CardDescription>
-            <CardTitle className="font-heading text-3xl text-[#10253B]">Acompanhe evolucao e mantenha os registros em dia</CardTitle>
-            <p className="max-w-2xl text-sm text-[#4D647B]">
-              Centralize observacoes, planejamentos e relatorios no mesmo fluxo para acelerar a documentacao pedagogica da semana.
-            </p>
-            <div className="flex flex-wrap gap-2 pt-1">
-              <Link
-                href="/dashboard/observacoes"
-                className="inline-flex h-9 items-center justify-center rounded-xl bg-[#10B7AA] px-3 text-sm font-semibold text-white transition hover:bg-[#0F9D91]"
-              >
+    <div className="mx-auto max-w-6xl space-y-6">
+      <Card className="overflow-hidden border-slate-200 bg-white shadow-sm">
+        <CardContent className="relative p-6 md:p-8">
+          <div className="pointer-events-none absolute -top-10 right-[-120px] h-52 w-52 rounded-full bg-rose-200/55 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-12 left-[-110px] h-48 w-48 rounded-full bg-purple-200/55 blur-3xl" />
+
+          <div className="relative z-10 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+            <div>
+              <p className="mb-1 text-sm font-semibold text-purple-600">Tudo pronto para o dia?</p>
+              <h3 className="font-heading text-3xl text-slate-900">Pronta para inspirar sua turma?</h3>
+              <p className="mt-2 max-w-xl text-sm text-slate-600">
+                Voce esta em sequencia de <strong>{summary.streak}</strong> semanas com planejamento ativo.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Link href="/dashboard/chamada" className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#F43F5E] px-4 text-sm font-bold text-white transition hover:bg-[#E11D48]">
+                <ClipboardCheck className="size-4" />
+                Fazer chamada
+              </Link>
+              <Link href="/dashboard/observacoes" className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                <FileText className="size-4 text-purple-500" />
                 Nova observacao
               </Link>
-              <Link
-                href="/dashboard/relatorios"
-                className="inline-flex h-9 items-center justify-center rounded-xl border border-[#CEDCE9] bg-[#F5FAFF] px-3 text-sm font-semibold text-[#1E3A53] transition hover:border-[#B6CBDD]"
-              >
-                Gerar relatorio
-              </Link>
             </div>
-          </CardHeader>
-        </Card>
-
-        <Card className="border-[#DBE5EF] bg-white shadow-sm">
-          <CardHeader>
-            <CardDescription className="text-[#70849A]">Consistencia de rotina</CardDescription>
-            <CardTitle className="font-heading text-5xl text-[#10253B]">{summary.streak}</CardTitle>
-          </CardHeader>
-          <CardContent className="flex items-center justify-between text-sm text-[#60788F]">
-            <p>semanas consecutivas com planejamento registrado</p>
-            <Sparkles className="size-5 text-[#0FA398]" />
-          </CardContent>
-        </Card>
-      </section>
+          </div>
+        </CardContent>
+      </Card>
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Card className="border-[#DBE5EF] bg-white shadow-sm">
-          <CardContent className="flex items-center justify-between py-4">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.1em] text-[#7A8EA3]">Alunos ativos</p>
-              <p className="mt-1 text-3xl font-black text-[#10253B]">{summary.totalAlunos}</p>
+        <Card className="border-slate-200 bg-white shadow-sm">
+          <CardContent className="py-4">
+            <p className="text-xs font-bold uppercase tracking-[0.1em] text-slate-500">Alunos ativos</p>
+            <div className="mt-2 flex items-center justify-between">
+              <p className="text-3xl font-black text-slate-900">{summary.totalAlunos}</p>
+              <Users className="size-5 text-rose-500" />
             </div>
-            <span className="inline-flex size-10 items-center justify-center rounded-xl bg-[#E7F6FF] text-[#2E7AA8]">
-              <UserRound className="size-5" />
-            </span>
           </CardContent>
         </Card>
 
-        <Card className="border-[#DBE5EF] bg-white shadow-sm">
-          <CardContent className="flex items-center justify-between py-4">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.1em] text-[#7A8EA3]">Observacoes semana</p>
-              <p className="mt-1 text-3xl font-black text-[#10253B]">{summary.observacoesSemana}</p>
+        <Card className="border-slate-200 bg-white shadow-sm">
+          <CardContent className="py-4">
+            <p className="text-xs font-bold uppercase tracking-[0.1em] text-slate-500">Observacoes (sem.)</p>
+            <div className="mt-2 flex items-center justify-between">
+              <p className="text-3xl font-black text-slate-900">{summary.observacoesSemana}</p>
+              <FileText className="size-5 text-purple-500" />
             </div>
-            <span className="inline-flex size-10 items-center justify-center rounded-xl bg-[#E6F9F7] text-[#119D93]">
-              <BookOpenCheck className="size-5" />
-            </span>
           </CardContent>
         </Card>
 
-        <Card className="border-[#DBE5EF] bg-white shadow-sm">
-          <CardContent className="flex items-center justify-between py-4">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.1em] text-[#7A8EA3]">Planejamentos semana</p>
-              <p className="mt-1 text-3xl font-black text-[#10253B]">{summary.planejamentosSemana}</p>
+        <Card className="border-slate-200 bg-white shadow-sm">
+          <CardContent className="py-4">
+            <p className="text-xs font-bold uppercase tracking-[0.1em] text-slate-500">Planejamentos (sem.)</p>
+            <div className="mt-2 flex items-center justify-between">
+              <p className="text-3xl font-black text-slate-900">{summary.planejamentosSemana}</p>
+              <CalendarClock className="size-5 text-cyan-500" />
             </div>
-            <span className="inline-flex size-10 items-center justify-center rounded-xl bg-[#EEF3FF] text-[#4A67B8]">
-              <CalendarClock className="size-5" />
-            </span>
           </CardContent>
         </Card>
 
-        <Card className="border-[#DBE5EF] bg-white shadow-sm">
-          <CardContent className="flex items-center justify-between py-4">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.1em] text-[#7A8EA3]">Relatorios no mes</p>
-              <p className="mt-1 text-3xl font-black text-[#10253B]">{summary.relatoriosMes}</p>
+        <Card className="border-slate-200 bg-white shadow-sm">
+          <CardContent className="py-4">
+            <p className="text-xs font-bold uppercase tracking-[0.1em] text-slate-500">Relatorios (mes)</p>
+            <div className="mt-2 flex items-center justify-between">
+              <p className="text-3xl font-black text-slate-900">{summary.relatoriosMes}</p>
+              <ClipboardCheck className="size-5 text-emerald-500" />
             </div>
-            <span className="inline-flex size-10 items-center justify-center rounded-xl bg-[#FFF2E9] text-[#B86A35]">
-              <FileBarChart className="size-5" />
-            </span>
           </CardContent>
         </Card>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1.3fr_1fr]">
-        <Card className="border-[#DBE5EF] bg-white shadow-sm">
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <h4 className="text-lg font-bold text-slate-900">Continue planejando</h4>
+          <Link href="/dashboard/projetos" className="inline-flex items-center gap-1 text-sm font-semibold text-rose-500 hover:text-rose-600">
+            Ver biblioteca
+            <ArrowRight className="size-4" />
+          </Link>
+        </div>
+
+        <div className="flex gap-3 overflow-x-auto pb-2">
+          {summary.projetosSalvos.slice(0, 8).map((projeto) => (
+            <Link
+              key={projeto.id}
+              href={`/dashboard/projetos/${projeto.id}`}
+              className="min-w-[250px] rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            >
+              <div className="mb-3 flex items-center justify-between">
+                <span className="rounded-full bg-rose-50 px-2 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-rose-600">{projeto.categoria}</span>
+                <Play className="size-4 text-slate-400" />
+              </div>
+              <p className="line-clamp-2 font-bold text-slate-900">{projeto.titulo}</p>
+              <p className="mt-1 text-xs text-slate-500">{projeto.faixaEtaria}</p>
+            </Link>
+          ))}
+
+          {!summary.projetosSalvos.length && (
+            <div className="w-full rounded-2xl border border-dashed border-slate-300 bg-white p-5 text-sm text-slate-600">
+              Nenhum projeto salvo ainda.
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
+        <Card className="border-slate-200 bg-white shadow-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="font-heading text-2xl text-[#10253B]">Observacoes recentes</CardTitle>
-            <CardDescription className="text-[#70849A]">Ultimos registros em sala</CardDescription>
+            <CardTitle className="text-xl text-slate-900">Observacoes recentes</CardTitle>
+            <CardDescription>Ultimos registros por aluno</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
             {summary.observacoesRecentes.slice(0, 6).map((observacao) => (
               <Link
                 key={observacao.id}
                 href={`/dashboard/alunos/${observacao.aluno.id}`}
-                className="block rounded-xl border border-[#E4EDF6] bg-[#FAFCFF] p-3 transition hover:border-[#C8D8EA]"
+                className="block rounded-xl border border-slate-200 bg-slate-50/50 p-3 hover:border-rose-200 hover:bg-rose-50/30"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-black text-[#10253B]">{observacao.aluno.nome}</p>
-                    <p className="text-xs font-semibold text-[#6F859A]">{observacao.aluno.turma.nome} • {formatDate(observacao.createdAt)}</p>
+                    <p className="text-sm font-bold text-slate-900">{observacao.aluno.nome}</p>
+                    <p className="text-xs text-slate-500">{observacao.aluno.turma.nome} - {formatDate(observacao.createdAt)}</p>
                   </div>
-                  <span className="rounded-full bg-[#EAF6F5] px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.08em] text-[#0E9489]">
+                  <span className="rounded-full bg-purple-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-purple-600">
                     {observacao.categoria.replaceAll("_", " ")}
                   </span>
                 </div>
-                <p className="mt-2 line-clamp-2 text-sm text-[#3E576E]">{observacao.texto}</p>
+                <p className="mt-2 line-clamp-2 text-sm text-slate-700">{observacao.texto}</p>
               </Link>
             ))}
 
             {!summary.observacoesRecentes.length && (
-              <div className="rounded-xl border border-dashed border-[#C8D8EA] bg-[#F7FBFF] p-4 text-sm text-[#60788F]">
+              <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
                 Nenhuma observacao registrada recentemente.
               </div>
             )}
-
-            <Link
-              href="/dashboard/observacoes"
-              className="inline-flex items-center gap-1 text-sm font-bold text-[#0F9D91]"
-            >
-              Ver todas as observacoes
-              <ArrowRight className="size-4" />
-            </Link>
           </CardContent>
         </Card>
 
-        <div className="grid gap-4">
-          <Card className="border-[#DBE5EF] bg-white shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="font-heading text-2xl text-[#10253B]">Acompanhamento</CardTitle>
-              <CardDescription className="text-[#70849A]">Alunos sem observacao ha 14+ dias</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm text-[#4D647B]">
-              {summary.alunosSemObservacao.slice(0, 5).map((aluno) => (
-                <Link
-                  key={aluno.id}
-                  href={`/dashboard/alunos/${aluno.id}`}
-                  className="flex items-center justify-between rounded-xl border border-[#F3DFB6] bg-[#FFF8E9] p-2.5"
-                >
-                  <span className="font-semibold">{aluno.nome}</span>
-                  <TriangleAlert className="size-4 text-[#D28A13]" />
-                </Link>
-              ))}
+        <Card className="border-slate-200 bg-white shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xl text-slate-900">Alerta de acompanhamento</CardTitle>
+            <CardDescription>Sem observacao ha 14 dias ou mais</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {summary.alunosSemObservacao.slice(0, 6).map((aluno) => (
+              <Link
+                key={aluno.id}
+                href={`/dashboard/alunos/${aluno.id}`}
+                className="flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50/60 p-2.5"
+              >
+                <span className="text-sm font-semibold text-slate-800">{aluno.nome}</span>
+                <TriangleAlert className="size-4 text-amber-600" />
+              </Link>
+            ))}
 
-              {!summary.alunosSemObservacao.length && <p>Sem alertas no momento.</p>}
-            </CardContent>
-          </Card>
-
-          <Card className="border-[#DBE5EF] bg-white shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="font-heading text-2xl text-[#10253B]">Projetos salvos</CardTitle>
-              <CardDescription className="text-[#70849A]">Material pronto para uso rapido</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {summary.projetosSalvos.slice(0, 4).map((projeto) => (
-                <Link
-                  key={projeto.id}
-                  href={`/dashboard/projetos/${projeto.id}`}
-                  className="block rounded-xl border border-[#E4EDF6] bg-[#FAFCFF] p-3"
-                >
-                  <p className="font-semibold text-[#10253B]">{projeto.titulo}</p>
-                  <p className="text-xs text-[#73879B]">{projeto.categoria} • {projeto.faixaEtaria}</p>
-                </Link>
-              ))}
-
-              {!summary.projetosSalvos.length && (
-                <div className="rounded-xl border border-dashed border-[#C8D8EA] bg-[#F7FBFF] p-4 text-sm text-[#60788F]">
-                  Nenhum projeto salvo ainda.
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+            {!summary.alunosSemObservacao.length && <p className="text-sm text-slate-600">Sem alertas no momento.</p>}
+          </CardContent>
+        </Card>
       </section>
-
-      <Card className="border-[#DBE5EF] bg-white shadow-sm">
-        <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
-          <div className="flex items-center gap-2 text-[#3F5870]">
-            <ClipboardCheck className="size-4 text-[#10A89C]" />
-            <p className="text-sm">Atualize a chamada no inicio da aula para manter os indicadores da semana corretos.</p>
-          </div>
-          <Link href="/dashboard/chamada" className="text-sm font-bold text-[#0F9D91]">
-            Abrir chamada
-          </Link>
-        </CardContent>
-      </Card>
     </div>
   );
 }
