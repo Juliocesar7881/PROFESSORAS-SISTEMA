@@ -48,6 +48,18 @@ export class AlunoRepository extends BaseRepository {
     });
   }
 
+  async countByUser(userId: string) {
+    return prisma.aluno.count({
+      where: {
+        deletedAt: null,
+        turma: {
+          userId,
+          deletedAt: null,
+        },
+      },
+    });
+  }
+
   async create(userId: string, data: CreateAlunoInput) {
     await this.assertTurmaOwnership(userId, data.turmaId);
 

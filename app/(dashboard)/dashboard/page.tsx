@@ -1,5 +1,14 @@
 import Link from "next/link";
-import { CalendarClock, ClipboardCheck, Sparkles, TriangleAlert } from "lucide-react";
+import {
+  ArrowRight,
+  BookOpenCheck,
+  CalendarClock,
+  ClipboardCheck,
+  FileBarChart,
+  Sparkles,
+  TriangleAlert,
+  UserRound,
+} from "lucide-react";
 
 import { auth } from "@/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +16,8 @@ import { hasReachableDatabaseUrl } from "@/lib/runtime";
 import { DashboardService } from "@/services/dashboard.service";
 
 const hasReachableDatabase = hasReachableDatabaseUrl(process.env.DATABASE_URL);
+
+const formatDate = (value: Date | string) => new Date(value).toLocaleDateString("pt-BR");
 
 export default async function DashboardHomePage() {
   const session = await auth();
@@ -18,126 +29,204 @@ export default async function DashboardHomePage() {
   const summary = hasReachableDatabase
     ? await new DashboardService().summary(session.user.id, session.user.plano)
     : {
+        totalAlunos: 0,
+        observacoesSemana: 0,
+        planejamentosSemana: 0,
+        relatoriosMes: 0,
         streak: 0,
         planejamentos: [],
+        observacoesRecentes: [],
         alunosSemObservacao: [],
         projetosSalvos: [],
       };
 
   return (
-    <div className="grid gap-4 lg:grid-cols-3">
-      <Card className="glass-card border-[#DCECF8] lg:col-span-2">
-        <CardHeader>
-          <CardDescription className="text-[#6A638D]">Painel principal</CardDescription>
-          <CardTitle className="font-heading text-3xl text-[#1E1740]">Acompanhe o desenvolvimento da turma</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-wrap items-center justify-between gap-3">
-          <p className="max-w-xl text-sm text-[#4E4770]">
-            Gere relatorios descritivos a partir das observacoes e mantenha o historico pedagogico atualizado para familias e coordenacao.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href="/dashboard/alunos"
-              className="inline-flex h-9 items-center justify-center rounded-xl bg-[#0BB8A8] px-3 text-sm font-semibold text-white transition hover:bg-[#0A9F92]"
-            >
-              Ir para alunos
-            </Link>
-            <Link
-              href="/dashboard/chamada"
-              className="inline-flex h-9 items-center justify-center rounded-xl border border-[#D8E9F8] bg-white px-3 text-sm font-semibold text-[#1E1740] transition hover:border-[#BFEADF] hover:bg-[#F3FCFA]"
-            >
-              Fazer chamada
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="glass-card border-[#DCECF8]">
-        <CardHeader>
-          <CardDescription className="text-[#6A638D]">Streak semanal</CardDescription>
-          <CardTitle className="font-heading text-4xl text-[#1E1740]">{summary.streak}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex items-center justify-between">
-          <p className="text-sm text-[#6A638D]">semanas planejadas consecutivas</p>
-          <Sparkles className="size-5 text-[#0BB8A8]" />
-        </CardContent>
-      </Card>
-
-      <Card className="glass-card border-[#DCECF8] lg:col-span-2">
-        <CardHeader>
-          <CardDescription className="text-[#6A638D]">Semana atual</CardDescription>
-          <CardTitle className="font-heading text-2xl text-[#1E1740]">Planejamento da semana atual</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 text-sm text-[#4E4770]">
-          {summary.planejamentos.slice(0, 3).map((planejamento) => (
-            <div key={planejamento.id} className="flex items-center justify-between rounded-xl border border-[#E2EEFF] bg-[#F8FBFF] p-3">
-              <div>
-                <p className="font-semibold text-[#1E1740]">{planejamento.turma.nome}</p>
-                <p className="text-[#746E98]">{new Date(planejamento.semanaInicio).toLocaleDateString("pt-BR")} ate {new Date(planejamento.semanaFim).toLocaleDateString("pt-BR")}</p>
-              </div>
-              <CalendarClock className="size-4 text-[#8A84AD]" />
-            </div>
-          ))}
-
-          {!summary.planejamentos.length && <p>Nenhum planejamento cadastrado nesta semana.</p>}
-        </CardContent>
-      </Card>
-
-      <Card className="glass-card border-[#DCECF8]">
-        <CardHeader>
-          <CardTitle className="font-heading text-2xl text-[#1E1740]">Acompanhamento</CardTitle>
-          <CardDescription className="text-[#6A638D]">Alunos sem observacao ha 14+ dias</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2 text-sm text-[#4E4770]">
-          {summary.alunosSemObservacao.slice(0, 5).map((aluno) => (
-            <Link
-              key={aluno.id}
-              href={`/dashboard/alunos/${aluno.id}`}
-              className="flex items-center justify-between rounded-xl border border-[#FFE1A0] bg-[#FFF7E4] p-2.5"
-            >
-              <span>{aluno.nome}</span>
-              <TriangleAlert className="size-4 text-[#E1A11E]" />
-            </Link>
-          ))}
-          {!summary.alunosSemObservacao.length && <p>Sem alertas no momento.</p>}
-        </CardContent>
-      </Card>
-
-      <Card className="glass-card border-[#DCECF8] lg:col-span-3">
-        <CardHeader>
-          <CardTitle className="font-heading text-2xl text-[#1E1740]">Projetos em andamento</CardTitle>
-          <CardDescription className="text-[#6A638D]">Atividades ativas para conectar ao planejamento</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-2 md:grid-cols-3">
-          {summary.projetosSalvos.slice(0, 6).map((projeto) => (
-            <Link
-              key={projeto.id}
-              href={`/dashboard/projetos/${projeto.id}`}
-              className="rounded-xl border border-[#E2EEFF] bg-white p-3 transition hover:border-[#BDEEE8] hover:bg-[#F2FCFA]"
-            >
-              <p className="font-semibold text-[#1E1740]">{projeto.titulo}</p>
-              <p className="text-xs text-[#746E98]">{projeto.categoria} • {projeto.faixaEtaria}</p>
-            </Link>
-          ))}
-
-          {!summary.projetosSalvos.length && (
-            <div className="rounded-xl border border-dashed border-[#CFE2F5] bg-[#F8FBFF] p-4 text-sm text-[#6A638D]">
-              <p>Nenhum projeto salvo ainda.</p>
-              <Link href="/dashboard/projetos" className="mt-2 inline-flex items-center font-semibold text-[#0BB8A8] underline">
-                Abrir biblioteca de projetos
+    <div className="space-y-4">
+      <section className="grid gap-4 xl:grid-cols-[2fr_1fr]">
+        <Card className="border-[#DBE5EF] bg-white shadow-sm">
+          <CardHeader className="space-y-3">
+            <CardDescription className="text-[#70849A]">Visao geral da turma</CardDescription>
+            <CardTitle className="font-heading text-3xl text-[#10253B]">Acompanhe evolucao e mantenha os registros em dia</CardTitle>
+            <p className="max-w-2xl text-sm text-[#4D647B]">
+              Centralize observacoes, planejamentos e relatorios no mesmo fluxo para acelerar a documentacao pedagogica da semana.
+            </p>
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Link
+                href="/dashboard/observacoes"
+                className="inline-flex h-9 items-center justify-center rounded-xl bg-[#10B7AA] px-3 text-sm font-semibold text-white transition hover:bg-[#0F9D91]"
+              >
+                Nova observacao
+              </Link>
+              <Link
+                href="/dashboard/relatorios"
+                className="inline-flex h-9 items-center justify-center rounded-xl border border-[#CEDCE9] bg-[#F5FAFF] px-3 text-sm font-semibold text-[#1E3A53] transition hover:border-[#B6CBDD]"
+              >
+                Gerar relatorio
               </Link>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardHeader>
+        </Card>
 
-      <Card className="glass-card border-[#DCECF8] lg:col-span-3">
+        <Card className="border-[#DBE5EF] bg-white shadow-sm">
+          <CardHeader>
+            <CardDescription className="text-[#70849A]">Consistencia de rotina</CardDescription>
+            <CardTitle className="font-heading text-5xl text-[#10253B]">{summary.streak}</CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between text-sm text-[#60788F]">
+            <p>semanas consecutivas com planejamento registrado</p>
+            <Sparkles className="size-5 text-[#0FA398]" />
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Card className="border-[#DBE5EF] bg-white shadow-sm">
+          <CardContent className="flex items-center justify-between py-4">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.1em] text-[#7A8EA3]">Alunos ativos</p>
+              <p className="mt-1 text-3xl font-black text-[#10253B]">{summary.totalAlunos}</p>
+            </div>
+            <span className="inline-flex size-10 items-center justify-center rounded-xl bg-[#E7F6FF] text-[#2E7AA8]">
+              <UserRound className="size-5" />
+            </span>
+          </CardContent>
+        </Card>
+
+        <Card className="border-[#DBE5EF] bg-white shadow-sm">
+          <CardContent className="flex items-center justify-between py-4">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.1em] text-[#7A8EA3]">Observacoes semana</p>
+              <p className="mt-1 text-3xl font-black text-[#10253B]">{summary.observacoesSemana}</p>
+            </div>
+            <span className="inline-flex size-10 items-center justify-center rounded-xl bg-[#E6F9F7] text-[#119D93]">
+              <BookOpenCheck className="size-5" />
+            </span>
+          </CardContent>
+        </Card>
+
+        <Card className="border-[#DBE5EF] bg-white shadow-sm">
+          <CardContent className="flex items-center justify-between py-4">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.1em] text-[#7A8EA3]">Planejamentos semana</p>
+              <p className="mt-1 text-3xl font-black text-[#10253B]">{summary.planejamentosSemana}</p>
+            </div>
+            <span className="inline-flex size-10 items-center justify-center rounded-xl bg-[#EEF3FF] text-[#4A67B8]">
+              <CalendarClock className="size-5" />
+            </span>
+          </CardContent>
+        </Card>
+
+        <Card className="border-[#DBE5EF] bg-white shadow-sm">
+          <CardContent className="flex items-center justify-between py-4">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.1em] text-[#7A8EA3]">Relatorios no mes</p>
+              <p className="mt-1 text-3xl font-black text-[#10253B]">{summary.relatoriosMes}</p>
+            </div>
+            <span className="inline-flex size-10 items-center justify-center rounded-xl bg-[#FFF2E9] text-[#B86A35]">
+              <FileBarChart className="size-5" />
+            </span>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[1.3fr_1fr]">
+        <Card className="border-[#DBE5EF] bg-white shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="font-heading text-2xl text-[#10253B]">Observacoes recentes</CardTitle>
+            <CardDescription className="text-[#70849A]">Ultimos registros em sala</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {summary.observacoesRecentes.slice(0, 6).map((observacao) => (
+              <Link
+                key={observacao.id}
+                href={`/dashboard/alunos/${observacao.aluno.id}`}
+                className="block rounded-xl border border-[#E4EDF6] bg-[#FAFCFF] p-3 transition hover:border-[#C8D8EA]"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-black text-[#10253B]">{observacao.aluno.nome}</p>
+                    <p className="text-xs font-semibold text-[#6F859A]">{observacao.aluno.turma.nome} • {formatDate(observacao.createdAt)}</p>
+                  </div>
+                  <span className="rounded-full bg-[#EAF6F5] px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.08em] text-[#0E9489]">
+                    {observacao.categoria.replaceAll("_", " ")}
+                  </span>
+                </div>
+                <p className="mt-2 line-clamp-2 text-sm text-[#3E576E]">{observacao.texto}</p>
+              </Link>
+            ))}
+
+            {!summary.observacoesRecentes.length && (
+              <div className="rounded-xl border border-dashed border-[#C8D8EA] bg-[#F7FBFF] p-4 text-sm text-[#60788F]">
+                Nenhuma observacao registrada recentemente.
+              </div>
+            )}
+
+            <Link
+              href="/dashboard/observacoes"
+              className="inline-flex items-center gap-1 text-sm font-bold text-[#0F9D91]"
+            >
+              Ver todas as observacoes
+              <ArrowRight className="size-4" />
+            </Link>
+          </CardContent>
+        </Card>
+
+        <div className="grid gap-4">
+          <Card className="border-[#DBE5EF] bg-white shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="font-heading text-2xl text-[#10253B]">Acompanhamento</CardTitle>
+              <CardDescription className="text-[#70849A]">Alunos sem observacao ha 14+ dias</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm text-[#4D647B]">
+              {summary.alunosSemObservacao.slice(0, 5).map((aluno) => (
+                <Link
+                  key={aluno.id}
+                  href={`/dashboard/alunos/${aluno.id}`}
+                  className="flex items-center justify-between rounded-xl border border-[#F3DFB6] bg-[#FFF8E9] p-2.5"
+                >
+                  <span className="font-semibold">{aluno.nome}</span>
+                  <TriangleAlert className="size-4 text-[#D28A13]" />
+                </Link>
+              ))}
+
+              {!summary.alunosSemObservacao.length && <p>Sem alertas no momento.</p>}
+            </CardContent>
+          </Card>
+
+          <Card className="border-[#DBE5EF] bg-white shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="font-heading text-2xl text-[#10253B]">Projetos salvos</CardTitle>
+              <CardDescription className="text-[#70849A]">Material pronto para uso rapido</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {summary.projetosSalvos.slice(0, 4).map((projeto) => (
+                <Link
+                  key={projeto.id}
+                  href={`/dashboard/projetos/${projeto.id}`}
+                  className="block rounded-xl border border-[#E4EDF6] bg-[#FAFCFF] p-3"
+                >
+                  <p className="font-semibold text-[#10253B]">{projeto.titulo}</p>
+                  <p className="text-xs text-[#73879B]">{projeto.categoria} • {projeto.faixaEtaria}</p>
+                </Link>
+              ))}
+
+              {!summary.projetosSalvos.length && (
+                <div className="rounded-xl border border-dashed border-[#C8D8EA] bg-[#F7FBFF] p-4 text-sm text-[#60788F]">
+                  Nenhum projeto salvo ainda.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+      <Card className="border-[#DBE5EF] bg-white shadow-sm">
         <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
-          <div className="flex items-center gap-2 text-[#4E4770]">
-            <ClipboardCheck className="size-4 text-[#0BB8A8]" />
-            <p className="text-sm">Dica rapida: use a Chamada Digital no inicio da aula para atualizar automaticamente os indicadores do mes.</p>
+          <div className="flex items-center gap-2 text-[#3F5870]">
+            <ClipboardCheck className="size-4 text-[#10A89C]" />
+            <p className="text-sm">Atualize a chamada no inicio da aula para manter os indicadores da semana corretos.</p>
           </div>
-          <Link href="/dashboard/chamada" className="text-sm font-semibold text-[#0BB8A8] underline">
+          <Link href="/dashboard/chamada" className="text-sm font-bold text-[#0F9D91]">
             Abrir chamada
           </Link>
         </CardContent>

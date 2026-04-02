@@ -63,4 +63,8 @@ export class RelatorioService {
   async listar(userId: string, alunoId: string) {
     return this.relatorioRepository.listByAluno(userId, alunoId);
   }
+
+  async listRecentByUser(userId: string, limit = 20) {
+    return this.relatorioRepository.listRecentByUser(userId, limit);
+  }
 }

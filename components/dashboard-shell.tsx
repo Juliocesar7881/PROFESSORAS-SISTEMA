@@ -3,19 +3,41 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { CalendarDays, Camera, ClipboardCheck, FolderKanban, Home, LogOut, Settings, UserRound, Sparkles } from "lucide-react";
-import { motion, useReducedMotion } from "framer-motion";
+import { useMemo } from "react";
+import {
+  Bell,
+  CalendarDays,
+  ClipboardCheck,
+  FileBarChart,
+  FolderKanban,
+  Home,
+  LogOut,
+  NotebookPen,
+  Plus,
+  Search,
+  Settings,
+  UserRound,
+  type LucideIcon,
+} from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-const links = [
-  { href: "/dashboard", icon: Home, label: "Painel Inicial" },
-  { href: "/dashboard/planejamento", icon: CalendarDays, label: "Plano de Aula" },
-  { href: "/dashboard/alunos", icon: UserRound, label: "Meus Alunos" },
-  { href: "/dashboard/chamada", icon: ClipboardCheck, label: "Diário & Chamada" },
-  { href: "/dashboard/projetos", icon: FolderKanban, label: "Projetos" },
-  { href: "/dashboard/configuracoes", icon: Settings, label: "Configurações" },
+const mainLinks = [
+  { href: "/dashboard", icon: Home, label: "Dashboard" },
+  { href: "/dashboard/alunos", icon: UserRound, label: "Alunos" },
+  { href: "/dashboard/observacoes", icon: NotebookPen, label: "Observacoes" },
+  { href: "/dashboard/planejamento", icon: CalendarDays, label: "Planejamentos" },
+  { href: "/dashboard/chamada", icon: ClipboardCheck, label: "Chamada" },
+];
+
+const reportLinks = [
+  { href: "/dashboard/relatorios", icon: FileBarChart, label: "Gerar PDF" },
+  { href: "/dashboard/projetos", icon: FolderKanban, label: "Biblioteca" },
+];
+
+const accountLinks = [
+  { href: "/dashboard/configuracoes", icon: Settings, label: "Configuracoes" },
 ];
 
 interface DashboardShellProps {
@@ -26,121 +48,152 @@ interface DashboardShellProps {
 
 export function DashboardShell({ userName, userPlano, children }: DashboardShellProps) {
   const pathname = usePathname();
-  const reduceMotion = useReducedMotion();
+  const dateLabel = useMemo(
+    () =>
+      new Intl.DateTimeFormat("pt-BR", {
+        weekday: "long",
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      }).format(new Date()),
+    [],
+  );
+
+  const initials = useMemo(() => {
+    const parts = userName.trim().split(" ").filter(Boolean);
+    if (!parts.length) return "P";
+    if (parts.length === 1) return parts[0].slice(0, 1).toUpperCase();
+    return `${parts[0].slice(0, 1)}${parts[parts.length - 1].slice(0, 1)}`.toUpperCase();
+  }, [userName]);
 
   const handleLogoutAll = async () => {
     await fetch("/api/account/logout-all", { method: "POST" });
     await signOut({ callbackUrl: "/login" });
   };
 
+  const isActive = (href: string) => pathname === href || (href !== "/dashboard" && pathname.startsWith(`${href}`));
+
+  const renderLinkGroup = (items: Array<{ href: string; icon: LucideIcon; label: string }>) =>
+    items.map((item) => (
+      <Link
+        key={item.href}
+        href={item.href}
+        prefetch
+        className={cn(
+          "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition",
+          isActive(item.href)
+            ? "bg-[#DDF3F1] text-[#0F9D91]"
+            : "text-[#415A73] hover:bg-[#F2F6FB] hover:text-[#10253B]",
+        )}
+      >
+        <item.icon className={cn("size-4", isActive(item.href) ? "text-[#0F9D91]" : "text-[#7F93A7]")} />
+        {item.label}
+      </Link>
+    ));
+
   return (
-    <div className="mesh-bg soft-grid min-h-screen text-foreground">
-      <div className="mx-auto w-full max-w-[1500px] p-3 md:p-6">
-        <div className="grid min-h-[calc(100vh-1.5rem)] gap-4 md:grid-cols-[290px_1fr] md:gap-6">
-          <motion.aside
-            initial={reduceMotion ? { opacity: 1, x: 0 } : { opacity: 0, x: -14 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={reduceMotion ? { duration: 0 } : { duration: 0.22, ease: "easeOut" }}
-            className="glass-card hidden overflow-hidden rounded-[2rem] p-5 md:flex md:flex-col"
-          >
-            <div className="mb-6 rounded-3xl bg-gradient-to-br from-[#0BB8A8] via-[#25C7B8] to-[#3CC8A0] p-5 text-white shadow-[0_18px_42px_-28px_rgba(11,184,168,0.9)]">
-              <div className="mb-3 flex items-center gap-2">
-                <span className="inline-flex size-8 items-center justify-center rounded-lg bg-white/20 text-white ring-1 ring-white/35">
-                  <Sparkles className="size-4" />
-                </span>
-                <p className="font-heading text-3xl">Planejei</p>
-              </div>
-              <p className="text-sm text-white/90">{userName}</p>
-              <p className="mt-2 inline-flex rounded-full border border-white/20 bg-white/15 px-2.5 py-1 text-[11px] uppercase tracking-[0.12em] text-white">
-                Plano {userPlano}
-              </p>
+    <div className="min-h-screen bg-[#F3F6FA] text-[#10253B]">
+      <div className="grid min-h-screen md:grid-cols-[240px_1fr]">
+        <aside className="hidden border-r border-[#DFE7F0] bg-white md:flex md:flex-col">
+          <div className="flex items-center gap-2 border-b border-[#ECF1F6] px-5 py-4">
+            <div className="inline-flex size-9 items-center justify-center rounded-xl bg-[#10B7AA] text-sm font-black text-white">P</div>
+            <p className="font-heading text-xl text-[#129D93]">Planejei.</p>
+          </div>
+
+          <nav className="flex-1 space-y-5 p-4">
+            <div>
+              <p className="mb-2 px-2 text-[11px] font-black uppercase tracking-[0.12em] text-[#8BA0B5]">Principal</p>
+              <div className="space-y-1">{renderLinkGroup(mainLinks)}</div>
             </div>
 
-            <nav className="flex-1 space-y-1">
-              {links.map((item) => {
-                const active = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(`${item.href}`));
+            <div>
+              <p className="mb-2 px-2 text-[11px] font-black uppercase tracking-[0.12em] text-[#8BA0B5]">Relatorios</p>
+              <div className="space-y-1">{renderLinkGroup(reportLinks)}</div>
+            </div>
 
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={cn(
-                      "flex items-center gap-3 rounded-2xl border px-3.5 py-3 text-sm font-semibold transition",
-                      active
-                        ? "border-[#BDEEE8] bg-[#E8FBF8] text-[#0F8F83] shadow-[0_12px_28px_-22px_rgba(11,184,168,0.8)]"
-                        : "border-transparent text-[#625B86] hover:border-[#DCECF8] hover:bg-white/80 hover:text-[#1E1740]",
-                    )}
-                  >
-                    <item.icon className={cn("size-4", active ? "text-[#0BB8A8]" : "text-[#8D88AA]")} />
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </nav>
+            <div>
+              <p className="mb-2 px-2 text-[11px] font-black uppercase tracking-[0.12em] text-[#8BA0B5]">Conta</p>
+              <div className="space-y-1">{renderLinkGroup(accountLinks)}</div>
+            </div>
+          </nav>
+
+          <div className="border-t border-[#ECF1F6] p-4">
+            <div className="mb-3 flex items-center gap-2">
+              <div className="inline-flex size-9 items-center justify-center rounded-full bg-[#1578A6] text-xs font-black text-white">{initials}</div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-black text-[#10253B]">{userName}</p>
+                <p className="text-xs font-semibold text-[#71859A]">{String(userPlano).toLowerCase()} plan</p>
+              </div>
+            </div>
 
             <Button
               variant="outline"
               onClick={handleLogoutAll}
-              className="mt-4 w-full justify-start rounded-2xl border border-[#FFCFC5] bg-[#FFF6F3] text-[#DD5D42] hover:border-[#FFB6A6] hover:bg-[#FFEAE4]"
+              className="w-full justify-start rounded-xl border border-[#E8D6CF] bg-[#FFF7F4] text-[#B85D49] hover:bg-[#FFEDE7]"
             >
               <LogOut className="mr-2 size-4" />
               Sair de todos os dispositivos
             </Button>
-          </motion.aside>
+          </div>
+        </aside>
 
-          <section className="flex min-w-0 flex-col gap-4 md:gap-6">
-            <motion.header
-              initial={reduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={reduceMotion ? { duration: 0 } : { duration: 0.2, delay: 0.02 }}
-              className="glass-card rounded-[1.5rem] px-4 py-3 md:px-6 md:py-4"
-            >
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#6C6691]">Sala de aula em foco</p>
-                  <h2 className="font-heading text-2xl leading-tight text-[#1E1740] md:text-3xl">Gestao pedagogica do dia</h2>
-                </div>
-                <div className="inline-flex size-10 items-center justify-center rounded-full bg-[#E7FBF8] text-[#0BB8A8] ring-1 ring-[#BCEDE7]">
-                  <Camera className="size-5" />
-                </div>
+        <section className="min-w-0">
+          <header className="sticky top-0 z-20 border-b border-[#DFE7F0] bg-white/95 px-4 py-3 backdrop-blur md:px-6">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h1 className="font-heading text-2xl text-[#10253B]">Dashboard</h1>
+                <p className="text-xs font-semibold text-[#7A8DA1]">{dateLabel}</p>
               </div>
 
-              <div className="mt-3 flex gap-2 overflow-x-auto pb-1 md:hidden">
-                {links.map((item) => {
-                  const active = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(`${item.href}`));
+              <div className="flex items-center gap-2">
+                <div className="hidden items-center gap-2 rounded-full border border-[#E5ECF4] bg-[#F6F9FC] px-3 py-2 lg:flex">
+                  <Search className="size-4 text-[#90A2B5]" />
+                  <input
+                    type="search"
+                    placeholder="Buscar aluno ou observacao..."
+                    className="w-52 bg-transparent text-xs font-semibold text-[#415A73] outline-none placeholder:text-[#9AAABA]"
+                  />
+                </div>
 
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={cn(
-                        "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold",
-                        active
-                          ? "border-[#BDEEE8] bg-[#E8FBF8] text-[#0F8F83]"
-                          : "border-[#E2EFFF] bg-white text-[#6A638D]",
-                      )}
-                    >
-                      <item.icon className="size-3.5" />
-                      {item.label}
-                    </Link>
-                  );
-                })}
+                <button className="inline-flex size-9 items-center justify-center rounded-xl border border-[#E5ECF4] bg-[#F6F9FC] text-[#7B90A5]">
+                  <Bell className="size-4" />
+                </button>
+                <button className="inline-flex size-9 items-center justify-center rounded-xl border border-[#E5ECF4] bg-[#F6F9FC] text-[#7B90A5]">
+                  <ClipboardCheck className="size-4" />
+                </button>
+
+                <Link
+                  href="/dashboard/observacoes"
+                  prefetch
+                  className="inline-flex h-9 items-center justify-center gap-1 rounded-xl bg-[#10B7AA] px-3 text-sm font-bold text-white shadow-[0_10px_24px_-16px_rgba(16,183,170,0.9)] transition hover:bg-[#0E9D91]"
+                >
+                  <Plus className="size-4" />
+                  Nova observacao
+                </Link>
               </div>
-            </motion.header>
+            </div>
 
-            <main className="relative flex-1">
-              <motion.div
-                key={pathname}
-                initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={reduceMotion ? { duration: 0 } : { duration: 0.18, ease: "easeOut" }}
-                className="h-full"
-              >
-                {children}
-              </motion.div>
-            </main>
-          </section>
-        </div>
+            <div className="mt-3 flex gap-2 overflow-x-auto pb-1 md:hidden">
+              {mainLinks.slice(0, 4).map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold",
+                    isActive(item.href)
+                      ? "border-[#BFEAE5] bg-[#E4F8F5] text-[#0F9D91]"
+                      : "border-[#E2EAF4] bg-white text-[#587087]",
+                  )}
+                >
+                  <item.icon className="size-3.5" />
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          </header>
+
+          <main className="p-4 md:p-6">{children}</main>
+        </section>
       </div>
     </div>
   );

@@ -107,6 +107,55 @@ export class ObservacaoRepository extends BaseRepository {
     });
   }
 
+  async countByUserSince(userId: string, since: Date) {
+    return prisma.observacao.count({
+      where: {
+        createdAt: {
+          gte: since,
+        },
+        aluno: {
+          deletedAt: null,
+          turma: {
+            userId,
+            deletedAt: null,
+          },
+        },
+      },
+    });
+  }
+
+  async listRecentByUser(userId: string, limit = 12) {
+    return prisma.observacao.findMany({
+      where: {
+        aluno: {
+          deletedAt: null,
+          turma: {
+            userId,
+            deletedAt: null,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: limit,
+      include: {
+        aluno: {
+          select: {
+            id: true,
+            nome: true,
+            turma: {
+              select: {
+                id: true,
+                nome: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
   async getTextByAluno(userId: string, alunoId: string) {
     await this.assertAlunoOwnership(userId, alunoId);
 

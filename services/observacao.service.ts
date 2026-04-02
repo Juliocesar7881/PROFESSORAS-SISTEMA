@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { startOfWeek } from "date-fns";
 
 import type { CreateObservacaoInput } from "@/dtos/observacao.dto";
 import { env } from "@/lib/env";
@@ -80,5 +81,14 @@ export class ObservacaoService {
 
   async list(userId: string, alunoId: string, categoria?: CreateObservacaoInput["categoria"]) {
     return this.observacaoRepository.listByAluno(userId, alunoId, categoria);
+  }
+
+  async listRecent(userId: string, limit = 12) {
+    return this.observacaoRepository.listRecentByUser(userId, limit);
+  }
+
+  async countThisWeek(userId: string) {
+    const since = startOfWeek(new Date(), { weekStartsOn: 1 });
+    return this.observacaoRepository.countByUserSince(userId, since);
   }
 }

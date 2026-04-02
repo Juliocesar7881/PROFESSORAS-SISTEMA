@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { unstable_cache } from "next/cache";
 
 import { auth } from "@/auth";
 import { DashboardShell } from "@/components/dashboard-shell";
@@ -6,6 +7,15 @@ import { hasReachableDatabaseUrl } from "@/lib/runtime";
 import { UserRepository } from "@/repositories/user.repository";
 
 const hasReachableDatabase = hasReachableDatabaseUrl(process.env.DATABASE_URL);
+
+const hasAnyTurmaCached = unstable_cache(
+  async (userId: string) => {
+    const userRepository = new UserRepository();
+    return userRepository.hasAnyTurma(userId);
+  },
+  ["has-any-turma"],
+  { revalidate: 180 },
+);
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -22,8 +32,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     );
   }
 
-  const userRepository = new UserRepository();
-  const hasTurma = await userRepository.hasAnyTurma(session.user.id);
+  const hasTurma = await hasAnyTurmaCached(session.user.id);
 
   if (!hasTurma) {
     redirect("/onboarding");

@@ -64,4 +64,34 @@ export class RelatorioRepository extends BaseRepository {
       },
     });
   }
+
+  async listRecentByUser(userId: string, limit = 20) {
+    return prisma.avaliacao.findMany({
+      where: {
+        aluno: {
+          turma: {
+            userId,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: limit,
+      include: {
+        aluno: {
+          select: {
+            id: true,
+            nome: true,
+            turma: {
+              select: {
+                id: true,
+                nome: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
 }
