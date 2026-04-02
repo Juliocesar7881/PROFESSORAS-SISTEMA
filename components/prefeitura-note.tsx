@@ -8,8 +8,7 @@ export function PrefeituraNote() {
         Posicionamento oficial do Planejei
       </div>
       <p>
-        O Planejei nao substitui o sistema da prefeitura (Betha, Sige e similares). Ele cobre o vazio pedagogico
-        que esses sistemas nao resolvem: planejamento vivo, observacoes de aprendizagem e rotina da turma.
+        O Planejei <strong>não substitui</strong> o sistema da prefeitura (Betha, Sige e similares). Ele faz o que o sistema da prefeitura nunca fez: planejamento vivo, observações de aprendizagem e rotina da turma.
       </p>
     </div>
   );

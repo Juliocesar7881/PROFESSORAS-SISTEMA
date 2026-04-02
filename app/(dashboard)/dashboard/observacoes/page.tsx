@@ -13,13 +13,13 @@ function formatRelativeDate(input: Date) {
   const diffMin = Math.max(0, Math.floor(diffMs / 60000));
 
   if (diffMin < 1) return "agora";
-  if (diffMin < 60) return `${diffMin} min atras`;
+  if (diffMin < 60) return `${diffMin} min atrás`;
 
   const diffHour = Math.floor(diffMin / 60);
-  if (diffHour < 24) return `${diffHour} h atras`;
+  if (diffHour < 24) return `${diffHour} h atrás`;
 
   const diffDay = Math.floor(diffHour / 24);
-  return `${diffDay} d atras`;
+  return `${diffDay} d atrás`;
 }
 
 export default async function ObservacoesPage() {
@@ -35,12 +35,12 @@ export default async function ObservacoesPage() {
     <div className="space-y-4">
       <Card className="glass-card border-[#DCE4EE]">
         <CardHeader>
-          <CardTitle className="font-heading text-3xl text-[#10253B]">Observacoes recentes</CardTitle>
-          <CardDescription className="text-[#5F7388]">Acompanhe os ultimos registros e abra o aluno para continuar a documentacao.</CardDescription>
+          <CardTitle className="font-heading text-3xl text-[#10253B]">Observações recentes</CardTitle>
+          <CardDescription className="text-[#5F7388]">Acompanhe os últimos registros e abra o aluno para continuar a documentação.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap items-center gap-2 text-xs text-[#6A7E92]">
-          <span className="rounded-full bg-[#E9F8F6] px-2 py-1 font-semibold text-[#0E9D90]">{observacoes.length} observacoes carregadas</span>
-          <span className="rounded-full bg-[#EEF3FF] px-2 py-1 font-semibold text-[#5570A2]">Atualizacao automatica</span>
+          <span className="rounded-full bg-[#E9F8F6] px-2 py-1 font-semibold text-[#0E9D90]">{observacoes.length} observações carregadas</span>
+          <span className="rounded-full bg-[#EEF3FF] px-2 py-1 font-semibold text-[#5570A2]">Atualização automática</span>
         </CardContent>
       </Card>
 
@@ -70,10 +70,10 @@ export default async function ObservacoesPage() {
 
           {!observacoes.length && (
             <div className="rounded-2xl border border-dashed border-[#D3DEEA] bg-[#F8FBFF] p-5 text-sm text-[#5F7388]">
-              <p>Ainda nao ha observacoes registradas.</p>
+              <p>Ainda não há observações registradas.</p>
               <Link href="/dashboard/alunos" className="mt-2 inline-flex items-center gap-1 font-semibold text-[#0E9D90] underline">
                 <NotebookPen className="size-4" />
-                Abrir alunos para registrar observacao
+                Abrir alunos para registrar observação
               </Link>
             </div>
           )}

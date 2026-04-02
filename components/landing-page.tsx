@@ -8,22 +8,22 @@ const stepData = [
     icon: "📸",
     num: "1",
     title: "Registre o momento",
-    desc: "Abra o app, fotografe na sala de aula e adicione uma observacao rapida. Salvo em segundos, sem burocracia.",
-    chips: ["📷 Foto vinculada", "✍️ Observacao rapida", "☁️ Salvo na nuvem", "📅 Data automatica"],
+    desc: "Abra o app, fotografe na sala de aula e adicione uma observação rápida. Salvo em segundos, sem burocracia.",
+    chips: ["📷 Foto vinculada", "✍️ Observação rápida", "☁️ Salvo na nuvem", "📅 Data automática"],
   },
   {
     icon: "🧠",
     num: "2",
-    title: "Organize por competencia",
-    desc: "Classifique os registros por campos de desenvolvimento alinhados a BNCC. Tudo estruturado sem esforco extra.",
-    chips: ["🧠 Cognitivo", "🤝 Social", "🗣️ Linguagem", "🎨 Expressao"],
+    title: "Organize por competência",
+    desc: "Classifique os registros por campos de desenvolvimento alinhados à BNCC. Tudo estruturado sem esforço extra.",
+    chips: ["🧠 Cognitivo", "🤝 Social", "🗣️ Linguagem", "🎨 Expressão"],
   },
   {
     icon: "📄",
     num: "3",
-    title: "Gere o relatorio",
-    desc: "PDF completo com fotos, observacoes e evolucao do aluno. Pronto para reuniao com familia ou coordenacao.",
-    chips: ["📄 PDF com fotos", "📈 Evolucao", "👨‍👩‍👧 Para a familia", "🗂️ Portfolio"],
+    title: "Gere o relatório",
+    desc: "PDF completo com fotos, observações e evolução do aluno. Pronto para reunião com família ou coordenação.",
+    chips: ["📄 PDF com fotos", "📈 Evolução", "👨‍👩‍👧 Para a família", "🗂️ Portfólio"],
   },
 ];
 
@@ -31,19 +31,19 @@ const features = [
   {
     icon: "📸",
     title: "Registro com fotos",
-    text: "Tire fotos na sala e vincule ao aluno em segundos. Cada imagem vira uma observacao pedagogica rica.",
+    text: "Tire fotos na sala e vincule ao aluno em segundos. Cada imagem vira uma observação pedagógica rica.",
     variant: "purple",
   },
   {
     icon: "📋",
-    title: "Planos de aula faceis",
-    text: "Monte planos alinhados a BNCC e reaproveite templates sem comecar do zero toda semana.",
+    title: "Planos de aula fáceis",
+    text: "Monte planos alinhados à BNCC e reaproveite templates sem começar do zero toda semana.",
     variant: "peach",
   },
   {
     icon: "📈",
-    title: "Evolucao por crianca",
-    text: "Acompanhe o desenvolvimento por competencia e por periodo com uma linha do tempo visual.",
+    title: "Evolução por criança",
+    text: "Acompanhe o desenvolvimento por competência e por período com uma linha do tempo visual.",
     variant: "mint",
   },
   {
@@ -55,13 +55,13 @@ const features = [
   {
     icon: "🔗",
     title: "Complementa o Betha",
-    text: "Nao substitui o sistema da prefeitura. Complementa com fluxo pedagogico e qualidade de registro.",
+    text: "Não substitui o sistema da prefeitura. Complementa com fluxo pedagógico e qualidade de registro.",
     variant: "blue",
   },
   {
     icon: "📄",
-    title: "Relatorios em PDF",
-    text: "Gere relatorios completos por aluno para reunioes com familias e coordenacao em um toque.",
+    title: "Relatórios em PDF",
+    text: "Gere relatórios completos por aluno para reuniões com famílias e coordenação em um toque.",
     variant: "pink",
   },
 ];
@@ -70,8 +70,8 @@ const testimonials = [
   {
     quote:
       "O Planejei transformou meus registros. Antes acumulava fotos no celular sem saber o que fazer.",
-    name: "Camila Araujo",
-    role: "Professora Infantil 5 - Sao Paulo",
+    name: "Camila Araújo",
+    role: "Professora Infantil 5 - São Paulo",
     avatar: "CA",
     color: "purple",
   },
@@ -79,13 +79,13 @@ const testimonials = [
     quote:
       "Uso o Betha para o que a prefeitura exige e o Planejei para meus registros com qualidade.",
     name: "Renata Pereira",
-    role: "Professora 1o ano - Curitiba",
+    role: "Professora 1º ano - Curitiba",
     avatar: "RP",
     color: "peach",
   },
   {
     quote:
-      "Os PDFs para reunioes de pais sao incriveis. As familias ficam emocionadas com a evolucao bem organizada.",
+      "Os PDFs para reuniões de pais são incríveis. As famílias ficam emocionadas com a evolução bem organizada.",
     name: "Fernanda Silva",
     role: "Coordenadora Pedagogica - Recife",
     avatar: "FS",
@@ -95,6 +95,7 @@ const testimonials = [
 
 export function LandingPage() {
   const [stepIndex, setStepIndex] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -143,12 +144,17 @@ export function LandingPage() {
             Planejei
             <span className="pj-logo-dot">.</span>
           </a>
-          <nav className="pj-nav-links">
-            <a href="#funcionalidades">Funcionalidades</a>
-            <a href="#como-funciona">Como funciona</a>
-            <a href="#precos">Precos</a>
-            <a href="#depoimentos">Depoimentos</a>
-            <a href="#precos" className="pj-btn pj-btn-purple">Comecar gratis 🎉</a>
+
+          <button type="button" className="pj-menu-btn" onClick={() => setMenuOpen((prev) => !prev)} aria-label="Abrir menu">
+            {menuOpen ? "✕" : "☰"}
+          </button>
+
+          <nav className={`pj-nav-links ${menuOpen ? "is-open" : ""}`}>
+            <a href="#funcionalidades" onClick={() => setMenuOpen(false)}>Funcionalidades</a>
+            <a href="#como-funciona" onClick={() => setMenuOpen(false)}>Como funciona</a>
+            <a href="#precos" onClick={() => setMenuOpen(false)}>Preços</a>
+            <a href="#depoimentos" onClick={() => setMenuOpen(false)}>Depoimentos</a>
+            <Link href="/login" className="pj-btn pj-btn-purple" onClick={() => setMenuOpen(false)}>Começar grátis 🎉</Link>
           </nav>
         </header>
 
@@ -158,7 +164,7 @@ export function LandingPage() {
           <div className="pj-blob pj-blob-3" />
 
           <div>
-            <div className="pj-hero-tag pj-reveal">🍎 Para professoras da educacao basica</div>
+            <div className="pj-hero-tag pj-reveal">🍎 Para professoras da educação básica</div>
             <h1 className="pj-reveal">
               Planeje <span className="pj-hi">melhor</span>,
               <br />
@@ -167,10 +173,10 @@ export function LandingPage() {
               <span className="pj-hi2">carinho</span>.
             </h1>
             <p className="pj-hero-sub pj-reveal">
-              O Planejei e o app que professoras adoram usar todo dia para registrar observacoes com fotos, planejar aulas e acompanhar cada crianca com atencao.
+              O Planejei é o assistente pedagógico que reduz horas de planejamento e transforma observações soltas em relatórios claros. Ele faz o que o sistema da prefeitura nunca fez.
             </p>
             <div className="pj-hero-actions pj-reveal">
-              <a href="#precos" className="pj-btn pj-btn-purple">Testar 14 dias gratis ✨</a>
+              <Link href="/login" className="pj-btn pj-btn-purple">Testar 14 dias grátis ✨</Link>
               <a href="#como-funciona" className="pj-btn pj-btn-ghost">Ver como funciona →</a>
             </div>
             <div className="pj-hero-proof pj-reveal">
@@ -181,7 +187,7 @@ export function LandingPage() {
                 <span className="pj-av pj-a4">FE</span>
                 <span className="pj-av pj-a5">+</span>
               </div>
-              <p className="pj-proof-text"><strong>+200 professoras</strong> ja usam o Planejei ⭐</p>
+              <p className="pj-proof-text"><strong>+200 professoras</strong> já usam o Planejei ⭐</p>
             </div>
           </div>
 
@@ -193,7 +199,7 @@ export function LandingPage() {
             <div className="pj-app-frame pj-reveal">
               <div className="pj-app-top">
                 <div>
-                  <p className="pj-app-greeting">Ola, professora 👋</p>
+                  <p className="pj-app-greeting">Olá, professora 👋</p>
                   <p className="pj-app-name">Ana Carolina</p>
                 </div>
                 <span className="pj-app-avatar">🍀</span>
@@ -239,7 +245,7 @@ export function LandingPage() {
                 </div>
               </div>
 
-              <p className="pj-aluno-label">Ultimos registros</p>
+              <p className="pj-aluno-label">Últimos registros</p>
               <div className="pj-photo-grid">
                 <div className="pj-photo-box pj-photo-a"><span>Atividade em grupo</span></div>
                 <div className="pj-photo-box pj-photo-b"><span>Arte livre</span></div>
@@ -251,7 +257,7 @@ export function LandingPage() {
         <section className="pj-section pj-features" id="funcionalidades">
           <span className="pj-label pj-reveal">✨ Funcionalidades</span>
           <h2 className="pj-title pj-reveal">Feito para o seu <span>dia a dia</span> real</h2>
-          <p className="pj-sub pj-reveal">Simples de usar, bonito de ver, criado pensando em quem abre o app toda manha.</p>
+          <p className="pj-sub pj-reveal">Simples de usar, bonito de ver, criado pensando em quem abre o app toda manhã.</p>
 
           <div className="pj-feature-grid">
             {features.map((feature) => (
@@ -268,7 +274,7 @@ export function LandingPage() {
           <div className="pj-steps-inner">
             <div>
               <span className="pj-label pj-reveal">🗺️ Como funciona</span>
-              <h2 className="pj-title pj-reveal">Do registro ao <span>relatorio</span> em minutos</h2>
+              <h2 className="pj-title pj-reveal">Do registro ao <span>relatório</span> em minutos</h2>
               <p className="pj-sub pj-reveal">Tres passos que cabem na rotina mais corrida do dia.</p>
 
               <div className="pj-step-list">
@@ -308,9 +314,9 @@ export function LandingPage() {
         </section>
 
         <section className="pj-section pj-pricing" id="precos">
-          <span className="pj-label pj-reveal">🩵 Precos</span>
+          <span className="pj-label pj-reveal">🩵 Preços</span>
           <h2 className="pj-title pj-reveal">Simples como deveria <span>ser</span></h2>
-          <p className="pj-sub pj-reveal">Sem contrato longo. Cancele quando quiser. 14 dias gratis para comecar.</p>
+          <p className="pj-sub pj-reveal">Sem contrato longo. Cancele quando quiser. 14 dias grátis para começar.</p>
 
           <div className="pj-pricing-wrap">
             <article className="pj-price-card pj-reveal">
@@ -318,29 +324,30 @@ export function LandingPage() {
               <p className="pj-price-value">R$0</p>
               <p className="pj-price-meta">Para sempre</p>
               <ul>
-                <li>Ate 5 alunos</li>
-                <li>10 registros fotograficos</li>
-                <li>Planos de aula basicos</li>
-                <li>App no celular</li>
+                <li>Até 4 semanas salvas</li>
+                <li>20% do catálogo de projetos</li>
+                <li>3 avaliações com IA por mês</li>
+                <li>Registro mobile com fotos</li>
               </ul>
-              <a className="pj-btn pj-btn-ghost" href="#top">Criar conta gratis</a>
+              <Link className="pj-btn pj-btn-ghost" href="/login">Criar conta grátis</Link>
             </article>
 
             <article className="pj-price-card pj-popular pj-reveal">
               <span className="pj-pop-badge">⭐ Mais popular</span>
               <p className="pj-price-plan">Pro</p>
               <p className="pj-price-value">R$9,90</p>
-              <p className="pj-price-meta">por mes · menos que um cafe</p>
+              <p className="pj-price-meta">por mês · menos que um café</p>
               <ul>
-                <li>Alunos ilimitados</li>
+                <li>Sem limite de semanas</li>
+                <li>100% do catálogo de projetos</li>
                 <li>Fotos ilimitadas</li>
-                <li>Relatorios em PDF</li>
+                <li>Relatórios com IA + PDF</li>
                 <li>Campos BNCC completos</li>
                 <li>Templates de plano de aula</li>
                 <li>Uso offline completo</li>
                 <li>Suporte por WhatsApp</li>
               </ul>
-              <Link className="pj-btn pj-btn-purple" href="/login">Comecar 14 dias gratis 🎉</Link>
+              <Link className="pj-btn pj-btn-purple" href="/login">Começar 14 dias grátis 🎉</Link>
             </article>
           </div>
         </section>
@@ -368,11 +375,11 @@ export function LandingPage() {
 
         <section className="pj-cta-wrap pj-reveal">
           <p className="pj-cta-label">✨ Comece hoje</p>
-          <h2>Sua pratica merece uma ferramenta a sua altura 🩵</h2>
-          <p>14 dias gratis. Sem cartao. Cancele quando quiser.</p>
+          <h2>Sua prática merece uma ferramenta à sua altura 🩵</h2>
+          <p>14 dias grátis. Sem cartão. Cancele quando quiser.</p>
           <div className="pj-cta-actions">
             <Link href="/login" className="pj-btn pj-btn-white">Criar conta gratuita 🎉</Link>
-            <a href="#como-funciona" className="pj-btn pj-btn-outline-white">Ver demonstracao →</a>
+            <a href="#como-funciona" className="pj-btn pj-btn-outline-white">Ver demonstração →</a>
           </div>
         </section>
 
@@ -474,6 +481,19 @@ export function LandingPage() {
           display: flex;
           align-items: center;
           gap: 2rem;
+        }
+
+        .pj-menu-btn {
+          display: none;
+          width: 40px;
+          height: 40px;
+          border-radius: 12px;
+          border: 1px solid rgba(11, 184, 168, 0.2);
+          background: white;
+          color: var(--purple);
+          font-size: 1.2rem;
+          font-weight: 900;
+          cursor: pointer;
         }
 
         .pj-nav-links a {
@@ -1581,8 +1601,34 @@ export function LandingPage() {
             padding: 1rem 1.25rem;
           }
 
-          .pj-nav-links a:not(.pj-btn) {
+          .pj-menu-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .pj-nav-links {
             display: none;
+            position: absolute;
+            top: 64px;
+            right: 1.25rem;
+            left: 1.25rem;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.75rem;
+            border-radius: 16px;
+            border: 1px solid rgba(11, 184, 168, 0.16);
+            background: rgba(255, 255, 255, 0.98);
+            padding: 1rem;
+            box-shadow: 0 18px 44px -30px rgba(16, 37, 59, 0.42);
+          }
+
+          .pj-nav-links.is-open {
+            display: flex;
+          }
+
+          .pj-nav-links a {
+            font-size: 0.9rem;
           }
 
           .pj-hero {

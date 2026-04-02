@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { toast } from "sonner";
 import { Bot, Camera, FileText, Loader2, Search, Sparkles, UserRound } from "lucide-react";
 
@@ -50,9 +51,9 @@ const categoriaOptions: Array<{ value: Observacao["categoria"]; label: string }>
 
 const quickTemplates = [
   "Participou com interesse da proposta e concluiu a atividade com apoio leve.",
-  "Demonstrou avanco na interacao com colegas durante a atividade em grupo.",
-  "Precisou de mediacao para manter foco, mas respondeu bem aos combinados.",
-  "Expressou ideias com autonomia e ampliou vocabulario durante a conversa.",
+  "Demonstrou avanço na interação com colegas durante a atividade em grupo.",
+  "Precisou de mediação para manter foco, mas respondeu bem aos combinados.",
+  "Expressou ideias com autonomia e ampliou vocabulário durante a conversa.",
 ];
 
 export default function AvaliacoesPage() {
@@ -72,6 +73,22 @@ export default function AvaliacoesPage() {
   const [loadingContext, setLoadingContext] = useState(false);
   const [savingObservation, setSavingObservation] = useState(false);
   const [generatingReport, setGeneratingReport] = useState(false);
+
+  const fotoPreview = useMemo(() => {
+    if (!foto) {
+      return null;
+    }
+
+    return URL.createObjectURL(foto);
+  }, [foto]);
+
+  useEffect(() => {
+    return () => {
+      if (fotoPreview) {
+        URL.revokeObjectURL(fotoPreview);
+      }
+    };
+  }, [fotoPreview]);
 
   const loadTurmas = useCallback(async () => {
     setLoadingTurmas(true);
@@ -144,11 +161,11 @@ export default function AvaliacoesPage() {
       const relatoriosJson = await relatoriosResponse.json();
 
       if (!observacoesResponse.ok) {
-        throw new Error(observacoesJson.error?.message ?? "Falha ao carregar observacoes");
+        throw new Error(observacoesJson.error?.message ?? "Falha ao carregar observações");
       }
 
       if (!relatoriosResponse.ok) {
-        throw new Error(relatoriosJson.error?.message ?? "Falha ao carregar relatorios");
+        throw new Error(relatoriosJson.error?.message ?? "Falha ao carregar relatórios");
       }
 
       setObservacoes(observacoesJson.data ?? []);
@@ -202,12 +219,12 @@ export default function AvaliacoesPage() {
 
   const handleSaveObservation = async () => {
     if (!selectedAlunoId) {
-      toast.error("Selecione um aluno para registrar a avaliacao");
+      toast.error("Selecione um aluno para registrar a avaliação");
       return;
     }
 
     if (!texto.trim()) {
-      toast.error("Escreva uma observacao antes de salvar");
+      toast.error("Escreva uma observação antes de salvar");
       return;
     }
 
@@ -231,15 +248,15 @@ export default function AvaliacoesPage() {
       const json = await response.json();
 
       if (!response.ok) {
-        throw new Error(json.error?.message ?? "Falha ao salvar observacao");
+        throw new Error(json.error?.message ?? "Falha ao salvar observação");
       }
 
       setTexto("");
       setFoto(null);
-      toast.success("Avaliacao registrada");
+      toast.success("Avaliação registrada");
       await loadAlunoContext(selectedAlunoId);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Falha ao salvar observacao";
+      const message = error instanceof Error ? error.message : "Falha ao salvar observação";
       toast.error(message);
     } finally {
       setSavingObservation(false);
@@ -248,12 +265,12 @@ export default function AvaliacoesPage() {
 
   const handleGenerateReport = async () => {
     if (!selectedAlunoId) {
-      toast.error("Selecione um aluno para gerar o relatorio");
+      toast.error("Selecione um aluno para gerar o relatório");
       return;
     }
 
     if (observacoes.length < 5) {
-      toast.error("Sao necessarias ao menos 5 observacoes para gerar o relatorio");
+      toast.error("São necessárias ao menos 5 observações para gerar o relatório");
       return;
     }
 
@@ -272,13 +289,13 @@ export default function AvaliacoesPage() {
       const json = await response.json();
 
       if (!response.ok) {
-        throw new Error(json.error?.message ?? "Falha ao gerar relatorio");
+        throw new Error(json.error?.message ?? "Falha ao gerar relatório");
       }
 
-      toast.success("Relatorio gerado com sucesso");
+      toast.success("Relatório gerado com sucesso");
       await loadAlunoContext(selectedAlunoId);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Falha ao gerar relatorio";
+      const message = error instanceof Error ? error.message : "Falha ao gerar relatório";
       toast.error(message);
     } finally {
       setGeneratingReport(false);
@@ -289,13 +306,13 @@ export default function AvaliacoesPage() {
     <div className="space-y-4">
       <Card className="border-slate-200 bg-white shadow-sm">
         <CardHeader>
-          <CardTitle className="font-heading text-3xl text-slate-900">Avaliacoes dos alunos</CardTitle>
-          <CardDescription className="text-slate-600">Fluxo simples: escolha a turma, selecione o aluno e registre observacoes. O relatorio IA aparece quando houver base suficiente.</CardDescription>
+          <CardTitle className="font-heading text-3xl text-slate-900">Avaliações dos alunos</CardTitle>
+          <CardDescription className="text-slate-600">Fluxo simples: escolha a turma, selecione o aluno e registre observações. O relatório com IA aparece quando houver base suficiente.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2 text-xs">
           <span className="rounded-full bg-cyan-50 px-2.5 py-1 font-semibold text-cyan-700">Passo 1: Turma</span>
           <span className="rounded-full bg-emerald-50 px-2.5 py-1 font-semibold text-emerald-700">Passo 2: Aluno</span>
-          <span className="rounded-full bg-amber-50 px-2.5 py-1 font-semibold text-amber-700">Passo 3: Avaliacao</span>
+          <span className="rounded-full bg-amber-50 px-2.5 py-1 font-semibold text-amber-700">Passo 3: Avaliação</span>
         </CardContent>
       </Card>
 
@@ -303,7 +320,7 @@ export default function AvaliacoesPage() {
         <Card className="border-slate-200 bg-white shadow-sm">
           <CardHeader>
             <CardTitle className="font-heading text-2xl text-slate-900">Turma e alunos</CardTitle>
-            <CardDescription className="text-slate-600">Selecione quem sera avaliado hoje.</CardDescription>
+            <CardDescription className="text-slate-600">Selecione quem será avaliado hoje.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <select
@@ -355,7 +372,7 @@ export default function AvaliacoesPage() {
                 <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3 text-sm text-slate-600">
                   {alunos.length
                     ? "Nenhum aluno encontrado para os filtros atuais."
-                    : "Essa turma ainda nao possui alunos cadastrados."}
+                    : "Essa turma ainda não possui alunos cadastrados."}
                 </p>
               )}
             </div>
@@ -365,13 +382,13 @@ export default function AvaliacoesPage() {
         <div className="space-y-4">
           <Card className="border-slate-200 bg-white shadow-sm">
             <CardHeader>
-              <CardTitle className="font-heading text-2xl text-slate-900">Registro de avaliacao</CardTitle>
+              <CardTitle className="font-heading text-2xl text-slate-900">Registro de avaliação</CardTitle>
               <CardDescription className="text-slate-600">Use os modelos abaixo para agilizar o preenchimento.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {!selectedAluno && (
                 <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
-                  Selecione um aluno para iniciar a avaliacao.
+                  Selecione um aluno para iniciar a avaliação.
                 </div>
               )}
 
@@ -380,15 +397,15 @@ export default function AvaliacoesPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge className="bg-rose-500 text-white">{selectedAluno.nome}</Badge>
                     <Badge variant="secondary">{selectedAluno.turma.nome}</Badge>
-                    <Badge variant="outline">{observacoes.length} observacoes</Badge>
-                    <Badge variant="outline">{relatorios.length} relatorios</Badge>
+                    <Badge variant="outline">{observacoes.length} observações</Badge>
+                    <Badge variant="outline">{relatorios.length} relatórios</Badge>
                     <Link href={`/dashboard/alunos/${selectedAluno.id}`} className="text-xs font-semibold text-emerald-700 underline">
                       Abrir ficha completa
                     </Link>
                   </div>
 
                   <div>
-                    <p className="mb-2 text-xs font-bold uppercase tracking-[0.08em] text-slate-500">Modelos rapidos</p>
+                    <p className="mb-2 text-xs font-bold uppercase tracking-[0.08em] text-slate-500">Modelos rápidos</p>
                     <div className="grid gap-2 md:grid-cols-2">
                       {quickTemplates.map((template) => (
                         <button
@@ -404,7 +421,7 @@ export default function AvaliacoesPage() {
                   </div>
 
                   <div>
-                    <p className="mb-2 text-xs font-bold uppercase tracking-[0.08em] text-slate-500">Categoria da observacao</p>
+                    <p className="mb-2 text-xs font-bold uppercase tracking-[0.08em] text-slate-500">Categoria da observação</p>
                     <div className="flex flex-wrap gap-2">
                       {categoriaOptions.map((item) => (
                         <button
@@ -434,6 +451,12 @@ export default function AvaliacoesPage() {
                     className="border-slate-200 bg-slate-50"
                   />
 
+                  {fotoPreview && (
+                    <a href={fotoPreview} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-xl border border-slate-200">
+                      <Image src={fotoPreview} alt="Pré-visualização da foto" width={960} height={640} unoptimized className="h-40 w-full object-cover" />
+                    </a>
+                  )}
+
                   <Button
                     type="button"
                     onClick={handleSaveObservation}
@@ -441,7 +464,7 @@ export default function AvaliacoesPage() {
                     className="w-full bg-emerald-600 text-white hover:bg-emerald-700"
                   >
                     {savingObservation ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Camera className="mr-2 size-4" />}
-                    {savingObservation ? "Salvando..." : "Salvar avaliacao"}
+                    {savingObservation ? "Salvando..." : "Salvar avaliação"}
                   </Button>
                 </>
               )}
@@ -451,14 +474,14 @@ export default function AvaliacoesPage() {
           <div className="grid gap-4 lg:grid-cols-2">
             <Card className="border-slate-200 bg-white shadow-sm">
               <CardHeader>
-                <CardTitle className="font-heading text-xl text-slate-900">Relatorio por IA</CardTitle>
-                <CardDescription className="text-slate-600">Disponivel a partir de 5 observacoes registradas.</CardDescription>
+                <CardTitle className="font-heading text-xl text-slate-900">Relatório por IA</CardTitle>
+                <CardDescription className="text-slate-600">Disponível a partir de 5 observações registradas.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 <Input
                   value={periodo}
                   onChange={(event) => setPeriodo(event.target.value)}
-                  placeholder="Periodo"
+                  placeholder="Período"
                   className="border-slate-200 bg-slate-50"
                 />
 
@@ -469,12 +492,12 @@ export default function AvaliacoesPage() {
                   className="w-full bg-rose-500 text-white hover:bg-rose-600"
                 >
                   {generatingReport ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Bot className="mr-2 size-4" />}
-                  {generatingReport ? "Gerando..." : "Gerar relatorio"}
+                  {generatingReport ? "Gerando..." : "Gerar relatório"}
                 </Button>
 
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
-                  <p className="font-semibold text-slate-700">Progresso para relatorio</p>
-                  <p className="mt-1">{Math.min(observacoes.length, 5)} de 5 observacoes necessarias.</p>
+                  <p className="font-semibold text-slate-700">Progresso para relatório</p>
+                  <p className="mt-1">{Math.min(observacoes.length, 5)} de 5 observações necessárias.</p>
                 </div>
 
                 <div className="space-y-2">
@@ -487,7 +510,7 @@ export default function AvaliacoesPage() {
 
                   {!loadingContext && !relatorios.length && (
                     <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3 text-sm text-slate-600">
-                      Nenhum relatorio gerado para este aluno.
+                      Nenhum relatório gerado para este aluno.
                     </p>
                   )}
                 </div>
@@ -496,14 +519,14 @@ export default function AvaliacoesPage() {
 
             <Card className="border-slate-200 bg-white shadow-sm">
               <CardHeader>
-                <CardTitle className="font-heading text-xl text-slate-900">Ultimas observacoes</CardTitle>
-                <CardDescription className="text-slate-600">Historico rapido para consulta durante o atendimento.</CardDescription>
+                <CardTitle className="font-heading text-xl text-slate-900">Últimas observações</CardTitle>
+                <CardDescription className="text-slate-600">Histórico rápido para consulta durante o atendimento.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
                 {loadingContext && (
                   <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
                     <Loader2 className="size-4 animate-spin" />
-                    Carregando historico...
+                    Carregando histórico...
                   </div>
                 )}
 
@@ -520,7 +543,7 @@ export default function AvaliacoesPage() {
 
                 {!loadingContext && !observacoes.length && (
                   <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3 text-sm text-slate-600">
-                    Ainda nao ha observacoes para este aluno.
+                    Ainda não há observações para este aluno.
                   </p>
                 )}
 
@@ -544,7 +567,7 @@ export default function AvaliacoesPage() {
           </span>
           <span className="inline-flex items-center gap-1 rounded-full bg-cyan-50 px-2.5 py-1 font-semibold text-cyan-700">
             <FileText className="size-3.5" />
-            Registros sempre salvos no historico do aluno
+            Registros sempre salvos no histórico do aluno
           </span>
         </CardContent>
       </Card>

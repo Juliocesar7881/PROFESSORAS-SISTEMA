@@ -5,7 +5,9 @@ import {
   ClipboardCheck,
   FileCheck,
   FileText,
+  Flame,
   Play,
+  Sparkles,
   TriangleAlert,
   Users,
 } from "lucide-react";
@@ -41,166 +43,196 @@ export default async function DashboardHomePage() {
       };
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
-      <Card className="overflow-hidden border-slate-200 bg-white shadow-sm">
-        <CardContent className="relative p-6 md:p-8">
-          <div className="pointer-events-none absolute -top-10 right-[-120px] h-52 w-52 rounded-full bg-rose-200/55 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-12 left-[-110px] h-48 w-48 rounded-full bg-purple-200/55 blur-3xl" />
+    <div className="mx-auto max-w-6xl space-y-8">
+      <div className="relative overflow-hidden rounded-[2rem] border border-slate-200/60 bg-white p-8 md:p-10 shadow-sm glass-card">
+        <div className="pointer-events-none absolute -top-24 right-[-10%] h-[300px] w-[300px] rounded-full bg-gradient-to-br from-rose-200/60 to-purple-300/40 blur-[80px]" />
+        <div className="pointer-events-none absolute -bottom-24 left-[-10%] h-[250px] w-[250px] rounded-full bg-gradient-to-tr from-cyan-200/50 to-emerald-200/40 blur-[60px]" />
 
-          <div className="relative z-10 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
-            <div>
-              <p className="mb-1 text-sm font-semibold text-purple-600">Tudo pronto para o dia?</p>
-              <h3 className="font-heading text-3xl text-slate-900">Pronta para inspirar sua turma?</h3>
-              <p className="mt-2 max-w-xl text-sm text-slate-600">
-                Voce esta em sequencia de <strong>{summary.streak}</strong> semanas com planejamento ativo.
-              </p>
+        <div className="relative z-10 flex flex-col items-start justify-between gap-6 lg:flex-row lg:items-center">
+          <div className="max-w-xl">
+            <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-purple-200/60 bg-purple-50/50 px-2.5 py-1 text-xs font-bold text-purple-700 backdrop-blur-sm">
+              <Sparkles className="size-3.5" />
+              Tudo pronto para o dia?
             </div>
-
-            <div className="flex flex-wrap gap-2">
-              <Link href="/dashboard/chamada" className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#F43F5E] px-4 text-sm font-bold text-white transition hover:bg-[#E11D48]">
-                <ClipboardCheck className="size-4" />
-                Fazer chamada
-              </Link>
-              <Link href="/dashboard/avaliacoes" className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-                <FileCheck className="size-4 text-emerald-600" />
-                Avaliar alunos
-              </Link>
-              <Link href="/dashboard/observacoes" className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-                <FileText className="size-4 text-purple-500" />
-                Nova observacao
-              </Link>
-            </div>
+            <h2 className="font-heading text-3xl tracking-tight text-slate-900 md:text-4xl">Pronta para inspirar sua turma?</h2>
+            <p className="mt-3 text-sm font-medium leading-relaxed text-slate-600 md:text-base">
+              Você está em uma sequência brilhante de <strong>{summary.streak}</strong> semanas. O Planejei já organizou tudo para você focar no que importa: a conexão com os alunos.
+            </p>
+            {summary.streak > 0 && (
+              <div className="mt-4 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 px-3 py-1.5 text-xs font-bold text-amber-700 ring-1 ring-amber-200/50">
+                <Flame className="size-4 animate-pulse text-amber-500" />
+                Sequência ativa: {summary.streak} semana(s) na frente
+              </div>
+            )}
           </div>
-        </CardContent>
-      </Card>
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Card className="border-slate-200 bg-white shadow-sm">
-          <CardContent className="py-4">
-            <p className="text-xs font-bold uppercase tracking-[0.1em] text-slate-500">Alunos ativos</p>
-            <div className="mt-2 flex items-center justify-between">
-              <p className="text-3xl font-black text-slate-900">{summary.totalAlunos}</p>
-              <Users className="size-5 text-rose-500" />
+          <div className="flex w-full flex-col gap-2.5 sm:w-auto sm:flex-row">
+            <Link
+              href="/dashboard/observacoes"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-rose-500 to-purple-600 px-6 text-sm font-bold text-white shadow-[0_10px_20px_-10px_rgba(244,63,94,0.6)] transition-all hover:-translate-y-0.5 hover:shadow-[0_15px_25px_-10px_rgba(244,63,94,0.8)]"
+            >
+              <FileText className="size-4.5" />
+              Nova observação
+            </Link>
+            <Link
+              href="/dashboard/chamada"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200/60 bg-white/80 px-6 text-sm font-bold text-slate-700 shadow-sm backdrop-blur-sm transition-all hover:bg-slate-50 hover:text-slate-900"
+            >
+              <ClipboardCheck className="size-4.5 text-rose-500" />
+              Chamada
+            </Link>
+            <Link
+              href="/dashboard/avaliacoes"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200/60 bg-white/80 px-6 text-sm font-bold text-slate-700 shadow-sm backdrop-blur-sm transition-all hover:bg-slate-50 hover:text-slate-900"
+            >
+              <FileCheck className="size-4.5 text-emerald-600" />
+              Avaliar
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Card className="glass-card border-none shadow-[0_8px_30px_-20px_rgba(18,38,58,0.2)]">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">Turmas Ativas</p>
+              <div className="flex size-8 items-center justify-center rounded-full bg-rose-50 ring-1 ring-rose-100">
+                <Users className="size-4 text-rose-500" />
+              </div>
             </div>
+            <p className="mt-3 text-3xl font-black tracking-tight text-slate-900">{summary.totalAlunos}</p>
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 bg-white shadow-sm">
-          <CardContent className="py-4">
-            <p className="text-xs font-bold uppercase tracking-[0.1em] text-slate-500">Observacoes (sem.)</p>
-            <div className="mt-2 flex items-center justify-between">
-              <p className="text-3xl font-black text-slate-900">{summary.observacoesSemana}</p>
-              <FileText className="size-5 text-purple-500" />
+        <Card className="glass-card border-none shadow-[0_8px_30px_-20px_rgba(18,38,58,0.2)]">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">Obs. na Semana</p>
+              <div className="flex size-8 items-center justify-center rounded-full bg-purple-50 ring-1 ring-purple-100">
+                <FileText className="size-4 text-purple-600" />
+              </div>
             </div>
+            <p className="mt-3 text-3xl font-black tracking-tight text-slate-900">{summary.observacoesSemana}</p>
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 bg-white shadow-sm">
-          <CardContent className="py-4">
-            <p className="text-xs font-bold uppercase tracking-[0.1em] text-slate-500">Planejamentos (sem.)</p>
-            <div className="mt-2 flex items-center justify-between">
-              <p className="text-3xl font-black text-slate-900">{summary.planejamentosSemana}</p>
-              <CalendarClock className="size-5 text-cyan-500" />
+        <Card className="glass-card border-none shadow-[0_8px_30px_-20px_rgba(18,38,58,0.2)]">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">Planos na Semana</p>
+              <div className="flex size-8 items-center justify-center rounded-full bg-cyan-50 ring-1 ring-cyan-100">
+                <CalendarClock className="size-4 text-cyan-600" />
+              </div>
             </div>
+            <p className="mt-3 text-3xl font-black tracking-tight text-slate-900">{summary.planejamentosSemana}</p>
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 bg-white shadow-sm">
-          <CardContent className="py-4">
-            <p className="text-xs font-bold uppercase tracking-[0.1em] text-slate-500">Avaliacoes IA (mes)</p>
-            <div className="mt-2 flex items-center justify-between">
-              <p className="text-3xl font-black text-slate-900">{summary.relatoriosMes}</p>
-              <FileCheck className="size-5 text-emerald-500" />
+        <Card className="glass-card border-none shadow-[0_8px_30px_-20px_rgba(18,38,58,0.2)]">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">Avaliações IA</p>
+              <div className="flex size-8 items-center justify-center rounded-full bg-emerald-50 ring-1 ring-emerald-100">
+                <FileCheck className="size-4 text-emerald-600" />
+              </div>
             </div>
+            <p className="mt-3 text-3xl font-black tracking-tight text-slate-900">{summary.relatoriosMes}</p>
           </CardContent>
         </Card>
       </section>
 
       <section>
-        <div className="mb-3 flex items-center justify-between">
-          <h4 className="text-lg font-bold text-slate-900">Continue planejando</h4>
-          <Link href="/dashboard/projetos" className="inline-flex items-center gap-1 text-sm font-semibold text-rose-500 hover:text-rose-600">
-            Ver biblioteca
+        <div className="mb-4 flex items-center justify-between">
+          <h4 className="font-heading text-xl text-slate-900">Continue planejando</h4>
+          <Link href="/dashboard/projetos" className="inline-flex items-center gap-1.5 text-sm font-bold text-rose-500 transition-colors hover:text-rose-600">
+            Explorar biblioteca
             <ArrowRight className="size-4" />
           </Link>
         </div>
 
-        <div className="flex gap-3 overflow-x-auto pb-2">
+        <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
           {summary.projetosSalvos.slice(0, 8).map((projeto) => (
             <Link
               key={projeto.id}
               href={`/dashboard/projetos/${projeto.id}`}
-              className="min-w-[250px] rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+              className="group min-w-[260px] rounded-2xl border border-slate-200/60 bg-white p-5 shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg"
             >
-              <div className="mb-3 flex items-center justify-between">
-                <span className="rounded-full bg-rose-50 px-2 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-rose-600">{projeto.categoria}</span>
-                <Play className="size-4 text-slate-400" />
+              <div className="mb-4 flex items-center justify-between">
+                <span className="rounded-full bg-rose-50 px-2 py-1 text-[10px] font-black uppercase tracking-[0.15em] text-rose-600 ring-1 ring-rose-200/50">{projeto.categoria}</span>
+                <div className="flex size-8 items-center justify-center rounded-full bg-slate-50 text-slate-400 transition-colors group-hover:bg-rose-500 group-hover:text-white">
+                  <Play className="ml-0.5 size-4" />
+                </div>
               </div>
-              <p className="line-clamp-2 font-bold text-slate-900">{projeto.titulo}</p>
-              <p className="mt-1 text-xs text-slate-500">{projeto.faixaEtaria}</p>
+              <p className="line-clamp-2 font-bold leading-snug text-slate-900 group-hover:text-rose-600 transition-colors">{projeto.titulo}</p>
+              <p className="mt-2 text-xs font-semibold text-slate-500">{projeto.faixaEtaria}</p>
             </Link>
           ))}
 
           {!summary.projetosSalvos.length && (
-            <div className="w-full rounded-2xl border border-dashed border-slate-300 bg-white p-5 text-sm text-slate-600">
-              Nenhum projeto salvo ainda.
+            <div className="flex w-full min-h-[140px] items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50/50 p-5 text-sm font-medium text-slate-500 text-center">
+              Você ainda não salvou projetos.<br />Clique em Explorar biblioteca e salve seus favoritos.
             </div>
           )}
         </div>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
-        <Card className="border-slate-200 bg-white shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xl text-slate-900">Observacoes recentes</CardTitle>
-            <CardDescription>Ultimos registros por aluno</CardDescription>
+      <section className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
+        <Card className="glass-card border-none shadow-[0_8px_30px_-20px_rgba(18,38,58,0.2)]">
+          <CardHeader className="pb-4">
+            <CardTitle className="font-heading text-2xl text-slate-900">Últimos registros</CardTitle>
+            <CardDescription className="text-slate-500 font-medium">Acompanhamento diário da turma</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-3">
             {summary.observacoesRecentes.slice(0, 6).map((observacao) => (
               <Link
                 key={observacao.id}
                 href={`/dashboard/alunos/${observacao.aluno.id}`}
-                className="block rounded-xl border border-slate-200 bg-slate-50/50 p-3 hover:border-rose-200 hover:bg-rose-50/30"
+                className="group block rounded-2xl border border-slate-100 bg-slate-50/50 p-4 transition-all hover:border-rose-200/60 hover:bg-white hover:shadow-sm"
               >
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-sm font-bold text-slate-900">{observacao.aluno.nome}</p>
-                    <p className="text-xs text-slate-500">{observacao.aluno.turma.nome} - {formatDate(observacao.createdAt)}</p>
+                    <p className="text-sm font-bold text-slate-900 group-hover:text-rose-600 transition-colors">{observacao.aluno.nome}</p>
+                    <p className="mt-0.5 text-xs font-medium text-slate-500">{observacao.aluno.turma.nome} <span className="mx-1 text-slate-300">•</span> {formatDate(observacao.createdAt)}</p>
                   </div>
-                  <span className="rounded-full bg-purple-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-purple-600">
+                  <span className="rounded-full bg-purple-50 px-2 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-purple-700 ring-1 ring-purple-200/50">
                     {observacao.categoria.replaceAll("_", " ")}
                   </span>
                 </div>
-                <p className="mt-2 line-clamp-2 text-sm text-slate-700">{observacao.texto}</p>
+                <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-slate-600">{observacao.texto}</p>
               </Link>
             ))}
 
             {!summary.observacoesRecentes.length && (
-              <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
-                Nenhuma observacao registrada recentemente.
+              <div className="flex min-h-[120px] items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50/50 p-5 text-sm font-medium text-slate-500">
+                Nenhuma observação registrada recentemente.
               </div>
             )}
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 bg-white shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xl text-slate-900">Alerta de acompanhamento</CardTitle>
-            <CardDescription>Sem observacao ha 14 dias ou mais</CardDescription>
+        <Card className="glass-card border-none shadow-[0_8px_30px_-20px_rgba(18,38,58,0.2)]">
+          <CardHeader className="pb-4">
+            <CardTitle className="font-heading text-2xl text-slate-900">Atenção</CardTitle>
+            <CardDescription className="text-slate-500 font-medium">Alunos sem registros recentes (+14 dias)</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-3">
             {summary.alunosSemObservacao.slice(0, 6).map((aluno) => (
               <Link
                 key={aluno.id}
                 href={`/dashboard/alunos/${aluno.id}`}
-                className="flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50/60 p-2.5"
+                className="group flex items-center justify-between rounded-xl border border-amber-200/60 bg-gradient-to-r from-amber-50 to-orange-50/30 p-3.5 transition-all hover:bg-amber-100/50"
               >
-                <span className="text-sm font-semibold text-slate-800">{aluno.nome}</span>
-                <TriangleAlert className="size-4 text-amber-600" />
+                <div className="flex items-center gap-3">
+                  <div className="flex size-8 items-center justify-center rounded-full bg-amber-100 text-amber-600 group-hover:bg-amber-200 group-hover:text-amber-700 transition-colors">
+                    <TriangleAlert className="size-4" />
+                  </div>
+                  <span className="text-sm font-bold text-amber-950">{aluno.nome}</span>
+                </div>
               </Link>
             ))}
 
-            {!summary.alunosSemObservacao.length && <p className="text-sm text-slate-600">Sem alertas no momento.</p>}
+            {!summary.alunosSemObservacao.length && <p className="text-sm font-medium text-slate-500">Acompanhamento da turma está em dia. Parabéns!</p>}
           </CardContent>
         </Card>
       </section>

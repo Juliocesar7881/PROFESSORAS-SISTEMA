@@ -57,6 +57,7 @@ export default function ProjetoDetailPage({ params }: { params: { id: string } }
             <span className="inline-flex items-center gap-1 rounded-full border border-[#D8E9F8] bg-white px-2 py-1">{projeto.categoria}</span>
             <span className="inline-flex items-center gap-1 rounded-full border border-[#D8E9F8] bg-white px-2 py-1">{projeto.faixaEtaria}</span>
             <span className="inline-flex items-center gap-1 rounded-full border border-[#D8E9F8] bg-white px-2 py-1">{projeto.duracao}</span>
+            {projeto.premium && <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-amber-700">Projeto premium</span>}
           </div>
 
           <div className="rounded-xl border border-[#DCECF8] bg-[#F8FBFF] p-3">
@@ -75,7 +76,7 @@ export default function ProjetoDetailPage({ params }: { params: { id: string } }
 
       <Card className="glass-card border-[#DCECF8]">
         <CardHeader>
-          <CardTitle className="font-heading text-2xl text-[#1E1740]">Sequencia de atividades</CardTitle>
+          <CardTitle className="font-heading text-2xl text-[#1E1740]">Sequência de atividades</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {projeto.atividades.map((atividade) => (
@@ -90,7 +91,7 @@ export default function ProjetoDetailPage({ params }: { params: { id: string } }
                 <span className="font-semibold text-[#1E1740]">Materiais:</span> {atividade.materiais.join(", ") || "Sem materiais"}
               </p>
               <p className="text-xs text-[#5C5582]">
-                <span className="font-semibold text-[#1E1740]">BNCC:</span> {atividade.bnccCodigos.join(", ") || "Sem codigos"}
+                <span className="font-semibold text-[#1E1740]">BNCC:</span> {atividade.bnccCodigos.join(", ") || "Sem códigos"}
               </p>
             </article>
           ))}
@@ -101,7 +102,7 @@ export default function ProjetoDetailPage({ params }: { params: { id: string } }
 
       <Link href="/dashboard/planejamento" className={buttonVariants({ className: "bg-[#0BB8A8] text-white hover:bg-[#0A9F92]" })}>
         <BookOpenText className="mr-2 size-4" />
-        Usar no planejamento
+        Usar no planejamento da semana
       </Link>
     </div>
   );
