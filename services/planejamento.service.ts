@@ -21,7 +21,7 @@ export class PlanejamentoService {
 
       if (!hasPlanForWeek && currentCount >= FREE_PLAN_LIMITS.MAX_PLANEJAMENTOS) {
         throw new PlanLimitError(
-          "Plano gratuito permite no maximo 4 planejamentos salvos",
+          "Plano gratuito permite no máximo 4 planejamentos salvos",
           env.STRIPE_UPGRADE_URL,
         );
       }

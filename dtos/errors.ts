@@ -13,25 +13,25 @@ export class DomainError extends Error {
 }
 
 export class ValidationError extends DomainError {
-  constructor(message = "Dados de entrada invalidos", details?: unknown) {
+  constructor(message = "Dados de entrada inválidos", details?: unknown) {
     super(message, 400, "VALIDATION_ERROR", details);
   }
 }
 
 export class UnauthorizedError extends DomainError {
-  constructor(message = "Nao autenticado") {
+  constructor(message = "Não autenticado") {
     super(message, 401, "UNAUTHORIZED");
   }
 }
 
 export class ForbiddenError extends DomainError {
-  constructor(message = "Sem permissao para este recurso") {
+  constructor(message = "Sem permissão para este recurso") {
     super(message, 403, "FORBIDDEN");
   }
 }
 
 export class NotFoundError extends DomainError {
-  constructor(message = "Recurso nao encontrado") {
+  constructor(message = "Recurso não encontrado") {
     super(message, 404, "NOT_FOUND");
   }
 }
@@ -52,7 +52,7 @@ export class ConflictError extends DomainError {
 }
 
 export class RateLimitError extends DomainError {
-  constructor(message = "Limite de requisicoes excedido", details?: unknown) {
+  constructor(message = "Limite de requisições excedido", details?: unknown) {
     super(message, 429, "RATE_LIMITED", details);
   }
 }

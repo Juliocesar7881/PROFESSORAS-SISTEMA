@@ -16,7 +16,7 @@ export async function validateAndSanitizeImage(file: File): Promise<Buffer> {
   const detectedType = await fileTypeFromBuffer(sourceBuffer);
 
   if (!detectedType || !ALLOWED_MIME_TYPES.has(detectedType.mime)) {
-    throw new ValidationError("Formato de imagem nao suportado");
+    throw new ValidationError("Formato de imagem não suportado");
   }
 
   // Re-encode strips EXIF metadata by default.

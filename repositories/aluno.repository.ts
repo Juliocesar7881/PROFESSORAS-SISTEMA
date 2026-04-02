@@ -16,7 +16,7 @@ export class AlunoRepository extends BaseRepository {
       },
     });
 
-    this.assertFound(turma, "Turma nao encontrada");
+    this.assertFound(turma, "Turma não encontrada");
   }
 
   async listByUser(userId: string, turmaId?: string) {
@@ -85,7 +85,7 @@ export class AlunoRepository extends BaseRepository {
       },
     });
 
-    return this.assertFound(aluno, "Aluno nao encontrado");
+    return this.assertFound(aluno, "Aluno não encontrado");
   }
 
   async update(userId: string, alunoId: string, data: UpdateAlunoInput) {

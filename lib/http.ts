@@ -14,7 +14,7 @@ export function ok<T>(data: T, status = 200): Response {
 
 export function fail(error: unknown): Response {
   if (error instanceof ZodError) {
-    return fail(new ValidationError("Payload invalido", error.flatten()));
+    return fail(new ValidationError("Payload inválido", error.flatten()));
   }
 
   if (error instanceof PlanLimitError) {

@@ -16,7 +16,7 @@ export class ChamadaRepository extends BaseRepository {
       },
     });
 
-    this.assertFound(turma, "Turma nao encontrada");
+    this.assertFound(turma, "Turma não encontrada");
   }
 
   async save(userId: string, payload: CreateChamadaInput) {
