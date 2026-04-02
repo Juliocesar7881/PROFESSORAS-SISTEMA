@@ -167,15 +167,15 @@ export default function ChamadaPage() {
   };
 
   return (
-    <div className="space-y-4">
-      <Card className="glass-card border-[#DCECF8]">
+    <div className="space-y-5">
+      <Card className="border-[#DCE6F0] bg-white shadow-sm">
         <CardHeader>
-          <CardTitle className="font-heading text-3xl text-[#1E1740]">Chamada Digital</CardTitle>
-          <CardDescription className="text-[#6A638D]">Mobile-first para uso rapido em sala, com historico do mes</CardDescription>
+          <CardTitle className="font-heading text-3xl text-[#10253B]">Chamada Digital</CardTitle>
+          <CardDescription className="text-[#6F8499]">Registro rapido em sala com historico e alerta automatico de frequencia</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-3">
           <select
-            className="h-11 rounded-xl border border-[#D8E9F8] bg-white px-3 text-sm text-[#1E1740]"
+            className="h-11 rounded-xl border border-[#D4E1EE] bg-white px-3 text-sm text-[#163148]"
             value={selectedTurma}
             onChange={(event) => setSelectedTurma(event.target.value)}
           >
@@ -186,129 +186,139 @@ export default function ChamadaPage() {
             ))}
           </select>
           <Input type="date" value={data} onChange={(event) => setData(event.target.value)} />
-          <div className="flex items-center justify-between rounded-xl border border-[#D8E9F8] bg-[#F8FBFF] px-3 py-2 text-sm text-[#4E4770]">
+          <div className="flex items-center justify-between rounded-xl border border-[#D4E1EE] bg-[#F7FAFE] px-3 py-2 text-sm text-[#4B647A]">
             <span>Presentes: {presentesCount}/{alunos.length}</span>
-            <CalendarDays className="size-4 text-[#8A84AD]" />
+            <CalendarDays className="size-4 text-[#7D91A7]" />
           </div>
         </CardContent>
       </Card>
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {alunos.map((aluno) => {
-          const state = presencas[aluno.id] ?? { presente: true, justificativa: "" };
-
-          return (
-            <article key={aluno.id} className="glass-card rounded-2xl border border-[#DCECF8] p-4">
-              <p className="text-lg font-semibold text-[#1E1740]">{aluno.nome}</p>
-              <div className="mt-3 flex gap-2">
-                <button
-                  className={`flex flex-1 items-center justify-center gap-1 rounded-xl px-3 py-2 text-sm font-semibold ${state.presente ? "bg-[#DDF8F4] text-[#0F8F83]" : "bg-[#F1F5FF] text-[#6A638D]"}`}
-                  onClick={() =>
-                    setPresencas((prev) => ({
-                      ...prev,
-                      [aluno.id]: { ...prev[aluno.id], presente: true },
-                    }))
-                  }
-                >
-                  <CircleCheckBig className="size-4" />
-                  Presente
-                </button>
-                <button
-                  className={`flex flex-1 items-center justify-center gap-1 rounded-xl px-3 py-2 text-sm font-semibold ${!state.presente ? "bg-[#FFE9E3] text-[#CB5A43]" : "bg-[#F1F5FF] text-[#6A638D]"}`}
-                  onClick={() =>
-                    setPresencas((prev) => ({
-                      ...prev,
-                      [aluno.id]: { ...prev[aluno.id], presente: false },
-                    }))
-                  }
-                >
-                  <CircleX className="size-4" />
-                  Ausente
-                </button>
-              </div>
-              {!state.presente && (
-                <Input
-                  className="mt-2"
-                  placeholder="Justificativa"
-                  value={state.justificativa}
-                  onChange={(event) =>
-                    setPresencas((prev) => ({
-                      ...prev,
-                      [aluno.id]: { ...prev[aluno.id], justificativa: event.target.value },
-                    }))
-                  }
-                />
-              )}
-            </article>
-          );
-        })}
-      </div>
-
-      <Button className="h-12 rounded-xl bg-[#0BB8A8] text-white hover:bg-[#0A9F92]" onClick={saveAttendance}>
-        Salvar chamada
-      </Button>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="glass-card border-[#DCECF8]">
-          <CardHeader>
-            <CardTitle className="font-heading text-2xl text-[#1E1740]">Historico do mes</CardTitle>
-            <CardDescription className="text-[#6A638D]">Ultimos registros da turma</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {historico.slice(0, 6).map((item) => {
-              const total = item.presencas.length;
-              const presentes = item.presencas.filter((p) => p.presente).length;
+      <section className="grid gap-4 xl:grid-cols-[1.65fr_1fr]">
+        <div className="space-y-3">
+          <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
+            {alunos.map((aluno) => {
+              const state = presencas[aluno.id] ?? { presente: true, justificativa: "" };
 
               return (
-                <div key={item.id} className="rounded-xl border border-[#E2EEFF] bg-[#F8FBFF] p-3">
-                  <p className="text-sm text-[#1E1740]">{new Date(item.data).toLocaleDateString("pt-BR")}</p>
-                  <p className="text-xs text-[#746E98]">{presentes}/{total} presentes</p>
-                </div>
+                <article key={aluno.id} className="h-full rounded-2xl border border-[#DCE6F0] bg-white p-4 shadow-sm">
+                  <p className="text-base font-bold text-[#10253B]">{aluno.nome}</p>
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      className={`flex flex-1 items-center justify-center gap-1 rounded-xl px-3 py-2 text-sm font-semibold ${state.presente ? "bg-[#DDF8F4] text-[#0F8F83]" : "bg-[#F1F5FF] text-[#6A638D]"}`}
+                      onClick={() =>
+                        setPresencas((prev) => ({
+                          ...prev,
+                          [aluno.id]: { ...prev[aluno.id], presente: true },
+                        }))
+                      }
+                    >
+                      <CircleCheckBig className="size-4" />
+                      Presente
+                    </button>
+                    <button
+                      className={`flex flex-1 items-center justify-center gap-1 rounded-xl px-3 py-2 text-sm font-semibold ${!state.presente ? "bg-[#FFE9E3] text-[#CB5A43]" : "bg-[#F1F5FF] text-[#6A638D]"}`}
+                      onClick={() =>
+                        setPresencas((prev) => ({
+                          ...prev,
+                          [aluno.id]: { ...prev[aluno.id], presente: false },
+                        }))
+                      }
+                    >
+                      <CircleX className="size-4" />
+                      Ausente
+                    </button>
+                  </div>
+                  {!state.presente && (
+                    <Input
+                      className="mt-2"
+                      placeholder="Justificativa"
+                      value={state.justificativa}
+                      onChange={(event) =>
+                        setPresencas((prev) => ({
+                          ...prev,
+                          [aluno.id]: { ...prev[aluno.id], justificativa: event.target.value },
+                        }))
+                      }
+                    />
+                  )}
+                </article>
               );
             })}
+          </div>
 
-            {!historico.length && <p className="text-sm text-[#6A638D]">Sem chamadas registradas neste mes.</p>}
-          </CardContent>
-        </Card>
+          {!alunos.length && (
+            <div className="rounded-xl border border-dashed border-[#CCD9E7] bg-[#F7FBFF] p-4 text-sm text-[#60788F]">
+              Nenhum aluno encontrado para esta turma.
+            </div>
+          )}
 
-        <Card className="glass-card border-[#DCECF8]">
-          <CardHeader>
-            <CardTitle className="font-heading text-2xl text-[#1E1740]">Frequencia por aluno</CardTitle>
-            <CardDescription className="text-[#6A638D]">Alerta automatico para 25%+ de faltas no mes</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {ausenciaPorAluno.slice(0, 8).map((item) => (
-              <div key={item.nome} className="rounded-xl border border-[#E2EEFF] bg-[#F8FBFF] p-3">
-                <div className="mb-1 flex items-center justify-between text-sm text-[#1E1740]">
-                  <p>{item.nome}</p>
-                  <p>{Math.round(item.taxa * 100)}%</p>
+          <Button className="h-11 w-full rounded-xl bg-[#0BB8A8] text-white hover:bg-[#0A9F92] md:w-auto md:px-8" onClick={saveAttendance}>
+            Salvar chamada
+          </Button>
+        </div>
+
+        <div className="grid gap-4">
+          <Card className="border-[#DCE6F0] bg-white shadow-sm">
+            <CardHeader>
+              <CardTitle className="font-heading text-2xl text-[#10253B]">Historico do mes</CardTitle>
+              <CardDescription className="text-[#6F8499]">Ultimos registros da turma</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {historico.slice(0, 6).map((item) => {
+                const total = item.presencas.length;
+                const presentes = item.presencas.filter((p) => p.presente).length;
+
+                return (
+                  <div key={item.id} className="rounded-xl border border-[#E0EAF4] bg-[#F8FBFF] p-3">
+                    <p className="text-sm font-semibold text-[#17364D]">{new Date(item.data).toLocaleDateString("pt-BR")}</p>
+                    <p className="text-xs text-[#73889D]">{presentes}/{total} presentes</p>
+                  </div>
+                );
+              })}
+
+              {!historico.length && <p className="text-sm text-[#6F8499]">Sem chamadas registradas neste mes.</p>}
+            </CardContent>
+          </Card>
+
+          <Card className="border-[#DCE6F0] bg-white shadow-sm">
+            <CardHeader>
+              <CardTitle className="font-heading text-2xl text-[#10253B]">Frequencia por aluno</CardTitle>
+              <CardDescription className="text-[#6F8499]">Alerta automatico para 25%+ de faltas no mes</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {ausenciaPorAluno.slice(0, 8).map((item) => (
+                <div key={item.nome} className="rounded-xl border border-[#E0EAF4] bg-[#F8FBFF] p-3">
+                  <div className="mb-1 flex items-center justify-between text-sm text-[#17364D]">
+                    <p>{item.nome}</p>
+                    <p>{Math.round(item.taxa * 100)}%</p>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-[#E7EEF8]">
+                    <div
+                      className={cn(
+                        "h-full rounded-full",
+                        item.taxa >= 0.25 ? "bg-[#FF7B5E]" : "bg-[#0BB8A8]",
+                      )}
+                      style={{ width: `${Math.round(item.taxa * 100)}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="h-2 overflow-hidden rounded-full bg-[#E7EEF8]">
-                  <div
-                    className={cn(
-                      "h-full rounded-full",
-                      item.taxa >= 0.25 ? "bg-[#FF7B5E]" : "bg-[#0BB8A8]",
-                    )}
-                    style={{ width: `${Math.round(item.taxa * 100)}%` }}
-                  />
-                </div>
-              </div>
-            ))}
+              ))}
 
-            {!!alertasFrequencia.length && (
-              <div className="rounded-xl border border-[#FFE1A0] bg-[#FFF7E4] p-3 text-sm text-[#7C6415]">
-                <div className="mb-1 flex items-center gap-2 font-medium">
-                  <TriangleAlert className="size-4" />
-                  Alerta de frequencia
+              {!!alertasFrequencia.length && (
+                <div className="rounded-xl border border-[#FFE1A0] bg-[#FFF7E4] p-3 text-sm text-[#7C6415]">
+                  <div className="mb-1 flex items-center gap-2 font-medium">
+                    <TriangleAlert className="size-4" />
+                    Alerta de frequencia
+                  </div>
+                  <p>{alertasFrequencia.length} aluno(s) com 25% ou mais de faltas neste mes.</p>
                 </div>
-                <p>{alertasFrequencia.length} aluno(s) com 25% ou mais de faltas neste mes.</p>
-              </div>
-            )}
+              )}
 
-            {!ausenciaPorAluno.length && <p className="text-sm text-[#6A638D]">Dados insuficientes para calcular frequencia.</p>}
-          </CardContent>
-        </Card>
-      </div>
+              {!ausenciaPorAluno.length && <p className="text-sm text-[#6F8499]">Dados insuficientes para calcular frequencia.</p>}
+            </CardContent>
+          </Card>
+        </div>
+      </section>
     </div>
   );
 }

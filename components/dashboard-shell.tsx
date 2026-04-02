@@ -40,6 +40,14 @@ const accountLinks = [
   { href: "/dashboard/configuracoes", icon: Settings, label: "Configuracoes" },
 ];
 
+const mobileLinks = [
+  { href: "/dashboard", icon: Home, label: "Inicio" },
+  { href: "/dashboard/alunos", icon: UserRound, label: "Alunos" },
+  { href: "/dashboard/chamada", icon: ClipboardCheck, label: "Chamada" },
+  { href: "/dashboard/observacoes", icon: NotebookPen, label: "Notas" },
+  { href: "/dashboard/configuracoes", icon: Settings, label: "Conta" },
+];
+
 interface DashboardShellProps {
   userName: string;
   userPlano: string;
@@ -93,8 +101,8 @@ export function DashboardShell({ userName, userPlano, children }: DashboardShell
 
   return (
     <div className="min-h-screen bg-[#F3F6FA] text-[#10253B]">
-      <div className="grid min-h-screen md:grid-cols-[240px_1fr]">
-        <aside className="hidden border-r border-[#DFE7F0] bg-white md:flex md:flex-col">
+      <div className="grid min-h-screen xl:grid-cols-[250px_minmax(0,1fr)]">
+        <aside className="hidden border-r border-[#DFE7F0] bg-white xl:flex xl:flex-col">
           <div className="flex items-center gap-2 border-b border-[#ECF1F6] px-5 py-4">
             <div className="inline-flex size-9 items-center justify-center rounded-xl bg-[#10B7AA] text-sm font-black text-white">P</div>
             <p className="font-heading text-xl text-[#129D93]">Planejei.</p>
@@ -137,16 +145,16 @@ export function DashboardShell({ userName, userPlano, children }: DashboardShell
           </div>
         </aside>
 
-        <section className="min-w-0">
-          <header className="sticky top-0 z-20 border-b border-[#DFE7F0] bg-white/95 px-4 py-3 backdrop-blur md:px-6">
-            <div className="flex items-center justify-between gap-3">
+        <section className="flex min-w-0 flex-col">
+          <header className="sticky top-0 z-20 border-b border-[#DFE7F0] bg-white/95 px-3 py-3 backdrop-blur md:px-5">
+            <div className="mx-auto flex w-full max-w-[1700px] flex-wrap items-center justify-between gap-3">
               <div>
                 <h1 className="font-heading text-2xl text-[#10253B]">Dashboard</h1>
                 <p className="text-xs font-semibold text-[#7A8DA1]">{dateLabel}</p>
               </div>
 
-              <div className="flex items-center gap-2">
-                <div className="hidden items-center gap-2 rounded-full border border-[#E5ECF4] bg-[#F6F9FC] px-3 py-2 lg:flex">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="hidden items-center gap-2 rounded-full border border-[#E5ECF4] bg-[#F6F9FC] px-3 py-2 2xl:flex">
                   <Search className="size-4 text-[#90A2B5]" />
                   <input
                     type="search"
@@ -168,13 +176,14 @@ export function DashboardShell({ userName, userPlano, children }: DashboardShell
                   className="inline-flex h-9 items-center justify-center gap-1 rounded-xl bg-[#10B7AA] px-3 text-sm font-bold text-white shadow-[0_10px_24px_-16px_rgba(16,183,170,0.9)] transition hover:bg-[#0E9D91]"
                 >
                   <Plus className="size-4" />
-                  Nova observacao
+                  <span className="hidden sm:inline">Nova observacao</span>
+                  <span className="sm:hidden">Novo</span>
                 </Link>
               </div>
             </div>
 
-            <div className="mt-3 flex gap-2 overflow-x-auto pb-1 md:hidden">
-              {mainLinks.slice(0, 4).map((item) => (
+            <div className="mx-auto mt-3 flex w-full max-w-[1700px] gap-2 overflow-x-auto pb-1 xl:hidden">
+              {[...mainLinks, ...reportLinks, ...accountLinks].map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
@@ -192,9 +201,27 @@ export function DashboardShell({ userName, userPlano, children }: DashboardShell
             </div>
           </header>
 
-          <main className="p-4 md:p-6">{children}</main>
+          <main className="mx-auto w-full max-w-[1700px] flex-1 p-3 pb-20 sm:p-4 md:p-6 md:pb-6">{children}</main>
         </section>
       </div>
+
+      <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-[#DCE5EF] bg-white/95 px-2 py-2 backdrop-blur xl:hidden">
+        <div className="mx-auto grid max-w-2xl grid-cols-5 gap-1">
+          {mobileLinks.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "flex flex-col items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold",
+                isActive(item.href) ? "bg-[#E4F8F5] text-[#0F9D91]" : "text-[#5D748B]",
+              )}
+            >
+              <item.icon className="size-4" />
+              <span>{item.label}</span>
+            </Link>
+          ))}
+        </div>
+      </nav>
     </div>
   );
 }
