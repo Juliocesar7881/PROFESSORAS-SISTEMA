@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { gerarRelatorioSchema } from "@/dtos/relatorio.dto";
+import { exportRelatorioQuerySchema, gerarRelatorioSchema } from "@/dtos/relatorio.dto";
 import { fail, ok } from "@/lib/http";
 import type { RequestContext } from "@/middleware/api";
 import { RelatorioService } from "@/services/relatorio.service";
@@ -28,6 +28,25 @@ export class RelatorioController {
       const payload = gerarRelatorioSchema.parse(await request.json());
       const relatorio = await this.relatorioService.gerar(context.userId!, context.plano, payload);
       return ok(relatorio, 201);
+    } catch (error) {
+      return fail(error);
+    }
+  };
+
+  exportPdf = async (request: Request, context: RequestContext) => {
+    try {
+      const query = exportRelatorioQuerySchema.parse(Object.fromEntries(new URL(request.url).searchParams));
+      const payload = await this.relatorioService.exportarPdf(context.userId!, context.plano, query.relatorioId);
+      const fileBuffer = Buffer.from(payload.bytes);
+
+      return new Response(fileBuffer, {
+        status: 200,
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename=\"${payload.fileName}\"`,
+          "Cache-Control": "private, no-store, max-age=0",
+        },
+      });
     } catch (error) {
       return fail(error);
     }

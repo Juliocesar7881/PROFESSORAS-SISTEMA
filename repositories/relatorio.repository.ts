@@ -17,7 +17,7 @@ export class RelatorioRepository extends BaseRepository {
       },
     });
 
-    this.assertFound(aluno, "Aluno nao encontrado");
+    this.assertFound(aluno, "Aluno não encontrado");
   }
 
   async countByUserCurrentMonth(userId: string) {
@@ -93,5 +93,34 @@ export class RelatorioRepository extends BaseRepository {
         },
       },
     });
+  }
+
+  async findOwnedById(userId: string, relatorioId: string) {
+    const relatorio = await prisma.avaliacao.findFirst({
+      where: {
+        id: relatorioId,
+        aluno: {
+          turma: {
+            userId,
+          },
+        },
+      },
+      include: {
+        aluno: {
+          select: {
+            id: true,
+            nome: true,
+            turma: {
+              select: {
+                id: true,
+                nome: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return this.assertFound(relatorio, "Relatório não encontrado");
   }
 }
