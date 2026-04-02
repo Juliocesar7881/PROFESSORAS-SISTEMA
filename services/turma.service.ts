@@ -1,4 +1,4 @@
-import type { CreateTurmaInput } from "@/dtos/turma.dto";
+import type { CreateTurmaInput, UpdateTurmaInput } from "@/dtos/turma.dto";
 import { TurmaRepository } from "@/repositories/turma.repository";
 
 export class TurmaService {
@@ -10,5 +10,13 @@ export class TurmaService {
 
   async list(userId: string) {
     return this.turmaRepository.listByUser(userId);
+  }
+
+  async update(userId: string, turmaId: string, payload: UpdateTurmaInput) {
+    return this.turmaRepository.update(userId, turmaId, payload);
+  }
+
+  async remove(userId: string, turmaId: string) {
+    return this.turmaRepository.softDelete(userId, turmaId);
   }
 }

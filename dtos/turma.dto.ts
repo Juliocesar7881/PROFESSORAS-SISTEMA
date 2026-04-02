@@ -6,4 +6,11 @@ export const createTurmaSchema = z.object({
   ano: z.coerce.number().int().min(2020).max(2100),
 });
 
+export const updateTurmaSchema = z.object({
+  nome: z.string().trim().min(2).max(120).optional(),
+  faixaEtaria: z.string().trim().min(2).max(80).optional(),
+  ano: z.coerce.number().int().min(2020).max(2100).optional(),
+});
+
 export type CreateTurmaInput = z.infer<typeof createTurmaSchema>;
+export type UpdateTurmaInput = z.infer<typeof updateTurmaSchema>;

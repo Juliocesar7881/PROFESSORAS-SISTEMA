@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { BaseRepository } from "@/repositories/base.repository";
-import type { CreateTurmaInput } from "@/dtos/turma.dto";
+import type { CreateTurmaInput, UpdateTurmaInput } from "@/dtos/turma.dto";
 
 export class TurmaRepository extends BaseRepository {
   async create(userId: string, data: CreateTurmaInput) {
@@ -34,7 +34,16 @@ export class TurmaRepository extends BaseRepository {
       },
     });
 
-    return this.assertFound(turma, "Turma nao encontrada");
+    return this.assertFound(turma, "Turma não encontrada");
+  }
+
+  async update(userId: string, turmaId: string, data: UpdateTurmaInput) {
+    const turma = await this.findOwnedById(userId, turmaId);
+
+    return prisma.turma.update({
+      where: { id: turma.id },
+      data,
+    });
   }
 
   async softDelete(userId: string, turmaId: string) {
