@@ -199,7 +199,7 @@ export default function ConfiguracoesPage() {
   return (
     <div className="grid gap-4 xl:grid-cols-[1fr_1.2fr]">
       <div className="space-y-4">
-        <Card className="border-slate-200 bg-white shadow-sm">
+        <Card className="glass-card border-none shadow-[0_8px_30px_-20px_rgba(18,38,58,0.2)]">
           <CardHeader>
             <CardTitle className="font-heading text-2xl text-slate-900">Conta</CardTitle>
             <CardDescription className="text-slate-600">Informações da usuária autenticada no Planejei.</CardDescription>
@@ -220,7 +220,7 @@ export default function ConfiguracoesPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 bg-white shadow-sm">
+        <Card className="glass-card border-none shadow-[0_8px_30px_-20px_rgba(18,38,58,0.2)]">
         <CardHeader>
           <CardTitle className="font-heading text-2xl text-slate-900">Plano atual</CardTitle>
           <CardDescription className="text-slate-600">{isPro ? "Plano Pro ativo" : "Plano Gratuito"}</CardDescription>
@@ -243,7 +243,7 @@ export default function ConfiguracoesPage() {
         </CardContent>
       </Card>
 
-        <Card className="border-slate-200 bg-white shadow-sm">
+        <Card className="glass-card border-none shadow-[0_8px_30px_-20px_rgba(18,38,58,0.2)]">
         <CardHeader>
           <CardTitle className="font-heading text-2xl text-slate-900">Privacidade e LGPD</CardTitle>
           <CardDescription className="text-slate-600">Professora controladora. Planejei operadora. Art. 14 LGPD.</CardDescription>
@@ -262,7 +262,7 @@ export default function ConfiguracoesPage() {
       </Card>
       </div>
 
-      <Card className="border-slate-200 bg-white shadow-sm">
+      <Card className="glass-card border-none shadow-[0_8px_30px_-20px_rgba(18,38,58,0.2)]">
         <CardHeader>
           <CardTitle className="font-heading text-2xl text-slate-900">Gestão de turmas</CardTitle>
           <CardDescription className="text-slate-600">Crie, atualize e arquive turmas direto nesta tela.</CardDescription>

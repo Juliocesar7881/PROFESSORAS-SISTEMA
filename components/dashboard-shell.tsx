@@ -17,6 +17,7 @@ import {
   LogOut,
   NotebookPen,
   Plus,
+  School,
   Sparkles,
   Settings,
   UserRound,
@@ -32,6 +33,7 @@ const primaryLinks = [
   { href: "/dashboard/projetos", icon: FolderKanban, label: "Biblioteca" },
   { href: "/dashboard/avaliacoes", icon: FileCheck, label: "Avaliações" },
   { href: "/dashboard/alunos", icon: UserRound, label: "Alunos" },
+  { href: "/dashboard/turmas", icon: School, label: "Turmas" },
   { href: "/dashboard/chamada", icon: ClipboardCheck, label: "Chamada" },
 ];
 
@@ -46,6 +48,7 @@ const mobileLinks = [
   { href: "/dashboard/planejamento", icon: CalendarDays, label: "Plano" },
   { href: "/dashboard/avaliacoes", icon: FileCheck, label: "Avaliações" },
   { href: "/dashboard/alunos", icon: UserRound, label: "Alunos" },
+  { href: "/dashboard/turmas", icon: School, label: "Turmas" },
   { href: "/dashboard/chamada", icon: ClipboardCheck, label: "Chamada" },
 ];
 
@@ -67,6 +70,9 @@ function getPageMeta(pathname: string) {
   }
   if (pathname.startsWith("/dashboard/alunos")) {
     return { title: "Minha Turma", subtitle: "Observações, histórico e acompanhamento" };
+  }
+  if (pathname.startsWith("/dashboard/turmas")) {
+    return { title: "Gestão de Turmas", subtitle: "Cadastre, ajuste e organize suas turmas" };
   }
   if (pathname.startsWith("/dashboard/chamada")) {
     return { title: "Chamada Digital", subtitle: "Presenças da turma em tempo real" };
@@ -224,7 +230,7 @@ export function DashboardShell({ userName, userPlano, children }: DashboardShell
       </Link>
 
       <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-200 bg-white/95 px-2 py-2 backdrop-blur md:hidden">
-        <div className="mx-auto grid max-w-xl grid-cols-5 gap-1">
+        <div className="mx-auto grid max-w-xl grid-cols-6 gap-1">
           {mobileLinks.map((item) => (
             <Link
               key={item.href}

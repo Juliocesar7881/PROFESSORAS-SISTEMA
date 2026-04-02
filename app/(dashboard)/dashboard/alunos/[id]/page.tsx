@@ -192,8 +192,8 @@ export default function AlunoDetailPage({ params }: { params: { id: string } }) 
 
   if (!aluno) {
     return (
-      <Card className="glass-card border-[#DCECF8]">
-        <CardContent className="py-8 text-[#6A638D]">Carregando aluno...</CardContent>
+      <Card className="glass-card border-none shadow-[0_8px_30px_-20px_rgba(18,38,58,0.2)]">
+        <CardContent className="py-8 text-slate-500">Carregando aluno...</CardContent>
       </Card>
     );
   }
