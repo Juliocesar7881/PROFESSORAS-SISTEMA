@@ -8,6 +8,7 @@ import {
   Bell,
   CalendarDays,
   ClipboardCheck,
+  FileCheck,
   FileBarChart,
   FolderKanban,
   Home,
@@ -27,6 +28,7 @@ const primaryLinks = [
   { href: "/dashboard", icon: Home, label: "Dashboard" },
   { href: "/dashboard/planejamento", icon: CalendarDays, label: "Planejamentos" },
   { href: "/dashboard/projetos", icon: FolderKanban, label: "Biblioteca" },
+  { href: "/dashboard/avaliacoes", icon: FileCheck, label: "Avaliacoes" },
   { href: "/dashboard/alunos", icon: UserRound, label: "Alunos" },
   { href: "/dashboard/chamada", icon: ClipboardCheck, label: "Chamada" },
 ];
@@ -40,8 +42,8 @@ const secondaryLinks = [
 const mobileLinks = [
   { href: "/dashboard", icon: Home, label: "Inicio" },
   { href: "/dashboard/planejamento", icon: CalendarDays, label: "Plano" },
-  { href: "/dashboard/projetos", icon: FolderKanban, label: "Projetos" },
-  { href: "/dashboard/alunos", icon: UserRound, label: "Turma" },
+  { href: "/dashboard/avaliacoes", icon: FileCheck, label: "Avaliacoes" },
+  { href: "/dashboard/alunos", icon: UserRound, label: "Alunos" },
   { href: "/dashboard/chamada", icon: ClipboardCheck, label: "Chamada" },
 ];
 
@@ -57,6 +59,9 @@ function getPageMeta(pathname: string) {
   }
   if (pathname.startsWith("/dashboard/projetos")) {
     return { title: "Biblioteca de Projetos", subtitle: "Projetos prontos para usar na turma" };
+  }
+  if (pathname.startsWith("/dashboard/avaliacoes")) {
+    return { title: "Avaliacoes dos Alunos", subtitle: "Registros simples com apoio de IA para relatorios" };
   }
   if (pathname.startsWith("/dashboard/alunos")) {
     return { title: "Minha Turma", subtitle: "Observacoes, historico e acompanhamento" };

@@ -1,74 +1,97 @@
+import type { Prisma } from "@prisma/client";
 import { Plano } from "@prisma/client";
 
+import { type EtapaTurma, matchesEtapa } from "@/lib/etapa";
+import { PROJECT_CATALOG } from "@/lib/project-catalog";
 import { prisma } from "@/lib/prisma";
 import { BaseRepository } from "@/repositories/base.repository";
 
 interface ListProjetoFilters {
   categoria?: string;
   faixaEtaria?: string;
+  etapa?: EtapaTurma;
+  turmaId?: string;
   duracao?: string;
   busca?: string;
   salvos?: boolean;
 }
 
+let catalogSynced = false;
+
 export class ProjetoRepository extends BaseRepository {
-  async list(userId: string, plano: Plano, filters: ListProjetoFilters) {
-    if (filters.salvos) {
-      return prisma.projeto.findMany({
-        where: {
-          salvosPor: {
-            some: {
-              userId,
-            },
-          },
-        },
-        include: {
-          atividades: true,
-          salvosPor: {
-            where: {
-              userId,
-            },
+  private async ensureCatalog() {
+    if (catalogSynced) {
+      return;
+    }
+
+    const existing = await prisma.projeto.findMany({
+      select: {
+        titulo: true,
+      },
+    });
+
+    const existingTitles = new Set(existing.map((item) => item.titulo));
+
+    for (const projeto of PROJECT_CATALOG) {
+      if (existingTitles.has(projeto.titulo)) {
+        continue;
+      }
+
+      await prisma.projeto.create({
+        data: {
+          titulo: projeto.titulo,
+          descricao: projeto.descricao,
+          categoria: projeto.categoria,
+          faixaEtaria: projeto.faixaEtaria,
+          duracao: projeto.duracao,
+          bnccObjetivos: projeto.bnccObjetivos,
+          premium: projeto.premium,
+          atividades: {
+            create: projeto.atividades,
           },
         },
       });
     }
 
-    const where = {
+    catalogSynced = true;
+  }
+
+  async list(userId: string, plano: Plano, filters: ListProjetoFilters) {
+    await this.ensureCatalog();
+
+    const where: Prisma.ProjetoWhereInput = {
       ...(filters.categoria ? { categoria: filters.categoria } : {}),
-      ...(filters.faixaEtaria ? { faixaEtaria: filters.faixaEtaria } : {}),
       ...(filters.duracao ? { duracao: filters.duracao } : {}),
       ...(filters.busca
         ? {
             OR: [
               { titulo: { contains: filters.busca, mode: "insensitive" as const } },
               { descricao: { contains: filters.busca, mode: "insensitive" as const } },
+              {
+                atividades: {
+                  some: {
+                    OR: [
+                      { titulo: { contains: filters.busca, mode: "insensitive" as const } },
+                      { descricao: { contains: filters.busca, mode: "insensitive" as const } },
+                    ],
+                  },
+                },
+              },
             ],
           }
         : {}),
-      ...(plano === Plano.GRATUITO ? { premium: false } : {}),
+      ...(filters.salvos
+        ? {
+            salvosPor: {
+              some: {
+                userId,
+              },
+            },
+          }
+        : {}),
     };
 
-    if (plano === Plano.PRO) {
-      return prisma.projeto.findMany({
-        where,
-        include: {
-          atividades: true,
-          salvosPor: {
-            where: {
-              userId,
-            },
-          },
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-      });
-    }
-
-    const total = await prisma.projeto.count({ where });
-    const freeLimit = Math.max(1, Math.ceil(total * 0.2));
-
-    return prisma.projeto.findMany({
+    const projetos = await prisma.projeto.findMany({
       where,
       include: {
         atividades: true,
@@ -81,8 +104,15 @@ export class ProjetoRepository extends BaseRepository {
       orderBy: {
         createdAt: "desc",
       },
-      take: freeLimit,
     });
+
+    return projetos
+      .filter((projeto) => (filters.faixaEtaria ? projeto.faixaEtaria.toLowerCase().includes(filters.faixaEtaria.toLowerCase()) : true))
+      .filter((projeto) => (filters.etapa ? matchesEtapa(projeto.faixaEtaria, filters.etapa) : true))
+      .map((projeto) => ({
+        ...projeto,
+        premiumBloqueado: projeto.premium && plano !== Plano.PRO,
+      }));
   }
 
   async findById(id: string) {

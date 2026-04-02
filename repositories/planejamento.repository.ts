@@ -27,22 +27,80 @@ export class PlanejamentoRepository extends BaseRepository {
     });
   }
 
+  async existsByUserTurmaAndWeek(userId: string, turmaId: string, semanaInicio: Date) {
+    const existing = await prisma.planejamento.findUnique({
+      where: {
+        userId_turmaId_semanaInicio: {
+          userId,
+          turmaId,
+          semanaInicio: startOfDay(semanaInicio),
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    return Boolean(existing);
+  }
+
   async create(userId: string, data: CreatePlanejamentoInput) {
     await this.assertTurmaOwnership(userId, data.turmaId);
 
+    const weekStart = startOfDay(data.semanaInicio);
+    const weekEnd = startOfDay(data.semanaFim);
+
     return prisma.$transaction(async (tx) => {
-      const planejamento = await tx.planejamento.create({
-        data: {
-          userId,
-          turmaId: data.turmaId,
-          semanaInicio: startOfDay(data.semanaInicio),
-          semanaFim: startOfDay(data.semanaFim),
+      const existing = await tx.planejamento.findUnique({
+        where: {
+          userId_turmaId_semanaInicio: {
+            userId,
+            turmaId: data.turmaId,
+            semanaInicio: weekStart,
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      const planejamentoId = existing
+        ? (
+            await tx.planejamento.update({
+              where: {
+                id: existing.id,
+              },
+              data: {
+                semanaFim: weekEnd,
+              },
+              select: {
+                id: true,
+              },
+            })
+          ).id
+        : (
+            await tx.planejamento.create({
+              data: {
+                userId,
+                turmaId: data.turmaId,
+                semanaInicio: weekStart,
+                semanaFim: weekEnd,
+              },
+              select: {
+                id: true,
+              },
+            })
+          ).id;
+
+      await tx.planejamentoAtividade.deleteMany({
+        where: {
+          planejamentoId,
         },
       });
 
       await tx.planejamentoAtividade.createMany({
         data: data.atividades.map((item) => ({
-          planejamentoId: planejamento.id,
+          planejamentoId,
           atividadeId: item.atividadeId,
           diaSemana: item.diaSemana,
           horario: item.horario,
@@ -50,7 +108,7 @@ export class PlanejamentoRepository extends BaseRepository {
       });
 
       return tx.planejamento.findUnique({
-        where: { id: planejamento.id },
+        where: { id: planejamentoId },
         include: {
           atividades: {
             include: {
@@ -63,11 +121,12 @@ export class PlanejamentoRepository extends BaseRepository {
     });
   }
 
-  async listByUser(userId: string, turmaId?: string) {
+  async listByUser(userId: string, turmaId?: string, semanaInicio?: Date) {
     return prisma.planejamento.findMany({
       where: {
         userId,
         ...(turmaId ? { turmaId } : {}),
+        ...(semanaInicio ? { semanaInicio: startOfDay(semanaInicio) } : {}),
       },
       orderBy: {
         semanaInicio: "desc",

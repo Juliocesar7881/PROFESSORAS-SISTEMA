@@ -10,10 +10,16 @@ export class PlanejamentoService {
   private readonly planejamentoRepository = new PlanejamentoRepository();
 
   async create(userId: string, plano: Plano, payload: CreatePlanejamentoInput) {
+    const hasPlanForWeek = await this.planejamentoRepository.existsByUserTurmaAndWeek(
+      userId,
+      payload.turmaId,
+      payload.semanaInicio,
+    );
+
     if (plano === Plano.GRATUITO) {
       const currentCount = await this.planejamentoRepository.countByUser(userId);
 
-      if (currentCount >= FREE_PLAN_LIMITS.MAX_PLANEJAMENTOS) {
+      if (!hasPlanForWeek && currentCount >= FREE_PLAN_LIMITS.MAX_PLANEJAMENTOS) {
         throw new PlanLimitError(
           "Plano gratuito permite no maximo 4 planejamentos salvos",
           env.STRIPE_UPGRADE_URL,
@@ -24,8 +30,8 @@ export class PlanejamentoService {
     return this.planejamentoRepository.create(userId, payload);
   }
 
-  async list(userId: string, turmaId?: string) {
-    return this.planejamentoRepository.listByUser(userId, turmaId);
+  async list(userId: string, turmaId?: string, semanaInicio?: Date) {
+    return this.planejamentoRepository.listByUser(userId, turmaId, semanaInicio);
   }
 
   async streak(userId: string) {

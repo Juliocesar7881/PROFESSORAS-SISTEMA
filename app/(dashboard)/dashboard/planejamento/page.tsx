@@ -2,18 +2,34 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { CalendarClock, GripVertical, Plus } from "lucide-react";
+import { CalendarClock, Clock3, Loader2, Plus, Search, Sparkles, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getEtapaLabel, inferEtapaTurma } from "@/lib/etapa";
 
-type Turma = { id: string; nome: string };
+type Turma = { id: string; nome: string; faixaEtaria: string };
 type Atividade = { id: string; titulo: string; categoria: string; duracao: number; bnccCodigos: string[] };
 type ProjetoApi = { atividades?: Atividade[] };
+type PlanejamentoAtividadeApi = {
+  id: string;
+  diaSemana: number;
+  horario: string;
+  atividadeId: string;
+  atividade: Atividade;
+};
+type PlanejamentoApi = {
+  id: string;
+  atividades: PlanejamentoAtividadeApi[];
+};
+type PlanejamentoResponse = {
+  planejamentos: PlanejamentoApi[];
+  streak: number;
+};
 
 type Slot = {
+  id: string;
   atividadeId: string;
   horario: string;
 };
@@ -26,67 +42,287 @@ const weekdays = [
   { label: "Sex", value: 5 },
 ];
 
+const createEmptySlots = (): Record<number, Slot[]> => ({ 1: [], 2: [], 3: [], 4: [], 5: [] });
+
+function generateSlotId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function toDateInput(value: Date) {
+  const timezoneOffsetMs = value.getTimezoneOffset() * 60000;
+  return new Date(value.getTime() - timezoneOffsetMs).toISOString().slice(0, 10);
+}
+
+function getMonday(baseDate: Date) {
+  const date = new Date(baseDate);
+  const dayOfWeek = (date.getDay() + 6) % 7;
+  date.setDate(date.getDate() - dayOfWeek);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function computeWeekEnd(weekStart: string) {
+  if (!weekStart) {
+    return "";
+  }
+
+  const endDate = new Date(`${weekStart}T00:00:00`);
+  endDate.setDate(endDate.getDate() + 4);
+  return toDateInput(endDate);
+}
+
+function getNextSlotTime(daySlots: Slot[]) {
+  if (!daySlots.length) {
+    return "08:00";
+  }
+
+  const sorted = [...daySlots].sort((a, b) => a.horario.localeCompare(b.horario));
+  const last = sorted[sorted.length - 1];
+  const [hour, minute] = last.horario.split(":").map(Number);
+
+  if (Number.isNaN(hour) || Number.isNaN(minute)) {
+    return "08:00";
+  }
+
+  const nextMinutes = Math.min(hour * 60 + minute + 60, 17 * 60 + 30);
+  const nextHour = `${Math.floor(nextMinutes / 60)}`.padStart(2, "0");
+  const nextMinute = `${nextMinutes % 60}`.padStart(2, "0");
+  return `${nextHour}:${nextMinute}`;
+}
+
 export default function PlanejamentoPage() {
+  const defaultWeekStart = useMemo(() => toDateInput(getMonday(new Date())), []);
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [atividades, setAtividades] = useState<Atividade[]>([]);
+  const [search, setSearch] = useState("");
+  const [categoria, setCategoria] = useState("TODAS");
+  const [selectedDay, setSelectedDay] = useState<number>(1);
   const [selectedTurma, setSelectedTurma] = useState<string>("");
-  const [weekStart, setWeekStart] = useState("");
-  const [weekEnd, setWeekEnd] = useState("");
-  const [slots, setSlots] = useState<Record<number, Slot[]>>({ 1: [], 2: [], 3: [], 4: [], 5: [] });
-  const [loading, setLoading] = useState(false);
+  const [weekStart, setWeekStart] = useState(defaultWeekStart);
+  const [weekEnd, setWeekEnd] = useState(computeWeekEnd(defaultWeekStart));
+  const [slots, setSlots] = useState<Record<number, Slot[]>>(createEmptySlots());
+  const [saving, setSaving] = useState(false);
+  const [loadingActivities, setLoadingActivities] = useState(true);
+  const [loadingWeek, setLoadingWeek] = useState(false);
+  const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
+  const [streak, setStreak] = useState(0);
 
-  const load = useCallback(async () => {
-      const [turmasResponse, projetosResponse] = await Promise.all([
-        fetch("/api/turmas"),
-        fetch("/api/projetos"),
-      ]);
+  const loadTurmas = useCallback(async () => {
+    const response = await fetch("/api/turmas");
+    const json = await response.json();
 
-      const turmasJson = await turmasResponse.json();
-      const projetosJson = await projetosResponse.json();
+    if (!response.ok) {
+      throw new Error(json.error?.message ?? "Falha ao carregar turmas");
+    }
 
-      setTurmas(turmasJson.data ?? []);
+    const loadedTurmas = (json.data ?? []) as Turma[];
+    setTurmas(loadedTurmas);
 
-      const flattenedActivities = (projetosJson.data ?? []).flatMap((projeto: ProjetoApi) =>
-        (projeto.atividades ?? []).map((atividade: Atividade) => ({
-          id: atividade.id,
-          titulo: atividade.titulo,
-          categoria: atividade.categoria,
-          duracao: atividade.duracao,
-          bnccCodigos: atividade.bnccCodigos,
-        })),
-      );
+    if (loadedTurmas.length && !selectedTurma) {
+      setSelectedTurma(loadedTurmas[0].id);
+    }
+  }, [selectedTurma]);
 
-      setAtividades(flattenedActivities);
-      if (turmasJson.data?.length) {
-        setSelectedTurma(turmasJson.data[0].id);
+  const loadAtividadesByTurma = useCallback(async (turmaId: string) => {
+    setLoadingActivities(true);
+
+    try {
+      const params = new URLSearchParams({ turmaId });
+      const response = await fetch(`/api/projetos?${params.toString()}`);
+      const json = await response.json();
+
+      if (!response.ok) {
+        throw new Error(json.error?.message ?? "Falha ao carregar atividades");
       }
+
+      const byId = new Map<string, Atividade>();
+
+      for (const projeto of (json.data ?? []) as ProjetoApi[]) {
+        for (const atividade of projeto.atividades ?? []) {
+          byId.set(atividade.id, {
+            id: atividade.id,
+            titulo: atividade.titulo,
+            categoria: atividade.categoria,
+            duracao: atividade.duracao,
+            bnccCodigos: atividade.bnccCodigos,
+          });
+        }
+      }
+
+      const sorted = Array.from(byId.values()).sort((a, b) => a.titulo.localeCompare(b.titulo));
+      setAtividades(sorted);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Falha ao carregar atividades";
+      toast.error(message);
+      setAtividades([]);
+    } finally {
+      setLoadingActivities(false);
+    }
+  }, []);
+
+  const loadWeekPlan = useCallback(async (turmaId: string, semanaInicio: string) => {
+    setLoadingWeek(true);
+
+    try {
+      const params = new URLSearchParams({
+        turmaId,
+        semanaInicio,
+      });
+
+      const response = await fetch(`/api/planejamento?${params.toString()}`);
+      const json = await response.json();
+
+      if (!response.ok) {
+        throw new Error(json.error?.message ?? "Falha ao carregar planejamento da semana");
+      }
+
+      const payload = (json.data ?? {}) as PlanejamentoResponse;
+      setStreak(payload.streak ?? 0);
+
+      const currentPlan = payload.planejamentos?.[0];
+
+      if (!currentPlan) {
+        setCurrentPlanId(null);
+        setSlots(createEmptySlots());
+        return;
+      }
+
+      const nextSlots = createEmptySlots();
+
+      for (const item of currentPlan.atividades ?? []) {
+        if (!nextSlots[item.diaSemana]) {
+          continue;
+        }
+
+        nextSlots[item.diaSemana].push({
+          id: item.id ?? generateSlotId(),
+          atividadeId: item.atividadeId,
+          horario: item.horario,
+        });
+      }
+
+      for (const day of weekdays) {
+        nextSlots[day.value] = nextSlots[day.value].sort((a, b) => a.horario.localeCompare(b.horario));
+      }
+
+      setCurrentPlanId(currentPlan.id);
+      setSlots(nextSlots);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Falha ao carregar planejamento da semana";
+      toast.error(message);
+      setCurrentPlanId(null);
+      setSlots(createEmptySlots());
+    } finally {
+      setLoadingWeek(false);
+    }
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    void loadTurmas();
+  }, [loadTurmas]);
+
+  useEffect(() => {
+    const nextWeekEnd = computeWeekEnd(weekStart);
+    if (nextWeekEnd !== weekEnd) {
+      setWeekEnd(nextWeekEnd);
+    }
+  }, [weekStart, weekEnd]);
+
+  useEffect(() => {
+    if (!selectedTurma) {
+      return;
+    }
+
+    void loadAtividadesByTurma(selectedTurma);
+  }, [selectedTurma, loadAtividadesByTurma]);
+
+  useEffect(() => {
+    if (!selectedTurma || !weekStart) {
+      return;
+    }
+
+    void loadWeekPlan(selectedTurma, weekStart);
+  }, [selectedTurma, weekStart, loadWeekPlan]);
 
   const activityMap = useMemo(() => new Map(atividades.map((item) => [item.id, item])), [atividades]);
 
-  const onDropActivity = (day: number, activityId: string) => {
+  const categoriaOptions = useMemo(
+    () => ["TODAS", ...Array.from(new Set(atividades.map((atividade) => atividade.categoria)))],
+    [atividades],
+  );
+
+  const atividadesFiltradas = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+
+    return atividades.filter((atividade) => {
+      if (categoria !== "TODAS" && atividade.categoria !== categoria) {
+        return false;
+      }
+
+      if (!normalizedSearch) {
+        return true;
+      }
+
+      const searchable = `${atividade.titulo} ${atividade.categoria} ${(atividade.bnccCodigos ?? []).join(" ")}`.toLowerCase();
+      return searchable.includes(normalizedSearch);
+    });
+  }, [atividades, categoria, search]);
+
+  const totalSlots = useMemo(
+    () => weekdays.reduce((acc, day) => acc + slots[day.value].length, 0),
+    [slots],
+  );
+
+  const selectedTurmaData = useMemo(
+    () => turmas.find((turma) => turma.id === selectedTurma) ?? null,
+    [turmas, selectedTurma],
+  );
+
+  const turmaEtapa = useMemo(() => {
+    const etapa = inferEtapaTurma(selectedTurmaData?.faixaEtaria);
+    return etapa ? getEtapaLabel(etapa) : "Nao identificada";
+  }, [selectedTurmaData]);
+
+  const onAddActivity = (day: number, activityId: string) => {
     setSlots((prev) => ({
       ...prev,
-      [day]: [...prev[day], { atividadeId: activityId, horario: "08:00" }],
+      [day]: [
+        ...prev[day],
+        {
+          id: generateSlotId(),
+          atividadeId: activityId,
+          horario: getNextSlotTime(prev[day]),
+        },
+      ],
     }));
   };
 
-  const updateSlot = (day: number, index: number, horario: string) => {
+  const updateSlot = (day: number, slotId: string, horario: string) => {
     setSlots((prev) => ({
       ...prev,
-      [day]: prev[day].map((slot, slotIndex) => (slotIndex === index ? { ...slot, horario } : slot)),
+      [day]: prev[day].map((slot) => (slot.id === slotId ? { ...slot, horario } : slot)),
     }));
   };
 
-  const removeSlot = (day: number, index: number) => {
+  const removeSlot = (day: number, slotId: string) => {
     setSlots((prev) => ({
       ...prev,
-      [day]: prev[day].filter((_, slotIndex) => slotIndex !== index),
+      [day]: prev[day].filter((slot) => slot.id !== slotId),
     }));
+  };
+
+  const clearWeek = () => {
+    if (!totalSlots) {
+      toast.info("A semana ja esta vazia");
+      return;
+    }
+
+    setSlots(createEmptySlots());
+    toast.success("Grade da semana limpa");
   };
 
   const handleSave = async () => {
@@ -108,7 +344,7 @@ export default function PlanejamentoPage() {
       return;
     }
 
-    setLoading(true);
+    setSaving(true);
 
     const response = await fetch("/api/planejamento", {
       method: "POST",
@@ -121,7 +357,7 @@ export default function PlanejamentoPage() {
       }),
     });
 
-    setLoading(false);
+    setSaving(false);
 
     if (!response.ok) {
       const json = await response.json();
@@ -129,122 +365,235 @@ export default function PlanejamentoPage() {
       return;
     }
 
-    toast.success("Planejamento salvo com sucesso");
+    toast.success(currentPlanId ? "Planejamento atualizado com sucesso" : "Planejamento salvo com sucesso");
+    await loadWeekPlan(selectedTurma, weekStart);
   };
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
-      <Card className="glass-card border-[#DCECF8]">
+    <div className="space-y-4">
+      <Card className="border-slate-200 bg-white shadow-sm">
         <CardHeader>
-          <CardTitle className="font-heading text-2xl text-[#1E1740]">Atividades</CardTitle>
-          <CardDescription className="text-[#6A638D]">Arraste para os dias da semana e ajuste horario</CardDescription>
+          <CardTitle className="font-heading text-3xl text-slate-900">Planejamento da semana em 3 passos</CardTitle>
+          <CardDescription className="text-slate-600">Escolha turma e semana, monte a grade por dia e salve. Se a semana ja existir, voce edita sem perder nada.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-2">
-          {atividades.map((atividade) => (
-            <button
-              key={atividade.id}
-              draggable
-              onDragStart={(event) => event.dataTransfer.setData("text/activity-id", atividade.id)}
-              className="flex w-full items-start gap-2 rounded-xl border border-[#DCECF8] bg-white p-3 text-left text-sm transition hover:border-[#BDEEE8] hover:bg-[#F2FCFA]"
-            >
-              <GripVertical className="mt-0.5 size-4 text-[#8A84AD]" />
-              <div>
-                <p className="font-semibold text-[#1E1740]">{atividade.titulo}</p>
-                <p className="text-xs text-[#746E98]">
-                  {atividade.categoria} • {atividade.duracao} min
-                </p>
-              </div>
-            </button>
-          ))}
+        <CardContent className="flex flex-wrap gap-2 text-xs text-slate-600">
+          <span className="rounded-full bg-cyan-50 px-2.5 py-1 font-semibold text-cyan-700">Passo 1: Turma + semana</span>
+          <span className="rounded-full bg-emerald-50 px-2.5 py-1 font-semibold text-emerald-700">Passo 2: Adicionar atividades</span>
+          <span className="rounded-full bg-amber-50 px-2.5 py-1 font-semibold text-amber-700">Passo 3: Salvar planejamento</span>
+        </CardContent>
+      </Card>
 
-          {!atividades.length && (
-            <p className="rounded-xl border border-dashed border-[#CFE2F5] bg-[#F8FBFF] p-3 text-sm text-[#6A638D]">
-              Nenhuma atividade disponivel. Salve um projeto para popular sua biblioteca.
+      <div className="grid gap-4 xl:grid-cols-[360px_1fr]">
+      <Card className="border-slate-200 bg-white shadow-sm">
+        <CardHeader>
+          <CardTitle className="font-heading text-2xl text-slate-900">Biblioteca de atividades</CardTitle>
+          <CardDescription className="text-slate-600">Selecione um dia e toque em Adicionar.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-2.5 size-4 text-slate-400" />
+            <Input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Buscar atividade"
+              className="border-slate-200 bg-slate-50 pl-9"
+            />
+          </div>
+
+          <select
+            className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700"
+            value={categoria}
+            onChange={(event) => setCategoria(event.target.value)}
+          >
+            {categoriaOptions.map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </select>
+
+          <div>
+            <p className="mb-2 text-xs font-bold uppercase tracking-[0.08em] text-slate-500">Dia selecionado</p>
+            <div className="grid grid-cols-5 gap-1.5">
+              {weekdays.map((day) => (
+                <button
+                  key={day.value}
+                  type="button"
+                  onClick={() => setSelectedDay(day.value)}
+                  className={`rounded-lg px-2 py-2 text-xs font-semibold transition ${selectedDay === day.value ? "bg-rose-500 text-white" : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}
+                >
+                  {day.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="max-h-[560px] space-y-2 overflow-y-auto pr-1">
+            {loadingActivities && (
+              <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+                <Loader2 className="size-4 animate-spin" />
+                Carregando atividades...
+              </div>
+            )}
+
+            {!loadingActivities &&
+              atividadesFiltradas.map((atividade) => (
+                <article key={atividade.id} className="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+                  <p className="text-sm font-semibold text-slate-900">{atividade.titulo}</p>
+                  <p className="mt-0.5 text-xs text-slate-600">
+                    {atividade.categoria} • {atividade.duracao} min
+                  </p>
+                  <p className="mt-1 line-clamp-1 text-[11px] text-slate-500">
+                    BNCC: {(atividade.bnccCodigos ?? []).join(", ") || "Nao informado"}
+                  </p>
+
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      onAddActivity(selectedDay, atividade.id);
+                      const dayLabel = weekdays.find((day) => day.value === selectedDay)?.label;
+                      toast.success(`Atividade adicionada em ${dayLabel}`);
+                    }}
+                    className="mt-2 h-8 w-full bg-emerald-500 text-xs font-bold text-white hover:bg-emerald-600"
+                  >
+                    <Plus className="mr-1 size-3.5" />
+                    Adicionar no dia selecionado
+                  </Button>
+                </article>
+              ))}
+          </div>
+
+          {!loadingActivities && !atividadesFiltradas.length && (
+            <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3 text-sm text-slate-600">
+              Nenhuma atividade encontrada para os filtros atuais.
             </p>
           )}
         </CardContent>
       </Card>
 
-      <Card className="glass-card border-[#DCECF8]">
+      <Card className="border-slate-200 bg-white shadow-sm">
         <CardHeader>
-          <CardTitle className="font-heading text-2xl text-[#1E1740]">Grade semanal</CardTitle>
-          <CardDescription className="text-[#6A638D]">Segunda a sexta com drag and drop</CardDescription>
+          <CardTitle className="font-heading text-2xl text-slate-900">Grade semanal</CardTitle>
+          <CardDescription className="text-slate-600">Planejamento visual da semana para a turma selecionada.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-3 md:grid-cols-3">
-            <Select value={selectedTurma} onValueChange={(value) => setSelectedTurma(value ?? "")}>
-              <SelectTrigger className="border-[#D8E9F8] bg-white text-[#1E1740]">
-                <SelectValue placeholder="Selecione a turma" />
-              </SelectTrigger>
-              <SelectContent>
-                {turmas.map((turma) => (
-                  <SelectItem key={turma.id} value={turma.id}>
+          <div className="grid gap-3 md:grid-cols-4">
+            <select
+              value={selectedTurma}
+              onChange={(event) => setSelectedTurma(event.target.value)}
+              className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700"
+            >
+              {!turmas.length && <option value="">Sem turmas cadastradas</option>}
+              {turmas.map((turma) => (
+                <option key={turma.id} value={turma.id}>
                     {turma.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Input type="date" value={weekStart} onChange={(event) => setWeekStart(event.target.value)} />
-            <Input type="date" value={weekEnd} onChange={(event) => setWeekEnd(event.target.value)} />
+                </option>
+              ))}
+            </select>
+
+            <Input type="date" value={weekStart} onChange={(event) => setWeekStart(event.target.value)} className="border-slate-200 bg-slate-50" />
+            <Input type="date" value={weekEnd} readOnly className="border-slate-200 bg-slate-100 text-slate-600" />
+
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+              Etapa sugerida da turma: <span className="font-semibold text-slate-800">{turmaEtapa}</span>
+            </div>
           </div>
 
-          <div className="rounded-xl border border-[#DCECF8] bg-[#F8FBFF] px-3 py-2 text-xs text-[#6A638D]">
-            Dica: arraste atividades para os dias e ajuste o horario em cada card.
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="rounded-full bg-cyan-50 px-2.5 py-1 font-semibold text-cyan-700">{totalSlots} atividades na grade</span>
+            <span className="rounded-full bg-emerald-50 px-2.5 py-1 font-semibold text-emerald-700">Sequencia ativa: {streak} semana(s)</span>
+            {currentPlanId && <span className="rounded-full bg-amber-50 px-2.5 py-1 font-semibold text-amber-700">Editando semana ja salva</span>}
           </div>
 
-          <div className="grid gap-3 md:grid-cols-5">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+            Dica pratica: escolha o dia na lateral e toque em Adicionar nas atividades. Depois ajuste os horarios.
+          </div>
+
+          {loadingWeek && (
+            <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+              <Loader2 className="size-4 animate-spin" />
+              Carregando planejamento da semana...
+            </div>
+          )}
+
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
             {weekdays.map((day) => (
               <div
                 key={day.value}
-                onDragOver={(event) => event.preventDefault()}
-                onDrop={(event) => {
-                  event.preventDefault();
-                  const activityId = event.dataTransfer.getData("text/activity-id");
-                  if (activityId) {
-                    onDropActivity(day.value, activityId);
-                    toast.success(`Atividade adicionada em ${day.label}`);
-                  }
-                }}
-                className="min-h-56 rounded-xl border border-[#DCECF8] bg-white/90 p-2"
+                className={`min-h-56 rounded-xl border p-2 ${selectedDay === day.value ? "border-rose-200 bg-rose-50/40" : "border-slate-200 bg-white"}`}
               >
                 <div className="mb-2 flex items-center justify-between">
-                  <p className="text-sm font-semibold text-[#1E1740]">{day.label}</p>
-                  <Plus className="size-3.5 text-[#8A84AD]" />
+                  <button
+                    type="button"
+                    onClick={() => setSelectedDay(day.value)}
+                    className={`text-sm font-semibold ${selectedDay === day.value ? "text-rose-700" : "text-slate-800"}`}
+                  >
+                    {day.label}
+                  </button>
+                  <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-500">
+                    {slots[day.value].length}
+                  </span>
                 </div>
+
                 <div className="space-y-2">
-                  {slots[day.value].map((slot, index) => {
+                  {[...slots[day.value]].sort((a, b) => a.horario.localeCompare(b.horario)).map((slot) => {
                     const atividade = activityMap.get(slot.atividadeId);
 
                     return (
-                      <div key={`${slot.atividadeId}-${index}`} className="rounded-lg border border-[#DCECF8] bg-[#F8FBFF] p-2">
-                        <p className="text-xs font-medium text-[#1E1740]">{atividade?.titulo ?? "Atividade"}</p>
+                      <div key={slot.id} className="rounded-lg border border-slate-200 bg-slate-50 p-2">
+                        <p className="line-clamp-2 text-xs font-semibold text-slate-900">{atividade?.titulo ?? "Atividade"}</p>
+                        <p className="mt-0.5 text-[11px] text-slate-500">{atividade?.categoria ?? "Categoria nao informada"}</p>
                         <Input
-                          className="mt-1 h-8"
+                          className="mt-1 h-8 border-slate-200 bg-white"
                           type="time"
                           value={slot.horario}
-                          onChange={(event) => updateSlot(day.value, index, event.target.value)}
+                          onChange={(event) => updateSlot(day.value, slot.id, event.target.value)}
                         />
                         <button
-                          onClick={() => removeSlot(day.value, index)}
-                          className="mt-1 text-[11px] text-[#DD5D42] underline"
+                          onClick={() => removeSlot(day.value, slot.id)}
+                          className="mt-1 inline-flex items-center gap-1 text-[11px] text-rose-600 underline"
                           type="button"
                         >
+                          <Trash2 className="size-3" />
                           Remover
                         </button>
                       </div>
                     );
                   })}
+
+                  {!slots[day.value].length && (
+                    <p className="rounded-lg border border-dashed border-slate-300 bg-white px-2 py-3 text-center text-xs text-slate-500">
+                      Sem atividades neste dia.
+                    </p>
+                  )}
                 </div>
               </div>
             ))}
           </div>
 
-          <Button onClick={handleSave} disabled={loading} className="bg-[#0BB8A8] text-white hover:bg-[#0A9F92]">
-            <CalendarClock className="mr-2 size-4" />
-            {loading ? "Salvando..." : "Salvar semana"}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={clearWeek} type="button" variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
+              <Trash2 className="mr-2 size-4" />
+              Limpar semana
+            </Button>
+
+            <Button onClick={handleSave} disabled={saving || loadingWeek} className="bg-emerald-600 text-white hover:bg-emerald-700">
+              {saving ? <Loader2 className="mr-2 size-4 animate-spin" /> : <CalendarClock className="mr-2 size-4" />}
+              {saving ? "Salvando..." : "Salvar semana"}
+            </Button>
+
+            <div className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+              <Clock3 className="size-3.5" />
+              {weekStart} ate {weekEnd}
+            </div>
+            <div className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+              <Sparkles className="size-3.5" />
+              {currentPlanId ? "Modo edicao da semana" : "Semana nova"}
+            </div>
+          </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

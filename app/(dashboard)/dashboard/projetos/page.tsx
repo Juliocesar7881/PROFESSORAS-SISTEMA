@@ -17,7 +17,15 @@ type Projeto = {
   faixaEtaria: string;
   duracao: string;
   premium: boolean;
+  premiumBloqueado?: boolean;
+  atividades: Array<{ id: string; titulo: string; categoria: string; duracao: number }>;
   salvosPor?: Array<{ userId: string }>;
+};
+
+type Turma = {
+  id: string;
+  nome: string;
+  faixaEtaria: string;
 };
 
 const categoryGradients: Record<string, string> = {
@@ -31,8 +39,21 @@ const categoryGradients: Record<string, string> = {
 
 export default function ProjetosPage() {
   const [projetos, setProjetos] = useState<Projeto[]>([]);
+  const [turmas, setTurmas] = useState<Turma[]>([]);
   const [busca, setBusca] = useState("");
   const [categoria, setCategoria] = useState("TODAS");
+  const [etapa, setEtapa] = useState("TODAS");
+  const [turmaId, setTurmaId] = useState("TODAS");
+
+  useEffect(() => {
+    const loadTurmas = async () => {
+      const response = await fetch("/api/turmas");
+      const json = await response.json();
+      setTurmas(json.data ?? []);
+    };
+
+    void loadTurmas();
+  }, []);
 
   const load = useCallback(async () => {
     const params = new URLSearchParams();
@@ -45,10 +66,18 @@ export default function ProjetosPage() {
       params.set("categoria", categoria);
     }
 
+    if (etapa !== "TODAS") {
+      params.set("etapa", etapa);
+    }
+
+    if (turmaId !== "TODAS") {
+      params.set("turmaId", turmaId);
+    }
+
     const response = await fetch(`/api/projetos?${params.toString()}`);
     const json = await response.json();
     setProjetos(json.data ?? []);
-  }, [busca, categoria]);
+  }, [busca, categoria, etapa, turmaId]);
 
   useEffect(() => {
     void load();
@@ -86,6 +115,37 @@ export default function ProjetosPage() {
             <Input className="border-slate-200 bg-slate-50 pl-9" value={busca} onChange={(event) => setBusca(event.target.value)} placeholder="Buscar por titulo ou descricao" />
           </div>
 
+          <div className="grid gap-3 md:grid-cols-3">
+            <select
+              className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700"
+              value={turmaId}
+              onChange={(event) => setTurmaId(event.target.value)}
+            >
+              <option value="TODAS">Todas as turmas</option>
+              {turmas.map((turma) => (
+                <option key={turma.id} value={turma.id}>
+                  {turma.nome} ({turma.faixaEtaria})
+                </option>
+              ))}
+            </select>
+
+            <select
+              className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700"
+              value={etapa}
+              onChange={(event) => setEtapa(event.target.value)}
+            >
+              <option value="TODAS">Todas as etapas</option>
+              <option value="BERCARIO">Bercario</option>
+              <option value="MATERNAL">Maternal</option>
+              <option value="JARDIM">Jardim</option>
+              <option value="PRE">Pre-escola</option>
+            </select>
+
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+              {projetos.length} projeto(s) • {projetos.reduce((acc, item) => acc + item.atividades.length, 0)} atividades
+            </div>
+          </div>
+
           <div className="flex flex-wrap gap-2">
             {categorias.map((item) => (
               <button
@@ -120,16 +180,28 @@ export default function ProjetosPage() {
                 <p className="mt-2 line-clamp-3 text-sm text-slate-600">{projeto.descricao}</p>
                 <p className="mt-2 text-xs text-slate-500">{projeto.faixaEtaria} • {projeto.duracao}</p>
 
+                <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-2.5">
+                  <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500">Atividades do projeto</p>
+                  <div className="space-y-1">
+                    {projeto.atividades.slice(0, 3).map((atividade) => (
+                      <p key={atividade.id} className="text-xs text-slate-700">
+                        • {atividade.titulo} ({atividade.duracao}min)
+                      </p>
+                    ))}
+                    {!projeto.atividades.length && <p className="text-xs text-slate-500">Sem atividades cadastradas.</p>}
+                  </div>
+                </div>
+
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Link href={`/dashboard/projetos/${projeto.id}`} className={buttonVariants({ className: "bg-rose-500 text-white hover:bg-rose-600" })}>
-                    Usar no planejamento
+                    Ver detalhes
                   </Link>
                   <Button variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50" onClick={() => toggleSave(projeto)}>
                     {saved ? "Remover" : "Salvar"}
                   </Button>
                 </div>
 
-                {projeto.premium && <p className="mt-2 text-xs font-semibold text-amber-600">Projeto premium</p>}
+                {projeto.premium && <p className="mt-2 text-xs font-semibold text-amber-600">Projeto premium {projeto.premiumBloqueado ? "(visualizacao liberada)" : ""}</p>}
               </div>
             </article>
           );

@@ -9,7 +9,7 @@ export class PlanejamentoController {
   list = async (request: Request, context: RequestContext) => {
     try {
       const query = planejamentoQuerySchema.parse(Object.fromEntries(new URL(request.url).searchParams));
-      const planejamentos = await this.planejamentoService.list(context.userId!, query.turmaId);
+      const planejamentos = await this.planejamentoService.list(context.userId!, query.turmaId, query.semanaInicio);
       const streak = await this.planejamentoService.streak(context.userId!);
 
       return ok({

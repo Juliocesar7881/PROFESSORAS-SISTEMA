@@ -3,6 +3,7 @@ import {
   ArrowRight,
   CalendarClock,
   ClipboardCheck,
+  FileCheck,
   FileText,
   Play,
   TriangleAlert,
@@ -60,6 +61,10 @@ export default async function DashboardHomePage() {
                 <ClipboardCheck className="size-4" />
                 Fazer chamada
               </Link>
+              <Link href="/dashboard/avaliacoes" className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                <FileCheck className="size-4 text-emerald-600" />
+                Avaliar alunos
+              </Link>
               <Link href="/dashboard/observacoes" className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">
                 <FileText className="size-4 text-purple-500" />
                 Nova observacao
@@ -102,10 +107,10 @@ export default async function DashboardHomePage() {
 
         <Card className="border-slate-200 bg-white shadow-sm">
           <CardContent className="py-4">
-            <p className="text-xs font-bold uppercase tracking-[0.1em] text-slate-500">Relatorios (mes)</p>
+            <p className="text-xs font-bold uppercase tracking-[0.1em] text-slate-500">Avaliacoes IA (mes)</p>
             <div className="mt-2 flex items-center justify-between">
               <p className="text-3xl font-black text-slate-900">{summary.relatoriosMes}</p>
-              <ClipboardCheck className="size-5 text-emerald-500" />
+              <FileCheck className="size-5 text-emerald-500" />
             </div>
           </CardContent>
         </Card>
