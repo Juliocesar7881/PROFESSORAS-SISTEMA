@@ -44,11 +44,6 @@ const onboardingFormSchema = z.object({
 
 type OnboardingFormInput = z.infer<typeof onboardingFormSchema>;
 
-interface OnboardingWizardProps {
-  userName: string;
-  userImage?: string | null;
-}
-
 const steps = [
   { num: 1, icon: Sparkles, label: "Boas-vindas", color: "text-violet-600", bg: "bg-violet-50", border: "border-violet-200" },
   { num: 2, icon: School, label: "Sua turma", color: "text-sky-600", bg: "bg-sky-50", border: "border-sky-200" },
