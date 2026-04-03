@@ -132,7 +132,7 @@ export default function AlunoDetailPage({ params }: { params: { id: string } }) 
       case "CRIATIVIDADE":
         return "obs-criatividade";
       default:
-        return "bg-slate-100 text-slate-700";
+        return "bg-gray-100 text-gray-600";
     }
   };
 
@@ -192,40 +192,40 @@ export default function AlunoDetailPage({ params }: { params: { id: string } }) 
 
   if (!aluno) {
     return (
-      <Card className="glass-card border-none shadow-[0_8px_30px_-20px_rgba(18,38,58,0.2)]">
-        <CardContent className="py-8 text-slate-500">Carregando aluno...</CardContent>
+      <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <CardContent className="py-8 text-gray-500">Carregando aluno...</CardContent>
       </Card>
     );
   }
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
-      <Card className="border-slate-200 bg-white shadow-sm">
+      <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm">
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="inline-flex size-14 items-center justify-center rounded-full bg-gradient-to-br from-rose-500 to-purple-600 text-sm font-bold text-white">
+            <div className="inline-flex size-14 items-center justify-center rounded-full bg-gradient-to-br from-[#6C5CE7] to-[#a78bfa] text-sm font-bold text-white shadow-sm">
               {initials}
             </div>
             <div>
-              <CardTitle className="font-heading text-3xl text-slate-900">{aluno.nome}</CardTitle>
-              <CardDescription className="text-slate-600">{aluno.turma.nome} • {alunoIdade}</CardDescription>
+              <CardTitle className="font-heading text-3xl text-gray-900">{aluno.nome}</CardTitle>
+              <CardDescription className="text-gray-500">{aluno.turma.nome} • {alunoIdade}</CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <p className="mb-2 inline-flex items-center gap-2 text-sm text-slate-600">
-              <NotebookPen className="size-4 text-emerald-600" />
+          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+            <p className="mb-2 inline-flex items-center gap-2 text-sm text-gray-600">
+              <NotebookPen className="size-4 text-emerald-500" />
               Nova observação
             </p>
-            <Textarea value={texto} onChange={(event) => setTexto(event.target.value)} placeholder="O que você observou hoje?" className="border-slate-200 bg-white" />
+            <Textarea value={texto} onChange={(event) => setTexto(event.target.value)} placeholder="O que você observou hoje?" className="border-gray-200 bg-white" />
             <div className="mt-2 flex flex-wrap gap-2">
               {categorias.map((item) => (
                 <button
                   key={item}
                   type="button"
                   onClick={() => setCategoria(item)}
-                  className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${categoria === item ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-white text-slate-600 hover:border-emerald-200 hover:bg-emerald-50/60"}`}
+                  className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${categoria === item ? "border-violet-200 bg-violet-50 text-[#6C5CE7]" : "border-gray-200 bg-white text-gray-500 hover:border-violet-200 hover:bg-violet-50/60"}`}
                 >
                   {item}
                 </button>
@@ -236,28 +236,28 @@ export default function AlunoDetailPage({ params }: { params: { id: string } }) 
               accept="image/*"
               capture="environment"
               onChange={(event) => setFoto(event.target.files?.[0] ?? null)}
-              className="mt-3 border-slate-200 bg-white"
+              className="mt-3 border-gray-200 bg-white"
             />
 
             {previewUrl && (
-              <a href={previewUrl} target="_blank" rel="noreferrer" className="mt-3 block overflow-hidden rounded-xl border border-slate-200">
+              <a href={previewUrl} target="_blank" rel="noreferrer" className="mt-3 block overflow-hidden rounded-xl border border-gray-200">
                 <Image src={previewUrl} alt="Pré-visualização" width={960} height={640} unoptimized className="h-40 w-full object-cover" />
               </a>
             )}
 
-            <Button onClick={salvarObservacao} className="mt-3 w-full bg-emerald-600 text-white hover:bg-emerald-700">
+            <Button onClick={salvarObservacao} className="mt-3 w-full bg-[#00B894] text-white hover:bg-[#00a583]">
               <Camera className="mr-2 size-4" />
               Salvar observação
             </Button>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+            <span className="inline-flex items-center gap-1 text-xs text-gray-400">
               <Filter className="size-3.5" />
               Filtro
             </span>
             <button
-              className={`rounded-full border px-3 py-1 text-xs font-semibold ${filtroCategoria === "TODAS" ? "border-rose-200 bg-rose-50 text-rose-700" : "border-slate-200 bg-white text-slate-600"}`}
+              className={`rounded-full border px-3 py-1 text-xs font-semibold ${filtroCategoria === "TODAS" ? "border-violet-200 bg-violet-50 text-[#6C5CE7]" : "border-gray-200 bg-white text-gray-500"}`}
               onClick={() => setFiltroCategoria("TODAS")}
             >
               TODAS
@@ -265,7 +265,7 @@ export default function AlunoDetailPage({ params }: { params: { id: string } }) 
             {categorias.map((item) => (
               <button
                 key={item}
-                className={`rounded-full border px-3 py-1 text-xs font-semibold ${filtroCategoria === item ? "border-rose-200 bg-rose-50 text-rose-700" : "border-slate-200 bg-white text-slate-600"}`}
+                className={`rounded-full border px-3 py-1 text-xs font-semibold ${filtroCategoria === item ? "border-violet-200 bg-violet-50 text-[#6C5CE7]" : "border-gray-200 bg-white text-gray-500"}`}
                 onClick={() => setFiltroCategoria(item)}
               >
                 {item}
@@ -275,16 +275,16 @@ export default function AlunoDetailPage({ params }: { params: { id: string } }) 
 
           <div className="space-y-3">
             {observacoesOrdenadas.map((observacao) => (
-              <article key={observacao.id} className="rounded-xl border border-slate-200 bg-white p-3">
+              <article key={observacao.id} className="rounded-xl border border-gray-200 bg-white p-3">
                 <div className="mb-2 flex items-center justify-between">
                   <Badge className={getCategoriaClass(observacao.categoria)}>{observacao.categoria}</Badge>
-                  <span className="text-xs text-slate-500">{new Date(observacao.createdAt).toLocaleString("pt-BR")}</span>
+                  <span className="text-xs text-gray-400">{new Date(observacao.createdAt).toLocaleString("pt-BR")}</span>
                 </div>
-                <p className="text-sm text-slate-700">{observacao.texto}</p>
+                <p className="text-sm text-gray-700">{observacao.texto}</p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {observacao.fotos.map((fotoItem) =>
                     fotoItem.url ? (
-                      <a key={fotoItem.id} href={fotoItem.url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg border border-slate-200">
+                      <a key={fotoItem.id} href={fotoItem.url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg border border-gray-200">
                         <Image src={fotoItem.url} alt="Registro" width={64} height={64} className="size-16 object-cover" />
                       </a>
                     ) : null,
@@ -293,25 +293,25 @@ export default function AlunoDetailPage({ params }: { params: { id: string } }) 
               </article>
             ))}
 
-            {!observacoesOrdenadas.length && <p className="text-sm text-slate-600">Sem observações neste filtro.</p>}
+            {!observacoesOrdenadas.length && <p className="text-sm text-gray-400">Sem observações neste filtro.</p>}
           </div>
         </CardContent>
       </Card>
 
-      <Card className="border-slate-200 bg-white shadow-sm">
+      <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm">
         <CardHeader>
-          <CardTitle className="font-heading text-2xl text-slate-900">Relatório com IA</CardTitle>
-          <CardDescription className="text-slate-600">Disponível com 5+ observações ({observacoes.length} registradas)</CardDescription>
+          <CardTitle className="font-heading text-2xl text-gray-900">Relatório com IA</CardTitle>
+          <CardDescription className="text-gray-500">Disponível com 5+ observações ({observacoes.length} registradas)</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <Input value={periodo} onChange={(event) => setPeriodo(event.target.value)} placeholder="Período" className="border-slate-200 bg-slate-50" />
-          <Button onClick={gerarRelatorio} className="w-full bg-rose-500 text-white hover:bg-rose-600">
+          <Input value={periodo} onChange={(event) => setPeriodo(event.target.value)} placeholder="Período" className="border-gray-200 bg-gray-50" />
+          <Button onClick={gerarRelatorio} className="w-full bg-[#6C5CE7] text-white hover:bg-[#5a4bd6]">
             <Bot className="mr-2 size-4" />
             Gerar relatório
           </Button>
 
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
-            <p className="inline-flex items-center gap-1 font-semibold text-slate-700">
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-xs text-gray-500">
+            <p className="inline-flex items-center gap-1 font-semibold text-gray-600">
               <ClipboardList className="size-3.5" />
               Progresso
             </p>
@@ -320,20 +320,20 @@ export default function AlunoDetailPage({ params }: { params: { id: string } }) 
 
           <div className="space-y-2">
             {relatorios.map((relatorio) => (
-              <article key={relatorio.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <p className="inline-flex items-center gap-1 text-xs text-slate-500">
+              <article key={relatorio.id} className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                <p className="inline-flex items-center gap-1 text-xs text-gray-400">
                   <CalendarDays className="size-3.5" />
                   {relatorio.periodo}
                 </p>
-                <p className="mt-1 text-sm text-slate-700">{relatorio.texto}</p>
+                <p className="mt-1 text-sm text-gray-700">{relatorio.texto}</p>
               </article>
             ))}
 
-            {!relatorios.length && <p className="text-sm text-slate-600">Nenhum relatório gerado ainda.</p>}
+            {!relatorios.length && <p className="text-sm text-gray-400">Nenhum relatório gerado ainda.</p>}
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
-            <p className="inline-flex items-center gap-1 font-semibold text-slate-700">
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-xs text-gray-500">
+            <p className="inline-flex items-center gap-1 font-semibold text-gray-600">
               <UserRound className="size-3.5" />
               Perfil em foco
             </p>

@@ -2,311 +2,267 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, PlusCircle, School, Trash2, UsersRound } from "lucide-react";
+import { Loader2, PlusCircle, School, Trash2, UsersRound, Sparkles, CheckCircle2 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+type Turma = { id: string; nome: string; faixaEtaria: string; ano: number };
 
-type Turma = {
-  id: string;
-  nome: string;
-  faixaEtaria: string;
-  ano: number;
-};
+const inputCls =
+  "h-10 w-full rounded-xl border border-gray-200 bg-white px-3.5 text-sm font-medium text-gray-800 placeholder:text-gray-300 transition-all focus:border-violet-300 focus:outline-none focus:ring-2 focus:ring-violet-100 hover:border-gray-300";
+const labelCls = "mb-1.5 block text-[10px] font-black uppercase tracking-[0.2em] text-gray-400";
 
 export default function TurmasPage() {
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [loadingTurmas, setLoadingTurmas] = useState(true);
   const [savingTurmaId, setSavingTurmaId] = useState<string | null>(null);
   const [deletingTurmaId, setDeletingTurmaId] = useState<string | null>(null);
-  const [newTurma, setNewTurma] = useState({
-    nome: "",
-    faixaEtaria: "",
-    ano: new Date().getFullYear(),
-  });
+  const [newTurma, setNewTurma] = useState({ nome: "", faixaEtaria: "", ano: new Date().getFullYear() });
 
   const turmasOrdenadas = useMemo(
-    () => [...turmas].sort((a, b) => (a.ano === b.ano ? a.nome.localeCompare(b.nome) : b.ano - a.ano)),
-    [turmas],
+    () => [...turmas].sort((a, b) => a.ano === b.ano ? a.nome.localeCompare(b.nome) : b.ano - a.ano),
+    [turmas]
   );
 
   const loadTurmas = useCallback(async () => {
     setLoadingTurmas(true);
-
     try {
-      const response = await fetch("/api/turmas");
-      const json = await response.json();
-
-      if (!response.ok) {
-        throw new Error(json.error?.message ?? "Falha ao carregar turmas");
-      }
-
-      setTurmas((json.data ?? []) as Turma[]);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Falha ao carregar turmas";
-      toast.error(message);
-      setTurmas([]);
-    } finally {
-      setLoadingTurmas(false);
-    }
+      const r = await fetch("/api/turmas");
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error?.message ?? "Falha");
+      setTurmas((j.data ?? []) as Turma[]);
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Falha"); setTurmas([]); }
+    finally { setLoadingTurmas(false); }
   }, []);
 
-  useEffect(() => {
-    void loadTurmas();
-  }, [loadTurmas]);
+  useEffect(() => { void loadTurmas(); }, [loadTurmas]);
 
   const createTurma = async () => {
-    const nome = newTurma.nome.trim();
-    const faixaEtaria = newTurma.faixaEtaria.trim();
-
-    if (!nome || !faixaEtaria || !newTurma.ano) {
-      toast.error("Preencha nome, faixa etária e ano letivo da turma");
-      return;
-    }
-
+    const nome = newTurma.nome.trim(), faixaEtaria = newTurma.faixaEtaria.trim();
+    if (!nome || !faixaEtaria || !newTurma.ano) { toast.error("Preencha todos os campos"); return; }
     setSavingTurmaId("new");
-
     try {
-      const response = await fetch("/api/turmas", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nome,
-          faixaEtaria,
-          ano: newTurma.ano,
-        }),
-      });
-
-      const json = await response.json();
-
-      if (!response.ok) {
-        throw new Error(json.error?.message ?? "Falha ao criar turma");
-      }
-
-      toast.success("Turma criada com sucesso");
+      const r = await fetch("/api/turmas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nome, faixaEtaria, ano: newTurma.ano }) });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error?.message ?? "Falha");
+      toast.success("Turma criada com sucesso!");
       setNewTurma({ nome: "", faixaEtaria: "", ano: new Date().getFullYear() });
       await loadTurmas();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Falha ao criar turma";
-      toast.error(message);
-    } finally {
-      setSavingTurmaId(null);
-    }
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Falha"); }
+    finally { setSavingTurmaId(null); }
   };
 
   const updateTurma = async (turma: Turma) => {
     setSavingTurmaId(turma.id);
-
     try {
-      const response = await fetch(`/api/turmas/${turma.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nome: turma.nome,
-          faixaEtaria: turma.faixaEtaria,
-          ano: turma.ano,
-        }),
-      });
-
-      const json = await response.json();
-
-      if (!response.ok) {
-        throw new Error(json.error?.message ?? "Falha ao atualizar turma");
-      }
-
-      toast.success("Turma atualizada");
+      const r = await fetch(`/api/turmas/${turma.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nome: turma.nome, faixaEtaria: turma.faixaEtaria, ano: turma.ano }) });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error?.message ?? "Falha");
+      toast.success("Turma atualizada!");
       await loadTurmas();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Falha ao atualizar turma";
-      toast.error(message);
-    } finally {
-      setSavingTurmaId(null);
-    }
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Falha"); }
+    finally { setSavingTurmaId(null); }
   };
 
   const deleteTurma = async (turma: Turma) => {
-    const confirmDelete = window.confirm(`Arquivar a turma \"${turma.nome}\"?`);
-
-    if (!confirmDelete) {
-      return;
-    }
-
+    if (!window.confirm(`Arquivar a turma "${turma.nome}"?`)) return;
     setDeletingTurmaId(turma.id);
-
     try {
-      const response = await fetch(`/api/turmas/${turma.id}`, { method: "DELETE" });
-      const json = await response.json();
-
-      if (!response.ok) {
-        throw new Error(json.error?.message ?? "Falha ao remover turma");
-      }
-
+      const r = await fetch(`/api/turmas/${turma.id}`, { method: "DELETE" });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error?.message ?? "Falha");
       toast.success("Turma arquivada");
       await loadTurmas();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Falha ao remover turma";
-      toast.error(message);
-    } finally {
-      setDeletingTurmaId(null);
-    }
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Falha"); }
+    finally { setDeletingTurmaId(null); }
   };
 
   return (
     <div className="space-y-6">
-      <Card className="glass-card border-none shadow-[0_8px_30px_-20px_rgba(18,38,58,0.2)]">
-        <CardHeader>
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <CardTitle className="font-heading text-3xl text-slate-900">Turmas da escola</CardTitle>
-              <CardDescription className="mt-1 text-slate-500">Cadastre novas turmas, ajuste dados e mantenha tudo organizado no mesmo padrão visual do sistema.</CardDescription>
+      {/* ─── Hero Banner ─── */}
+      <div
+        className="relative overflow-hidden rounded-3xl border border-fuchsia-200/60 p-7 md:p-8"
+        style={{ background: "linear-gradient(135deg, #c026d3 0%, #a21caf 50%, #7c3aed 100%)" }}
+      >
+        <div className="pointer-events-none absolute -top-12 right-[-5%] h-[200px] w-[200px] rounded-full opacity-25 blur-[60px]" style={{ background: "rgba(232, 121, 249, 0.6)" }} />
+        <div className="pointer-events-none absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+
+        <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold text-white/90">
+              <School className="size-3" />
+              Gestão de Turmas
             </div>
-            <div className="inline-flex size-11 items-center justify-center rounded-2xl bg-rose-50 ring-1 ring-rose-100">
-              <School className="size-5 text-rose-500" />
-            </div>
+            <h2 className="font-heading text-2xl tracking-tight text-white md:text-3xl">
+              Suas turmas organizadas
+            </h2>
+            <p className="mt-1 text-sm text-white/70">
+              Crie, edite e gerencie turmas com facilidade.
+            </p>
           </div>
-        </CardHeader>
-        <CardContent className="flex flex-wrap items-center gap-2 text-xs">
-          <span className="rounded-full bg-rose-50 px-2.5 py-1 font-bold text-rose-700 ring-1 ring-rose-100">{turmas.length} turma(s) ativa(s)</span>
-          <span className="rounded-full bg-cyan-50 px-2.5 py-1 font-bold text-cyan-700 ring-1 ring-cyan-100">Gestão centralizada</span>
-          <span className="rounded-full bg-emerald-50 px-2.5 py-1 font-bold text-emerald-700 ring-1 ring-emerald-100">Cadastro e edição rápida</span>
-        </CardContent>
-      </Card>
+          <div className="flex flex-wrap gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-bold text-white">
+              <Sparkles className="size-3" />
+              {turmas.length} turma{turmas.length !== 1 ? "s" : ""} ativa{turmas.length !== 1 ? "s" : ""}
+            </span>
+          </div>
+        </div>
+      </div>
 
       <div className="grid gap-6 xl:grid-cols-[380px_1fr]">
-        <Card className="glass-card border-none shadow-[0_8px_30px_-20px_rgba(18,38,58,0.2)]">
-          <CardHeader>
-            <CardTitle className="font-heading text-2xl text-slate-900">Nova turma</CardTitle>
-            <CardDescription className="text-slate-500">Crie uma turma para começar a registrar alunos, avaliações e chamadas.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
+        {/* ─── Nova Turma ─── */}
+        <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-5 flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-2xl bg-fuchsia-50">
+              <PlusCircle className="size-5 text-fuchsia-500" />
+            </div>
             <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Nome da turma</label>
-              <Input
-                className="h-11 rounded-xl border-slate-200/60 bg-slate-50/60"
+              <h3 className="font-heading text-xl font-bold text-gray-900">Nova turma</h3>
+              <p className="text-xs text-gray-400">Preencha os campos abaixo</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className={labelCls}>Nome da turma</label>
+              <input
+                className={inputCls}
                 placeholder="Ex: Jardim II A"
                 value={newTurma.nome}
-                onChange={(event) => setNewTurma((prev) => ({ ...prev, nome: event.target.value }))}
+                onChange={(e) => setNewTurma((p) => ({ ...p, nome: e.target.value }))}
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Faixa etária</label>
-              <Input
-                className="h-11 rounded-xl border-slate-200/60 bg-slate-50/60"
+              <label className={labelCls}>Faixa etária</label>
+              <input
+                className={inputCls}
                 placeholder="Ex: 4-5 anos"
                 value={newTurma.faixaEtaria}
-                onChange={(event) => setNewTurma((prev) => ({ ...prev, faixaEtaria: event.target.value }))}
+                onChange={(e) => setNewTurma((p) => ({ ...p, faixaEtaria: e.target.value }))}
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Ano letivo</label>
-              <Input
-                className="h-11 rounded-xl border-slate-200/60 bg-slate-50/60"
+              <label className={labelCls}>Ano letivo</label>
+              <input
+                className={inputCls}
                 type="number"
                 value={newTurma.ano}
-                onChange={(event) => {
-                  const value = Number(event.target.value) || new Date().getFullYear();
-                  setNewTurma((prev) => ({ ...prev, ano: value }));
-                }}
+                onChange={(e) => setNewTurma((p) => ({ ...p, ano: Number(e.target.value) || new Date().getFullYear() }))}
               />
             </div>
 
-            <Button
+            <button
               type="button"
               onClick={createTurma}
               disabled={savingTurmaId === "new"}
-              className="h-11 w-full rounded-xl bg-gradient-to-r from-rose-500 to-purple-600 font-bold text-white shadow-[0_8px_16px_-8px_rgba(244,63,94,0.5)] transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_20px_-8px_rgba(244,63,94,0.6)]"
+              className="flex h-11 w-full items-center justify-center gap-2 rounded-xl text-sm font-bold text-white shadow-[0_4px_14px_-4px_rgba(108,92,231,0.5)] transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-4px_rgba(108,92,231,0.6)] disabled:cursor-not-allowed disabled:opacity-60"
+              style={{ background: "linear-gradient(135deg, #6C5CE7 0%, #8B5CF6 100%)" }}
             >
-              {savingTurmaId === "new" ? <Loader2 className="mr-2 size-4 animate-spin" /> : <PlusCircle className="mr-2 size-4" />}
-              Adicionar turma
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="glass-card border-none shadow-[0_8px_30px_-20px_rgba(18,38,58,0.2)]">
-          <CardHeader>
-            <CardTitle className="font-heading text-2xl text-slate-900">Turmas cadastradas</CardTitle>
-            <CardDescription className="text-slate-500">Edite os campos e salve cada turma individualmente.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {loadingTurmas && (
-              <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+              {savingTurmaId === "new" ? (
                 <Loader2 className="size-4 animate-spin" />
-                Carregando turmas...
+              ) : (
+                <PlusCircle className="size-4" />
+              )}
+              Adicionar turma
+            </button>
+          </div>
+        </div>
+
+        {/* ─── Lista de Turmas ─── */}
+        <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-5 flex items-center justify-between">
+            <div>
+              <h3 className="font-heading text-xl font-bold text-gray-900">Turmas cadastradas</h3>
+              <p className="mt-0.5 text-xs text-gray-400">Edite e salve individualmente</p>
+            </div>
+            {turmas.length > 0 && (
+              <span className="rounded-full border border-fuchsia-200 bg-fuchsia-50 px-3 py-1 text-xs font-bold text-fuchsia-600">
+                {turmas.length} cadastrada{turmas.length !== 1 ? "s" : ""}
+              </span>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            {loadingTurmas && (
+              <div className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-gray-50 p-4 text-sm font-medium text-gray-500">
+                <Loader2 className="size-4 animate-spin text-violet-500" />
+                Carregando turmas…
               </div>
             )}
 
             {!loadingTurmas && !turmasOrdenadas.length && (
-              <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-600">
-                <UsersRound className="mx-auto mb-2 size-6 text-slate-400" />
-                Nenhuma turma cadastrada no momento.
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-gray-50/60 py-14 text-center">
+                <div className="mb-3 flex size-14 items-center justify-center rounded-2xl bg-fuchsia-50">
+                  <UsersRound className="size-7 text-fuchsia-400" />
+                </div>
+                <p className="text-sm font-semibold text-gray-600">Nenhuma turma cadastrada</p>
+                <p className="mt-1 text-xs text-gray-400">Use o formulário ao lado para criar a primeira</p>
               </div>
             )}
 
-            {!loadingTurmas &&
-              turmasOrdenadas.map((turma) => {
-                const isSaving = savingTurmaId === turma.id;
-                const isDeleting = deletingTurmaId === turma.id;
-
-                return (
-                  <article key={turma.id} className="grid gap-2 rounded-2xl border border-slate-200/70 bg-white p-3 md:grid-cols-[1.4fr_1fr_110px_auto_auto] md:items-end">
-                    <div>
-                      <label className="mb-1 block text-xs font-semibold text-slate-500">Nome</label>
-                      <Input
-                        className="h-10 rounded-xl border-slate-200 bg-slate-50"
-                        value={turma.nome}
-                        onChange={(event) => {
-                          const value = event.target.value;
-                          setTurmas((prev) => prev.map((item) => (item.id === turma.id ? { ...item, nome: value } : item)));
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-semibold text-slate-500">Faixa etária</label>
-                      <Input
-                        className="h-10 rounded-xl border-slate-200 bg-slate-50"
-                        value={turma.faixaEtaria}
-                        onChange={(event) => {
-                          const value = event.target.value;
-                          setTurmas((prev) => prev.map((item) => (item.id === turma.id ? { ...item, faixaEtaria: value } : item)));
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-semibold text-slate-500">Ano</label>
-                      <Input
-                        className="h-10 rounded-xl border-slate-200 bg-slate-50"
-                        type="number"
-                        value={turma.ano}
-                        onChange={(event) => {
-                          const value = Number(event.target.value) || turma.ano;
-                          setTurmas((prev) => prev.map((item) => (item.id === turma.id ? { ...item, ano: value } : item)));
-                        }}
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="h-10 rounded-xl border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                      disabled={isSaving || isDeleting}
-                      onClick={() => updateTurma(turma)}
-                    >
-                      {isSaving ? <Loader2 className="size-4 animate-spin" /> : "Salvar"}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="h-10 rounded-xl border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
-                      disabled={isSaving || isDeleting}
-                      onClick={() => deleteTurma(turma)}
-                    >
-                      {isDeleting ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
-                    </Button>
-                  </article>
-                );
-              })}
-          </CardContent>
-        </Card>
+            {!loadingTurmas && turmasOrdenadas.map((turma) => {
+              const isSaving_ = savingTurmaId === turma.id;
+              const isDeleting_ = deletingTurmaId === turma.id;
+              return (
+                <article
+                  key={turma.id}
+                  className="grid gap-3 rounded-2xl border border-gray-200 bg-gray-50/50 p-4 transition-all hover:border-gray-300 hover:shadow-sm md:grid-cols-[1.3fr_1fr_100px_auto_auto] md:items-end"
+                >
+                  <div>
+                    <label className={labelCls}>Nome</label>
+                    <input
+                      className={inputCls}
+                      value={turma.nome}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setTurmas((p) => p.map((i) => i.id === turma.id ? { ...i, nome: v } : i));
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Faixa etária</label>
+                    <input
+                      className={inputCls}
+                      value={turma.faixaEtaria}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setTurmas((p) => p.map((i) => i.id === turma.id ? { ...i, faixaEtaria: v } : i));
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Ano</label>
+                    <input
+                      className={inputCls}
+                      type="number"
+                      value={turma.ano}
+                      onChange={(e) => {
+                        const v = Number(e.target.value) || turma.ano;
+                        setTurmas((p) => p.map((i) => i.id === turma.id ? { ...i, ano: v } : i));
+                      }}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    disabled={isSaving_ || isDeleting_}
+                    onClick={() => updateTurma(turma)}
+                    className="flex h-10 items-center justify-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-bold text-emerald-700 transition-all hover:bg-emerald-100 disabled:opacity-60"
+                  >
+                    {isSaving_ ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
+                    <span className="hidden md:inline">Salvar</span>
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isSaving_ || isDeleting_}
+                    onClick={() => deleteTurma(turma)}
+                    className="flex h-10 items-center justify-center rounded-xl border border-red-200 bg-red-50 px-3 text-red-500 transition-all hover:bg-red-100 disabled:opacity-60"
+                  >
+                    {isDeleting_ ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+                  </button>
+                </article>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -163,11 +163,11 @@ export function OnboardingWizard({ userName, userImage }: OnboardingWizardProps)
     .toUpperCase();
 
   return (
-    <main className="mesh-bg soft-grid min-h-screen px-4 py-8 md:px-8">
+    <main className="min-h-screen bg-[#FAFBFE] px-4 py-8 md:px-8">
       <form onSubmit={handleSubmit} className="mx-auto max-w-4xl space-y-4">
-        <Card className="glass-card border-[#DCECF8]">
+        <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm">
           <CardHeader className="pb-2">
-            <div className="mb-2 flex items-center gap-2 text-[#0BB8A8]">
+            <div className="mb-2 flex items-center gap-2 text-[#6C5CE7]">
               <Sparkles className="size-4" />
               <p className="text-xs uppercase tracking-[0.2em]">Primeiros passos</p>
             </div>
@@ -178,29 +178,29 @@ export function OnboardingWizard({ userName, userImage }: OnboardingWizardProps)
                   alt={userName}
                   width={48}
                   height={48}
-                  className="size-12 rounded-full border-2 border-[#0BB8A8]/30"
+                  className="size-12 rounded-full border-2 border-[#6C5CE7]/30"
                 />
               ) : (
-                <div className="inline-flex size-12 items-center justify-center rounded-full bg-gradient-to-br from-[#F43F5E] to-[#A855F7] text-sm font-bold text-white">
+                <div className="inline-flex size-12 items-center justify-center rounded-full bg-gradient-to-br from-[#6C5CE7] to-[#a78bfa] text-sm font-bold text-white">
                   {initials}
                 </div>
               )}
               <div>
-                <CardTitle className="font-heading text-3xl text-[#1E1740]">Bem-vinda, {userName}! 👋</CardTitle>
-                <CardDescription className="text-[#6A638D]">Configure seu Planejei em 3 passos rápidos.</CardDescription>
+                <CardTitle className="font-heading text-3xl text-gray-900">Bem-vinda, {userName}! 👋</CardTitle>
+                <CardDescription className="text-gray-500">Configure seu Planejei em 3 passos rápidos.</CardDescription>
               </div>
             </div>
           </CardHeader>
 
           <CardContent>
-            <div className="mb-4 flex items-center justify-between gap-3 text-xs text-[#7A739E]">
-              <span className={step >= 1 ? "font-semibold text-[#0BB8A8]" : ""}>1. Boas-vindas</span>
-              <span className={step >= 2 ? "font-semibold text-[#0BB8A8]" : ""}>2. Turma</span>
-              <span className={step >= 3 ? "font-semibold text-[#0BB8A8]" : ""}>3. Alunos</span>
+            <div className="mb-4 flex items-center justify-between gap-3 text-xs text-gray-400">
+              <span className={step >= 1 ? "font-semibold text-[#6C5CE7]" : ""}>1. Boas-vindas</span>
+              <span className={step >= 2 ? "font-semibold text-[#6C5CE7]" : ""}>2. Turma</span>
+              <span className={step >= 3 ? "font-semibold text-[#6C5CE7]" : ""}>3. Alunos</span>
             </div>
-            <div className="h-2 overflow-hidden rounded-full bg-[#E7EEF8]">
+            <div className="h-2 overflow-hidden rounded-full bg-gray-100">
               <motion.div
-                className="h-full rounded-full bg-gradient-to-r from-[#0BB8A8] to-[#FF7B5E]"
+                className="h-full rounded-full bg-gradient-to-r from-[#6C5CE7] to-[#a78bfa]"
                 initial={false}
                 animate={{ width: `${(step / 3) * 100}%` }}
                 transition={{ duration: 0.4, ease: "easeOut" }}
@@ -218,17 +218,17 @@ export function OnboardingWizard({ userName, userImage }: OnboardingWizardProps)
               exit={{ opacity: 0, y: -14 }}
               transition={{ duration: 0.3 }}
             >
-              <Card className="glass-card border-[#DCECF8]">
+              <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm">
                 <CardHeader>
-                  <CardTitle className="font-heading text-2xl text-[#1E1740]">Passo 1 de 3 — Entenda o posicionamento</CardTitle>
-                  <CardDescription className="text-[#6A638D]">Comece com a proposta certa para sua rotina.</CardDescription>
+                  <CardTitle className="font-heading text-2xl text-gray-900">Passo 1 de 3 — Entenda o posicionamento</CardTitle>
+                  <CardDescription className="text-gray-500">Comece com a proposta certa para sua rotina.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <p className="text-[#4E4770]">
+                  <p className="text-gray-600">
                     O Planejei é seu assistente pedagógico para organizar planejamento, observações e desenvolvimento de cada criança. Simples, visual e feito para o dia a dia da sala de aula.
                   </p>
                   <PrefeituraNote />
-                  <Button type="button" onClick={goToTurmaStep} className="h-11 w-full bg-[#0BB8A8] text-white hover:bg-[#0A9F92] md:w-auto">
+                  <Button type="button" onClick={goToTurmaStep} className="h-11 w-full bg-[#6C5CE7] text-white hover:bg-[#5a4bd6] md:w-auto">
                     Continuar
                     <ArrowRight className="ml-1 size-4" />
                   </Button>
@@ -245,20 +245,20 @@ export function OnboardingWizard({ userName, userImage }: OnboardingWizardProps)
               exit={{ opacity: 0, y: -14 }}
               transition={{ duration: 0.3 }}
             >
-              <Card className="glass-card border-[#DCECF8]">
+              <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm">
                 <CardHeader>
-                  <CardTitle className="font-heading text-2xl text-[#1E1740]">Passo 2 de 3 — Criar turma</CardTitle>
-                  <CardDescription className="text-[#6A638D]">Defina os dados básicos da sua turma.</CardDescription>
+                  <CardTitle className="font-heading text-2xl text-gray-900">Passo 2 de 3 — Criar turma</CardTitle>
+                  <CardDescription className="text-gray-500">Defina os dados básicos da sua turma.</CardDescription>
                 </CardHeader>
                 <CardContent className="grid gap-3 md:grid-cols-3">
                   <div>
-                    <label className="mb-1 block text-xs font-semibold text-[#6A638D]">Nome da turma</label>
+                    <label className="mb-1 block text-xs font-semibold text-gray-500">Nome da turma</label>
                     <Input placeholder="Ex: Jardim II A" {...form.register("turmaNome")} />
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-semibold text-[#6A638D]">Faixa etária</label>
+                    <label className="mb-1 block text-xs font-semibold text-gray-500">Faixa etária</label>
                     <select
-                      className="h-10 w-full rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-800"
+                      className="h-10 w-full rounded-md border border-gray-200 bg-gray-50 px-3 text-sm text-gray-800"
                       {...form.register("faixaEtaria")}
                     >
                       <option value="">Selecione...</option>
@@ -270,16 +270,16 @@ export function OnboardingWizard({ userName, userImage }: OnboardingWizardProps)
                     </select>
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-semibold text-[#6A638D]">Ano letivo</label>
+                    <label className="mb-1 block text-xs font-semibold text-gray-500">Ano letivo</label>
                     <Input type="number" placeholder="2026" {...form.register("ano", { valueAsNumber: true })} />
                   </div>
                 </CardContent>
                 <CardContent className="flex gap-2">
-                  <Button type="button" variant="outline" className="border-[#D8E9F8] bg-white text-[#1E1740] hover:border-[#BDEEE8] hover:bg-[#F2FCFA]" onClick={() => setStep(1)}>
+                  <Button type="button" variant="outline" className="border-gray-200 bg-white text-gray-700 hover:bg-gray-50" onClick={() => setStep(1)}>
                     <ArrowLeft className="mr-1 size-4" />
                     Voltar
                   </Button>
-                  <Button type="button" className="bg-[#0BB8A8] text-white hover:bg-[#0A9F92]" onClick={goToAlunosStep}>
+                  <Button type="button" className="bg-[#6C5CE7] text-white hover:bg-[#5a4bd6]" onClick={goToAlunosStep}>
                     Próximo
                     <ArrowRight className="ml-1 size-4" />
                   </Button>
@@ -296,16 +296,16 @@ export function OnboardingWizard({ userName, userImage }: OnboardingWizardProps)
               exit={{ opacity: 0, y: -14 }}
               transition={{ duration: 0.3 }}
             >
-              <Card className="glass-card border-[#DCECF8]">
+              <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm">
                 <CardHeader>
-                  <CardTitle className="font-heading text-2xl text-[#1E1740]">Passo 3 de 3 — Adicionar alunos</CardTitle>
-                  <CardDescription className="text-[#6A638D]">Inclua manualmente ou importe por CSV.</CardDescription>
+                  <CardTitle className="font-heading text-2xl text-gray-900">Passo 3 de 3 — Adicionar alunos</CardTitle>
+                  <CardDescription className="text-gray-500">Inclua manualmente ou importe por CSV.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <label className="mb-1 block text-xs font-semibold text-[#6A638D]">
+                    <label className="mb-1 block text-xs font-semibold text-gray-500">
                       <Users className="mr-1 inline size-3.5" />
-                      Um aluno por linha: <code className="rounded bg-[#E7EEF8] px-1 text-[#0BB8A8]">Nome;AAAA-MM-DD</code>
+                      Um aluno por linha: <code className="rounded bg-gray-100 px-1 text-[#6C5CE7]">Nome;AAAA-MM-DD</code>
                     </label>
                     <Textarea
                       placeholder={"Maria Silva;2020-03-15\nJoão Santos;2020-07-22"}
@@ -313,34 +313,34 @@ export function OnboardingWizard({ userName, userImage }: OnboardingWizardProps)
                       {...form.register("alunosTexto")}
                     />
                   </div>
-                  <div className="rounded-xl border border-dashed border-[#CFE2F5] bg-[#F8FBFF] p-4">
-                    <p className="mb-2 flex items-center gap-2 text-sm text-[#6A638D]">
+                  <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4">
+                    <p className="mb-2 flex items-center gap-2 text-sm text-gray-500">
                       <Upload className="size-4" />
-                      Importar por CSV (colunas: <code className="rounded bg-[#E7EEF8] px-1">nome,dataNasc</code>)
+                      Importar por CSV (colunas: <code className="rounded bg-gray-100 px-1">nome,dataNasc</code>)
                     </p>
                     <Input type="file" accept=".csv" onChange={(e) => handleCsvImport(e.target.files?.[0])} />
                   </div>
 
-                  <div className="rounded-xl border border-[#BDEEE8] bg-[#E8FBF8] p-3 text-sm text-[#0F8F83]">
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-600">
                     <div className="mb-1 flex items-center gap-2 font-medium">
                       <CheckCircle2 className="size-4" />
                       Alunos detectados: {alunosFinal.length}
                     </div>
-                    <p className="text-[#2C9A8F]">Você pode revisar e editar depois no módulo Alunos.</p>
+                    <p className="text-emerald-500">Você pode revisar e editar depois no módulo Alunos.</p>
                   </div>
 
-                  <label className="flex items-start gap-2 text-sm text-[#4E4770]">
-                    <input type="checkbox" className="mt-0.5 accent-[#0BB8A8]" {...form.register("consentimentoLGPD")} />
+                  <label className="flex items-start gap-2 text-sm text-gray-600">
+                    <input type="checkbox" className="mt-0.5 accent-[#6C5CE7]" {...form.register("consentimentoLGPD")} />
                     Confirmo consentimento explícito para tratamento de dados pedagógicos de menores conforme LGPD.
                   </label>
                 </CardContent>
 
                 <CardContent className="flex flex-wrap gap-2">
-                  <Button type="button" variant="outline" className="border-[#D8E9F8] bg-white text-[#1E1740] hover:border-[#BDEEE8] hover:bg-[#F2FCFA]" onClick={() => setStep(2)}>
+                  <Button type="button" variant="outline" className="border-gray-200 bg-white text-gray-700 hover:bg-gray-50" onClick={() => setStep(2)}>
                     <ArrowLeft className="mr-1 size-4" />
                     Voltar
                   </Button>
-                  <Button type="submit" size="lg" className="h-11 bg-[#0BB8A8] text-white hover:bg-[#0A9F92]" disabled={saving}>
+                  <Button type="submit" size="lg" className="h-11 bg-[#6C5CE7] text-white hover:bg-[#5a4bd6]" disabled={saving}>
                     {saving ? "Finalizando..." : "Concluir onboarding 🎉"}
                   </Button>
                 </CardContent>
