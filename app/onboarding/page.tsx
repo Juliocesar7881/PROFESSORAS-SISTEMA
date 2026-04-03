@@ -57,7 +57,7 @@ const steps = [
 const inputCls = "h-11 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-800 placeholder:text-gray-300 transition-all focus:border-violet-300 focus:outline-none focus:ring-2 focus:ring-violet-100 hover:border-gray-300";
 const labelCls = "mb-1.5 block text-[10px] font-black uppercase tracking-[0.2em] text-gray-400";
 
-export function OnboardingWizard({ userName, userImage }: OnboardingWizardProps) {
+export default function OnboardingWizard({ userName, userImage }: OnboardingWizardProps) {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
