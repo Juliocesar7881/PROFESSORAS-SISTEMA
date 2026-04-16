@@ -5,6 +5,10 @@ import { fail, ok } from "@/lib/http";
 import type { RequestContext } from "@/middleware/api";
 import { RelatorioService } from "@/services/relatorio.service";
 
+const pathSchema = z.object({
+  id: z.string().cuid(),
+});
+
 export class RelatorioController {
   private readonly relatorioService = new RelatorioService();
 
@@ -26,7 +30,8 @@ export class RelatorioController {
   generate = async (request: Request, context: RequestContext) => {
     try {
       const payload = gerarRelatorioSchema.parse(await request.json());
-      const relatorio = await this.relatorioService.gerar(context.userId!, context.plano, payload);
+      const trialExpired = context.session?.user?.trialExpired !== false;
+      const relatorio = await this.relatorioService.gerar(context.userId!, context.plano, payload, trialExpired);
       return ok(relatorio, 201);
     } catch (error) {
       return fail(error);
@@ -36,7 +41,8 @@ export class RelatorioController {
   exportPdf = async (request: Request, context: RequestContext) => {
     try {
       const query = exportRelatorioQuerySchema.parse(Object.fromEntries(new URL(request.url).searchParams));
-      const payload = await this.relatorioService.exportarPdf(context.userId!, context.plano, query.relatorioId);
+      const trialExpired = context.session?.user?.trialExpired !== false;
+      const payload = await this.relatorioService.exportarPdf(context.userId!, context.plano, query.relatorioId, trialExpired);
       const fileBuffer = Buffer.from(payload.bytes);
 
       return new Response(fileBuffer, {
@@ -47,6 +53,16 @@ export class RelatorioController {
           "Cache-Control": "private, no-store, max-age=0",
         },
       });
+    } catch (error) {
+      return fail(error);
+    }
+  };
+
+  remove = async (_request: Request, context: RequestContext, params: { id: string }) => {
+    try {
+      const parsed = pathSchema.parse(params);
+      const removed = await this.relatorioService.remover(context.userId!, parsed.id);
+      return ok(removed);
     } catch (error) {
       return fail(error);
     }

@@ -14,6 +14,98 @@ export class RelatorioService {
 
   private readonly relatorioRepository = new RelatorioRepository();
 
+  private getCategoriaLabel(categoria: string) {
+    switch (categoria) {
+      case "APRENDIZAGEM":
+        return "aprendizagem";
+      case "LINGUAGEM":
+        return "linguagem";
+      case "SOCIAL":
+        return "convivência social";
+      case "MOTOR":
+        return "desenvolvimento motor";
+      case "CRIATIVIDADE":
+        return "criatividade";
+      default:
+        return "desenvolvimento geral";
+    }
+  }
+
+  private buildFallbackRelatorio(periodo: string, observacoes: Array<{ texto: string; categoria: string }>) {
+    const totalObservacoes = observacoes.length;
+    const recentes = observacoes.slice(-8);
+    const categorias = new Map<string, number>();
+
+    for (const observacao of observacoes) {
+      const key = this.getCategoriaLabel(observacao.categoria);
+      categorias.set(key, (categorias.get(key) ?? 0) + 1);
+    }
+
+    const categoriasDestaque = Array.from(categorias.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([categoria]) => categoria);
+
+    const textoCategorias = categoriasDestaque.length
+      ? categoriasDestaque.join(", ")
+      : "desenvolvimento geral";
+
+    const evidencias = recentes
+      .map((observacao) => observacao.texto.replace(/\s+/g, " ").trim())
+      .filter((texto) => texto.length > 0)
+      .slice(0, 4)
+      .map((texto) => texto.charAt(0).toLowerCase() + texto.slice(1).replace(/[.!?\s]+$/, ""));
+
+    const trechoEvidencias = evidencias.length
+      ? `Entre as evidências registradas, destacam-se situações em que ${evidencias.join("; ")}.`
+      : "As evidências registradas apontam participação constante nas propostas e boa resposta às mediações pedagógicas.";
+
+    const paragrafo1 = [
+      `No período ${periodo}, o acompanhamento pedagógico foi construído a partir de ${totalObservacoes} observações registradas ao longo da rotina.`,
+      `Os registros indicam avanços em ${textoCategorias}, com progressão gradual na participação, na autonomia e na qualidade das interações em sala.`,
+    ].join(" ");
+
+    const paragrafo2 = [
+      trechoEvidencias,
+      "De modo geral, a criança demonstra interesse pelas atividades propostas, responde positivamente aos combinados e apresenta potencial de continuidade no processo de aprendizagem.",
+      "Quando necessário, o suporte do adulto favorece organização, foco e segurança para concluir as tarefas com mais confiança.",
+    ].join(" ");
+
+    const paragrafo3 = [
+      "Como encaminhamento para o próximo período, recomenda-se manter propostas diversificadas, com experiências que integrem linguagem, expressão, movimento e convivência.",
+      "A parceria entre escola e família segue importante para reforçar rotinas, ampliar repertório e consolidar conquistas observadas no contexto pedagógico.",
+      "Esse percurso sugere continuidade de desenvolvimento com base em estímulos consistentes, escuta atenta e intervenções intencionais.",
+    ].join(" ");
+
+    return [paragrafo1, paragrafo2, paragrafo3].join("\n\n");
+  }
+
+  private async generateWithGemini(prompt: string) {
+    const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-3-flash-preview"];
+
+    for (const model of models) {
+      try {
+        const response = await gemini.models.generateContent({
+          model,
+          contents: prompt,
+          config: {
+            temperature: 0.4,
+            maxOutputTokens: 700,
+          },
+        });
+
+        const text = response.text?.trim();
+        if (text) {
+          return text;
+        }
+      } catch (error) {
+        console.error(`[relatorio] Gemini indisponível no modelo ${model}`, error);
+      }
+    }
+
+    return null;
+  }
+
   private normalizeFileNamePart(value: string) {
     return value
       .normalize("NFD")
@@ -148,7 +240,7 @@ export class RelatorioService {
     return document.save();
   }
 
-  async gerar(userId: string, plano: Plano, payload: GerarRelatorioInput) {
+  async gerar(userId: string, plano: Plano, payload: GerarRelatorioInput, trialExpired = true) {
     const observacoes = await this.observacaoRepository.getTextByAluno(userId, payload.alunoId);
 
     if (observacoes.length < 5) {
@@ -156,7 +248,10 @@ export class RelatorioService {
     }
 
     const generatedThisMonth = await this.relatorioRepository.countByUserCurrentMonth(userId);
-    const monthlyLimit = plano === Plano.PRO ? PRO_PLAN_LIMITS.IA_REPORTS_PER_MONTH : FREE_PLAN_LIMITS.IA_REPORTS_PER_MONTH;
+    const hasProFeatures = plano === Plano.PRO || !trialExpired;
+    const monthlyLimit = hasProFeatures
+      ? PRO_PLAN_LIMITS.IA_REPORTS_PER_MONTH
+      : FREE_PLAN_LIMITS.IA_REPORTS_PER_MONTH;
 
     if (generatedThisMonth >= monthlyLimit) {
       throw new PlanLimitError("Limite mensal de relatórios com IA atingido", env.STRIPE_UPGRADE_URL);
@@ -173,20 +268,7 @@ export class RelatorioService {
       ...observacoes.map((obs) => `- [${obs.categoria}] ${obs.texto}`),
     ].join("\n");
 
-    const response = await gemini.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: prompt,
-      config: {
-        temperature: 0.4,
-        maxOutputTokens: 700,
-      },
-    });
-
-    const text = response.text?.trim();
-
-    if (!text) {
-      throw new ValidationError("Gemini não retornou conteúdo para o relatório");
-    }
+    const text = (await this.generateWithGemini(prompt)) ?? this.buildFallbackRelatorio(payload.periodo, observacoes);
 
     return this.relatorioRepository.create(userId, {
       alunoId: payload.alunoId,
@@ -203,8 +285,18 @@ export class RelatorioService {
     return this.relatorioRepository.listRecentByUser(userId, limit);
   }
 
-  async exportarPdf(userId: string, plano: Plano, relatorioId: string) {
-    if (plano !== Plano.PRO) {
+  async remover(userId: string, relatorioId: string) {
+    const removed = await this.relatorioRepository.deleteOwnedById(userId, relatorioId);
+
+    return {
+      id: removed.id,
+    };
+  }
+
+  async exportarPdf(userId: string, plano: Plano, relatorioId: string, trialExpired = true) {
+    const hasProFeatures = plano === Plano.PRO || !trialExpired;
+
+    if (!hasProFeatures) {
       throw new PlanLimitError("Exportação em PDF disponível apenas no Plano Pro", env.STRIPE_UPGRADE_URL);
     }
 

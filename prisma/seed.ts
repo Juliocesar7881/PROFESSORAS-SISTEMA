@@ -1,8 +1,15 @@
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 
 import { PROJECT_CATALOG } from "../lib/project-catalog";
 
-const prisma = new PrismaClient();
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL não definida para o seed do Prisma.");
+}
+
+const prisma = new PrismaClient({
+  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+});
 
 async function main() {
   for (const projeto of PROJECT_CATALOG) {
@@ -27,7 +34,7 @@ async function main() {
         faixaEtaria: projeto.faixaEtaria,
         duracao: projeto.duracao,
         bnccObjetivos: projeto.bnccObjetivos,
-        premium: projeto.premium,
+        premium: false,
         atividades: {
           create: projeto.atividades,
         },

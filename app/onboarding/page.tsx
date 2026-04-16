@@ -10,10 +10,8 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ArrowRight, CheckCircle2, Sparkles, Upload, Users, School, UserCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Plus, Sparkles, Upload, Users, School, UserCheck, X } from "lucide-react";
 
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { PrefeituraNote } from "@/components/prefeitura-note";
 
 const faixaEtariaOptions = [
@@ -30,16 +28,14 @@ const faixaEtariaOptions = [
 ];
 
 const alunoSchema = z.object({
-  nome: z.string().min(2),
-  dataNasc: z.string().min(1),
+  nome: z.string().trim().min(2),
 });
 
 const onboardingFormSchema = z.object({
-  turmaNome: z.string().min(2),
+  turmaNome: z.string().trim().min(2),
   faixaEtaria: z.string().min(2),
   ano: z.number().int().min(2020),
-  alunosTexto: z.string(),
-  consentimentoLGPD: z.boolean().refine((value) => value),
+  consentimentoLGPD: z.boolean(),
 });
 
 type OnboardingFormInput = z.infer<typeof onboardingFormSchema>;
@@ -61,7 +57,9 @@ export default function OnboardingWizard() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
-  const [parsedCsvAlunos, setParsedCsvAlunos] = useState<Array<{ nome: string; dataNasc: string }>>([]);
+  const [novoAlunoNome, setNovoAlunoNome] = useState("");
+  const [alunosManuais, setAlunosManuais] = useState<Array<{ nome: string }>>([]);
+  const [parsedCsvAlunos, setParsedCsvAlunos] = useState<Array<{ nome: string }>>([]);
 
   const form = useForm<OnboardingFormInput>({
     resolver: zodResolver(onboardingFormSchema),
@@ -69,36 +67,31 @@ export default function OnboardingWizard() {
       turmaNome: "",
       faixaEtaria: "",
       ano: new Date().getFullYear(),
-      alunosTexto: "",
       consentimentoLGPD: false,
     },
   });
 
-  const alunosTexto = form.watch("alunosTexto");
-
-  const alunosManuais = useMemo(() => {
-    const linhas = alunosTexto
-      .split("\n")
-      .map((linha) => linha.trim())
-      .filter(Boolean);
-
-    return linhas
-      .map((linha) => {
-        const [nome, dataNasc] = linha.split(";").map((item) => item?.trim());
-        const parsed = alunoSchema.safeParse({ nome, dataNasc });
-        return parsed.success ? parsed.data : null;
-      })
-      .filter(Boolean) as Array<{ nome: string; dataNasc: string }>;
-  }, [alunosTexto]);
-
-  const alunosFinal = parsedCsvAlunos.length ? parsedCsvAlunos : alunosManuais;
+  const alunosFinal = useMemo(
+    () => [...alunosManuais, ...parsedCsvAlunos],
+    [alunosManuais, parsedCsvAlunos],
+  );
 
   const goToTurmaStep = () => setStep(2);
 
   const goToAlunosStep = async () => {
-    const valid = await form.trigger(["turmaNome", "faixaEtaria", "ano"]);
+    const valid = await form.trigger(["turmaNome", "faixaEtaria", "ano"], { shouldFocus: true });
     if (!valid) {
-      toast.error("Preencha os dados da turma para continuar");
+      const missingFields = [
+        form.formState.errors.turmaNome ? "nome da turma" : null,
+        form.formState.errors.faixaEtaria ? "faixa etaria" : null,
+        form.formState.errors.ano ? "ano letivo" : null,
+      ].filter(Boolean);
+
+      toast.error(
+        missingFields.length
+          ? `Preencha corretamente: ${missingFields.join(", ")}`
+          : "Revise os dados da turma e tente novamente",
+      );
       return;
     }
     setStep(3);
@@ -106,12 +99,18 @@ export default function OnboardingWizard() {
 
   const handleCsvImport = (file?: File | null) => {
     if (!file) return;
-    Papa.parse<{ nome: string; dataNasc: string }>(file, {
+
+    Papa.parse<Record<string, string>>(file, {
       header: true,
       skipEmptyLines: true,
       complete: (result) => {
         const parsed = result.data
-          .map((row) => alunoSchema.safeParse({ nome: row.nome, dataNasc: row.dataNasc }))
+          .map((row) => {
+            const nomeFromKnownColumns = row.nome ?? row.Nome ?? row.name ?? row.NAME;
+            const nomeFromFirstColumn = Object.values(row).find((value) => value?.trim());
+            const nome = nomeFromKnownColumns ?? nomeFromFirstColumn ?? "";
+            return alunoSchema.safeParse({ nome });
+          })
           .filter((r) => r.success)
           .map((r) => r.data);
         setParsedCsvAlunos(parsed);
@@ -120,24 +119,60 @@ export default function OnboardingWizard() {
     });
   };
 
+  const handleAddAlunoManual = () => {
+    const parsed = alunoSchema.safeParse({ nome: novoAlunoNome });
+
+    if (!parsed.success) {
+      toast.error("Digite pelo menos o nome do aluno para adicionar");
+      return;
+    }
+
+    setAlunosManuais((prev) => [...prev, parsed.data]);
+    setNovoAlunoNome("");
+  };
+
+  const handleRemoveAlunoManual = (indexToRemove: number) => {
+    setAlunosManuais((prev) => prev.filter((_, index) => index !== indexToRemove));
+  };
+
   const handleSubmit = form.handleSubmit(async (values) => {
     if (!alunosFinal.length) {
       toast.error("Adicione ao menos um aluno manualmente ou por CSV");
       return;
     }
+
+    if (!values.consentimentoLGPD) {
+      toast.error("Confirme o consentimento LGPD para concluir");
+      return;
+    }
+
     setSaving(true);
     const response = await fetch("/api/onboarding", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         turma: { nome: values.turmaNome, faixaEtaria: values.faixaEtaria, ano: values.ano },
-        alunos: alunosFinal.map((aluno) => ({ nome: aluno.nome, dataNasc: aluno.dataNasc })),
+        alunos: alunosFinal.map((aluno) => ({ nome: aluno.nome })),
         consentimentoLGPD: values.consentimentoLGPD,
       }),
     });
+
+    const json = await response.json().catch(() => null);
+
     if (!response.ok) {
       setSaving(false);
-      toast.error("Não foi possível concluir o onboarding");
+
+      const apiMessage = json?.error?.message as string | undefined;
+      const apiCode = json?.error?.code as string | undefined;
+
+      if (response.status === 409 || apiCode === "CONFLICT") {
+        toast.success("Seu onboarding já foi concluído. Indo para o dashboard...");
+        router.replace("/dashboard");
+        router.refresh();
+        return;
+      }
+
+      toast.error(apiMessage ?? "Não foi possível concluir o onboarding");
       return;
     }
     toast.success("Onboarding concluído com sucesso! 🎉");
@@ -292,11 +327,14 @@ export default function OnboardingWizard() {
                 <div className="grid gap-4 md:grid-cols-3">
                   <div>
                     <label className={labelCls}>Nome da turma</label>
-                    <Input
+                    <input
                       className={inputCls}
                       placeholder="Ex: Jardim II A"
                       {...form.register("turmaNome")}
                     />
+                    {form.formState.errors.turmaNome && (
+                      <p className="mt-1 text-xs font-medium text-rose-600">Informe o nome da turma.</p>
+                    )}
                   </div>
                   <div>
                     <label className={labelCls}>Faixa etária</label>
@@ -311,15 +349,28 @@ export default function OnboardingWizard() {
                         </option>
                       ))}
                     </select>
+                    {form.formState.errors.faixaEtaria && (
+                      <p className="mt-1 text-xs font-medium text-rose-600">Selecione a faixa etaria.</p>
+                    )}
                   </div>
                   <div>
                     <label className={labelCls}>Ano letivo</label>
-                    <Input
+                    <input
                       className={inputCls}
                       type="number"
                       placeholder="2026"
-                      {...form.register("ano", { valueAsNumber: true })}
+                      inputMode="numeric"
+                      {...form.register("ano", {
+                        setValueAs: (value) => {
+                          if (typeof value === "number") return value;
+                          const parsed = Number(String(value).trim());
+                          return Number.isFinite(parsed) ? parsed : Number.NaN;
+                        },
+                      })}
                     />
+                    {form.formState.errors.ano && (
+                      <p className="mt-1 text-xs font-medium text-rose-600">Informe um ano valido (2020+).</p>
+                    )}
                   </div>
                 </div>
 
@@ -366,27 +417,69 @@ export default function OnboardingWizard() {
                 </div>
 
                 <div className="space-y-5">
-                  <div>
-                    <label className={labelCls}>
-                      <Users className="mr-1.5 inline size-3.5" />
-                      Um aluno por linha:{" "}
-                      <code className="rounded-md bg-violet-50 px-1.5 py-0.5 font-mono text-[10px] text-violet-600">
-                        Nome;AAAA-MM-DD
-                      </code>
-                    </label>
-                    <Textarea
-                      placeholder={"Maria Silva;2020-03-15\nJoão Santos;2020-07-22"}
-                      className="min-h-28 rounded-xl border-gray-200 bg-white text-sm focus:border-violet-300 focus:ring-violet-100"
-                      {...form.register("alunosTexto")}
-                    />
+                  <div className="rounded-2xl border border-gray-200 bg-gray-50/70 p-4">
+                    <p className="text-xs font-semibold text-gray-600">Adição rápida: informe somente o nome do aluno</p>
+                    <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                      <input
+                        className={inputCls}
+                        placeholder="Ex: Maria Clara"
+                        value={novoAlunoNome}
+                        onChange={(event) => setNovoAlunoNome(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            handleAddAlunoManual();
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddAlunoManual}
+                        className="flex h-11 items-center justify-center gap-2 rounded-xl px-5 text-sm font-bold text-white shadow-[0_4px_14px_-4px_rgba(108,92,231,0.5)] transition-all hover:-translate-y-0.5"
+                        style={{ background: "linear-gradient(135deg, #6C5CE7 0%, #8B5CF6 100%)" }}
+                      >
+                        <Plus className="size-4" />
+                        Adicionar
+                      </button>
+                    </div>
+                    <p className="mt-2 text-[11px] text-gray-500">
+                      Depois você poderá completar data de nascimento e demais dados na ficha do aluno.
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-gray-200 bg-white p-4">
+                    <p className="text-xs font-semibold text-gray-600">Alunos adicionados manualmente</p>
+                    {!alunosManuais.length && (
+                      <p className="mt-2 text-sm text-gray-400">Nenhum aluno adicionado ainda.</p>
+                    )}
+                    {!!alunosManuais.length && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {alunosManuais.map((aluno, index) => (
+                          <span
+                            key={`${aluno.nome}-${index}`}
+                            className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700"
+                          >
+                            {aluno.nome}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveAlunoManual(index)}
+                              className="rounded-full p-0.5 text-violet-500 transition hover:bg-violet-100 hover:text-violet-700"
+                              aria-label={`Remover ${aluno.nome}`}
+                            >
+                              <X className="size-3" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/80 p-5">
                     <p className="mb-3 flex items-center gap-2 text-xs font-semibold text-gray-500">
                       <Upload className="size-4 text-gray-400" />
-                      Importar por CSV{" "}
+                      Opcional: importar por CSV{" "}
                       <span className="rounded-md bg-gray-100 px-1.5 py-0.5 font-mono text-[10px] text-gray-500">
-                        colunas: nome, dataNasc
+                        coluna: nome
                       </span>
                     </p>
                     <input
@@ -395,6 +488,9 @@ export default function OnboardingWizard() {
                       onChange={(e) => handleCsvImport(e.target.files?.[0])}
                       className="block w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-600 file:mr-4 file:rounded-lg file:border-0 file:bg-violet-50 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-violet-600 hover:file:bg-violet-100"
                     />
+                    <p className="mt-2 text-[11px] text-gray-500">
+                      Aceita arquivos com cabeçalho nome. Se houver outras colunas, somente o nome será usado.
+                    </p>
                   </div>
 
                   <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">

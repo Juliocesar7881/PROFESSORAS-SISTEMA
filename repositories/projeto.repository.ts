@@ -1,5 +1,4 @@
 import type { Prisma } from "@prisma/client";
-import { Plano } from "@prisma/client";
 
 import { type EtapaTurma, matchesEtapa } from "@/lib/etapa";
 import { PROJECT_CATALOG } from "@/lib/project-catalog";
@@ -45,7 +44,7 @@ export class ProjetoRepository extends BaseRepository {
           faixaEtaria: projeto.faixaEtaria,
           duracao: projeto.duracao,
           bnccObjetivos: projeto.bnccObjetivos,
-          premium: projeto.premium,
+          premium: false,
           atividades: {
             create: projeto.atividades,
           },
@@ -53,10 +52,19 @@ export class ProjetoRepository extends BaseRepository {
       });
     }
 
+    await prisma.projeto.updateMany({
+      where: {
+        premium: true,
+      },
+      data: {
+        premium: false,
+      },
+    });
+
     catalogSynced = true;
   }
 
-  async list(userId: string, plano: Plano, filters: ListProjetoFilters) {
+  async list(userId: string, filters: ListProjetoFilters) {
     await this.ensureCatalog();
 
     const where: Prisma.ProjetoWhereInput = {
@@ -111,7 +119,8 @@ export class ProjetoRepository extends BaseRepository {
       .filter((projeto) => (filters.etapa ? matchesEtapa(projeto.faixaEtaria, filters.etapa) : true))
       .map((projeto) => ({
         ...projeto,
-        premiumBloqueado: projeto.premium && plano !== Plano.PRO,
+        premium: false,
+        premiumBloqueado: false,
       }));
   }
 

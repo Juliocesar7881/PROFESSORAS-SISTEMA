@@ -23,6 +23,7 @@ model User {
   id           String              @id @default(cuid())
   name         String?
   email        String?             @unique
+  emailVerified DateTime?
   image        String?
   plano        Plano               @default(GRATUITO)
   stripeId     String?             @unique
@@ -194,6 +195,7 @@ model ProjetoSalvo {
   projeto   Projeto @relation(fields: [projetoId], references: [id], onDelete: Cascade)
 
   @@id([userId, projetoId])
+  @@index([projetoId])
 }
 
 model Chamada {
@@ -266,7 +268,7 @@ model Account {
 }
 
 model Session {
-  sessionToken String   @unique
+  sessionToken String
   userId       String
   expires      DateTime
 

@@ -2,15 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { CalendarClock, Clock3, GripVertical, Lightbulb, Loader2, Plus, Search, Sparkles, Trash2 } from "lucide-react";
+import { CalendarClock, Clock3, Copy, GripVertical, Lightbulb, Loader2, Plus, Search, Sparkles, Trash2 } from "lucide-react";
 
+import { DashboardPageHero } from "@/components/dashboard-page-hero";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getEtapaLabel, inferEtapaTurma } from "@/lib/etapa";
+import { SHOWCASE_PROJECTS } from "@/lib/project-showcase";
 
 type Turma = { id: string; nome: string; faixaEtaria: string };
 type Atividade = { id: string; titulo: string; categoria: string; duracao: number; bnccCodigos: string[] };
-type ProjetoApi = { atividades?: Atividade[] };
 type PlanejamentoAtividadeApi = {
   id: string;
   diaSemana: number;
@@ -118,6 +119,7 @@ export default function PlanejamentoPage() {
   const [weekEnd, setWeekEnd] = useState(computeWeekEnd(defaultWeekStart));
   const [slots, setSlots] = useState<Record<number, Slot[]>>(createEmptySlots());
   const [saving, setSaving] = useState(false);
+  const [cloning, setCloning] = useState(false);
   const [loadingActivities, setLoadingActivities] = useState(true);
   const [loadingWeek, setLoadingWeek] = useState(false);
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
@@ -126,6 +128,7 @@ export default function PlanejamentoPage() {
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [dragSlot, setDragSlot] = useState<DragSlot | null>(null);
   const [dropDay, setDropDay] = useState<number | null>(null);
+  const [draggingSlotId, setDraggingSlotId] = useState<string | null>(null);
 
   const loadTurmas = useCallback(async () => {
     const response = await fetch("/api/turmas");
@@ -143,12 +146,40 @@ export default function PlanejamentoPage() {
       const response = await fetch(`/api/projetos?${params.toString()}`);
       const json = await response.json();
       if (!response.ok) throw new Error(json.error?.message ?? "Falha ao carregar atividades");
+
+      const turmaSelecionada = turmas.find((item) => item.id === turmaId);
+      const etapaSelecionada = inferEtapaTurma(turmaSelecionada?.faixaEtaria);
+
       const byId = new Map<string, Atividade>();
-      for (const projeto of (json.data ?? []) as ProjetoApi[]) {
+
+      for (const projeto of (json.data ?? []) as Array<{ atividades?: Atividade[] }>) {
         for (const atividade of projeto.atividades ?? []) {
-          byId.set(atividade.id, { id: atividade.id, titulo: atividade.titulo, categoria: atividade.categoria, duracao: atividade.duracao, bnccCodigos: atividade.bnccCodigos });
+          byId.set(atividade.id, {
+            id: atividade.id,
+            titulo: atividade.titulo,
+            categoria: atividade.categoria,
+            duracao: atividade.duracao,
+            bnccCodigos: atividade.bnccCodigos,
+          });
         }
       }
+
+      for (const projeto of SHOWCASE_PROJECTS) {
+        if (etapaSelecionada && !projeto.etapas.includes(etapaSelecionada)) {
+          continue;
+        }
+
+        for (const atividade of projeto.atividades) {
+          byId.set(atividade.id, {
+            id: atividade.id,
+            titulo: atividade.titulo,
+            categoria: atividade.categoria,
+            duracao: atividade.duracao,
+            bnccCodigos: atividade.bnccCodigos,
+          });
+        }
+      }
+
       setAtividades(Array.from(byId.values()).sort((a, b) => a.titulo.localeCompare(b.titulo)));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Falha ao carregar atividades");
@@ -156,7 +187,7 @@ export default function PlanejamentoPage() {
     } finally {
       setLoadingActivities(false);
     }
-  }, []);
+  }, [turmas]);
 
   const loadWeekPlan = useCallback(async (turmaId: string, semanaInicio: string) => {
     setLoadingWeek(true);
@@ -255,27 +286,65 @@ export default function PlanejamentoPage() {
     await loadWeekPlan(selectedTurma, weekStart);
   };
 
-  return (
-    <div className="space-y-5">
-      {/* ─── Hero Banner ─── */}
-      <div
-        className="relative overflow-hidden rounded-3xl border border-violet-200/60 p-7 md:p-8"
-        style={{ background: "linear-gradient(135deg, #6C5CE7 0%, #8B5CF6 50%, #7C3AED 100%)" }}
-      >
-        <div className="pointer-events-none absolute -top-12 right-[-5%] h-[200px] w-[200px] rounded-full opacity-25 blur-[60px]" style={{ background: "rgba(167, 139, 250, 0.6)" }} />
-        <div className="pointer-events-none absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+  const cloneToNextWeek = async () => {
+    if (!selectedTurma || !weekStart) {
+      toast.error("Selecione turma e semana para clonar");
+      return;
+    }
 
-        <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold text-white/90">
-              <CalendarClock className="size-3" />
-              Planejamento Semanal
-            </div>
-            <h2 className="font-heading text-2xl tracking-tight text-white md:text-3xl">Monte sua grade em 3 passos</h2>
-            <p className="mt-1 text-sm text-white/70">Escolha turma e semana, monte a grade e salve.</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
+    const atividadesPayload = weekdays.flatMap((day) =>
+      slots[day.value].map((slot) => ({
+        diaSemana: day.value,
+        horario: slot.horario,
+        atividadeId: slot.atividadeId,
+      }))
+    );
+
+    if (!atividadesPayload.length) {
+      toast.error("A semana atual está vazia. Adicione atividades antes de clonar.");
+      return;
+    }
+
+    const nextStartDate = new Date(`${weekStart}T00:00:00`);
+    nextStartDate.setDate(nextStartDate.getDate() + 7);
+    const nextWeekStart = toDateInput(nextStartDate);
+    const nextWeekEnd = computeWeekEnd(nextWeekStart);
+
+    setCloning(true);
+    const response = await fetch("/api/planejamento", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        turmaId: selectedTurma,
+        semanaInicio: nextWeekStart,
+        semanaFim: nextWeekEnd,
+        atividades: atividadesPayload,
+      }),
+    });
+    setCloning(false);
+
+    if (!response.ok) {
+      const json = await response.json();
+      toast.error(json.error?.message ?? "Falha ao clonar semana");
+      return;
+    }
+
+    toast.success(`Semana clonada para ${nextWeekStart}`);
+    setWeekStart(nextWeekStart);
+  };
+
+  return (
+    <div className="space-y-6">
+      <DashboardPageHero
+        icon={CalendarClock}
+        badge="Planejamento Semanal"
+        title="Monte sua grade em 3 passos"
+        description="Escolha turma e semana, monte a grade e salve."
+        gradient="linear-gradient(135deg, #4ca4ed 0%, #5bbcf0 50%, #5bc9b6 100%)"
+        orbColor="rgba(186, 226, 255, 0.8)"
+        borderClassName="border-sky-200/60"
+        actions={
+          <>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-300/40 bg-sky-400/20 px-3 py-1.5 text-xs font-bold text-sky-100">
               1. Turma + semana
             </span>
@@ -287,200 +356,239 @@ export default function PlanejamentoPage() {
             </span>
             {streak > 0 && (
               <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-bold text-white">
-                🔥 {streak} semana{streak > 1 ? "s" : ""} seguida{streak > 1 ? "s" : ""}
+                🔥 Streak: {streak} semana{streak > 1 ? "s" : ""}
               </span>
             )}
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      />
 
-      <div className="grid gap-5 xl:grid-cols-[300px_1fr_280px]">
+      <div className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)_300px]">
         {/* ─── Biblioteca ─── */}
-        <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-          <CardHeader>
-            <CardTitle className="font-heading text-xl text-gray-900">Biblioteca de atividades</CardTitle>
-            <CardDescription className="text-gray-500">Selecione um dia e toque em Adicionar.</CardDescription>
+        <Card className="pf-card rounded-[1.4rem] border-sky-100/80 bg-white">
+          <CardHeader className="p-5 pb-3">
+            <CardTitle className="font-heading text-lg text-[#223246]">Biblioteca de atividades</CardTitle>
+            <CardDescription className="text-[13px] font-semibold text-[#6f88a2]">Selecione um dia e toque em Adicionar.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-3 p-5 pt-0">
             <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-2.5 size-4 text-gray-400" />
-              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar atividade…" className={`${lightInput} pl-9`} />
+              <Search className="pointer-events-none absolute left-3.5 top-3 size-4 text-[#8aa2b9]" />
+              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar atividade…" className="pf-input pl-10" />
             </div>
-            <select className={lightSelect} value={categoria} onChange={(e) => setCategoria(e.target.value)}>
+            <select className="pf-select" value={categoria} onChange={(e) => setCategoria(e.target.value)}>
               {categoriaOptions.map((item) => (<option key={item} value={item}>{item}</option>))}
             </select>
 
             <div>
-              <p className="mb-2 px-1 text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">Dia selecionado</p>
+              <p className="pf-label">Dia selecionado</p>
               <div className="grid grid-cols-5 gap-1.5">
                 {weekdays.map((day) => (
                   <button key={day.value} type="button" onClick={() => setSelectedDay(day.value)}
-                    className={`rounded-lg py-2 text-xs font-bold transition-all ${selectedDay === day.value ? "bg-[#6C5CE7] text-white shadow-[0_2px_8px_-2px_rgba(108,92,231,0.4)]" : "border border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700"}`}>
+                    className={`rounded-xl py-2.5 text-xs font-bold transition-all ${selectedDay === day.value ? "bg-sky-500 text-white shadow-[0_4px_12px_-4px_rgba(76,164,237,0.5)]" : "border border-sky-100 bg-sky-50/50 text-[#6f88a2] hover:bg-sky-100 hover:text-sky-700"}`}>
                     {day.label}
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="max-h-[520px] space-y-2 overflow-y-auto pr-1 scrollbar-hide">
+            <div className="max-h-[520px] space-y-2.5 overflow-y-auto pr-1 scrollbar-hide">
               {loadingActivities && (
-                <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm text-gray-500">
-                  <Loader2 className="size-4 animate-spin text-[#6C5CE7]" /> Carregando atividades…
+                <div className="flex items-center gap-2.5 rounded-2xl border border-sky-100 bg-sky-50/50 p-3.5 text-sm font-semibold text-[#6f88a2]">
+                  <Loader2 className="size-4 animate-spin text-sky-500" /> Carregando atividades…
                 </div>
               )}
               {!loadingActivities && atividadesFiltradas.map((atividade) => (
-                <article key={atividade.id} className="rounded-xl border border-gray-200 bg-gray-50/50 p-3 transition hover:border-gray-300 hover:shadow-sm">
-                  <p className="text-sm font-semibold text-gray-800">{atividade.titulo}</p>
-                  <p className="mt-0.5 text-xs text-gray-400">{atividade.categoria} · {atividade.duracao} min</p>
-                  <p className="mt-1 line-clamp-1 text-[11px] text-gray-400">BNCC: {(atividade.bnccCodigos ?? []).join(", ") || "Não informado"}</p>
+                <article key={atividade.id} className="rounded-2xl border border-sky-100 bg-sky-50/30 p-3.5 transition hover:border-sky-200 hover:shadow-sm">
+                  <p className="text-sm font-bold text-[#223246]">{atividade.titulo}</p>
+                  <p className="mt-0.5 text-xs font-medium text-[#8aa2b9]">{atividade.categoria} · {atividade.duracao} min</p>
+                  <p className="mt-1 line-clamp-1 text-[11px] text-[#8aa2b9]">BNCC: {(atividade.bnccCodigos ?? []).join(", ") || "Não informado"}</p>
                   <Button type="button" onClick={() => { onAddActivity(selectedDay, atividade.id); toast.success(`Adicionado em ${weekdays.find((d) => d.value === selectedDay)?.label}`); }}
-                    className="mt-2 h-8 w-full rounded-lg bg-emerald-50 text-xs font-bold text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 border border-emerald-200">
-                    <Plus className="mr-1 size-3.5" /> Adicionar no dia selecionado
+                    className="mt-2.5 h-9 w-full rounded-xl bg-emerald-50 text-xs font-bold text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 border border-emerald-200">
+                    <Plus className="mr-1.5 size-3.5" /> Adicionar no dia
                   </Button>
                 </article>
               ))}
               {!loadingActivities && !atividadesFiltradas.length && (
-                <p className="rounded-xl border border-dashed border-gray-300 p-3 text-sm text-gray-400">Nenhuma atividade encontrada.</p>
+                <div className="pf-empty py-6">Nenhuma atividade encontrada.</div>
               )}
             </div>
           </CardContent>
         </Card>
 
         {/* Grade semanal */}
-        <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-          <CardHeader>
-            <CardTitle className="font-heading text-xl text-gray-900">Grade semanal</CardTitle>
-            <CardDescription className="text-gray-500">Planejamento visual da semana.</CardDescription>
+        <Card className="pf-card rounded-[1.4rem] border-sky-100/80 bg-white">
+          <CardHeader className="p-5 pb-3">
+            <CardTitle className="font-heading text-lg text-[#223246]">Grade semanal</CardTitle>
+            <CardDescription className="text-[13px] font-semibold text-[#6f88a2]">Planejamento visual da semana.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 p-5 pt-0">
             <div className="grid gap-3 md:grid-cols-4">
-              <select value={selectedTurma} onChange={(e) => setSelectedTurma(e.target.value)} className={lightSelect}>
+              <select value={selectedTurma} onChange={(e) => setSelectedTurma(e.target.value)} className="pf-select">
                 {!turmas.length && <option value="">Sem turmas cadastradas</option>}
                 {turmas.map((t) => (<option key={t.id} value={t.id}>{t.nome}</option>))}
               </select>
-              <input type="date" value={weekStart} onChange={(e) => setWeekStart(e.target.value)} className={lightInput} />
-              <input type="date" value={weekEnd} readOnly className={`${lightInput} opacity-50 cursor-not-allowed`} />
-              <div className="flex items-center rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-500">
-                Etapa: <span className="ml-1 font-semibold text-gray-700">{turmaEtapa}</span>
+              <input type="date" value={weekStart} onChange={(e) => setWeekStart(e.target.value)} className="pf-input" />
+              <input type="date" value={weekEnd} readOnly className="pf-input opacity-50 cursor-not-allowed" />
+              <div className="flex items-center rounded-xl border border-sky-100 bg-sky-50/50 px-3.5 py-2 text-xs font-semibold text-[#6f88a2]">
+                Etapa: <span className="ml-1 font-bold text-[#223246]">{turmaEtapa}</span>
               </div>
             </div>
 
             <div className="flex flex-wrap gap-2">
-              <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-600">{totalSlots} atividades</span>
-              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-600">Streak: {streak} sem.</span>
-              {currentPlanId && <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-600">Editando semana salva</span>}
+              <span className="pf-chip border-sky-200 bg-sky-50 text-sky-700">{totalSlots} atividades</span>
+              <span className="pf-chip border-emerald-200 bg-emerald-50 text-emerald-700">🔥 Streak: {streak} sem.</span>
+              {currentPlanId && <span className="pf-chip border-amber-200 bg-amber-50 text-amber-700">✏️ Editando semana salva</span>}
             </div>
 
             {loadingWeek && (
-              <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm text-gray-500">
-                <Loader2 className="size-4 animate-spin text-[#6C5CE7]" /> Carregando semana…
+              <div className="flex items-center gap-2.5 rounded-2xl border border-sky-100 bg-sky-50/50 p-3.5 text-sm font-semibold text-[#6f88a2]">
+                <Loader2 className="size-4 animate-spin text-sky-500" /> Carregando semana…
               </div>
             )}
 
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+            <div className="overflow-x-auto pb-2">
+              <div className="grid min-w-[980px] grid-cols-5 gap-3">
               {weekdays.map((day) => (
                 <div key={day.value}
                   onDragOver={(e) => { e.preventDefault(); if (dragSlot) setDropDay(day.value); }}
-                  onDrop={(e) => { e.preventDefault(); if (!dragSlot) return; moveSlotToDay(dragSlot.fromDay, day.value, dragSlot.slotId); setDragSlot(null); setDropDay(null); }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    if (!dragSlot) return;
+                    moveSlotToDay(dragSlot.fromDay, day.value, dragSlot.slotId);
+                    setDragSlot(null);
+                    setDropDay(null);
+                    setDraggingSlotId(null);
+                  }}
                   onDragLeave={() => { if (dropDay === day.value) setDropDay(null); }}
-                  className={`min-h-52 rounded-xl border p-2.5 transition-all ${selectedDay === day.value ? "border-[#6C5CE7]/30 bg-violet-50/50" : "border-gray-200 bg-gray-50/30"} ${dropDay === day.value ? "ring-2 ring-emerald-400/40" : ""}`}
+                  className={`min-h-[420px] rounded-2xl border p-3 transition-all ${selectedDay === day.value ? "border-sky-300/60 bg-sky-50/70" : "border-sky-100 bg-sky-50/20"} ${dropDay === day.value ? "ring-2 ring-emerald-400/40" : ""}`}
                 >
-                  <div className="mb-2 flex items-center justify-between">
+                  <div className="mb-3 flex items-center justify-between">
                     <button type="button" onClick={() => setSelectedDay(day.value)}
-                      className={`text-xs font-bold transition ${selectedDay === day.value ? "text-[#6C5CE7]" : "text-gray-400 hover:text-gray-700"}`}>
+                      className={`text-xs font-bold transition ${selectedDay === day.value ? "text-sky-600" : "text-[#8aa2b9] hover:text-sky-600"}`}>
                       {day.label}
                     </button>
-                    <span className="rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-gray-400">{slots[day.value].length}</span>
+                    <span className="rounded-full border border-sky-100 bg-white px-2 py-0.5 text-[10px] font-bold text-[#8aa2b9]">{slots[day.value].length}</span>
                   </div>
-                  <div className="space-y-2">
+                  <div className="max-h-[520px] space-y-2 overflow-y-auto pr-1">
                     {[...slots[day.value]].sort((a, b) => a.horario.localeCompare(b.horario)).map((slot) => {
                       const atividade = activityMap.get(slot.atividadeId);
                       const cat = getCategoryBadgeClass(atividade?.categoria ?? "");
                       return (
-                        <div key={slot.id} draggable onDragStart={() => setDragSlot({ fromDay: day.value, slotId: slot.id })} onDragEnd={() => { setDragSlot(null); setDropDay(null); }}
-                          className="cursor-grab rounded-lg border border-gray-200 bg-white p-2 shadow-sm active:cursor-grabbing">
+                        <div
+                          key={slot.id}
+                          className={`rounded-xl border border-sky-100 bg-white p-2.5 shadow-sm ${draggingSlotId === slot.id ? "border-sky-300 ring-2 ring-sky-200" : ""}`}
+                        >
                           <div className="flex items-start justify-between gap-1">
-                            <p className="line-clamp-2 text-xs font-semibold text-gray-800">{atividade?.titulo ?? "Atividade"}</p>
-                            <GripVertical className="size-3.5 shrink-0 text-gray-300" />
+                            <p className="line-clamp-2 text-xs font-bold text-[#223246]">{atividade?.titulo ?? "Atividade"}</p>
+                            <button
+                              type="button"
+                              draggable
+                              onDragStart={(event) => {
+                                event.stopPropagation();
+                                event.dataTransfer.effectAllowed = "move";
+                                setDragSlot({ fromDay: day.value, slotId: slot.id });
+                                setDraggingSlotId(slot.id);
+                              }}
+                              onDragEnd={() => {
+                                setDragSlot(null);
+                                setDropDay(null);
+                                setDraggingSlotId(null);
+                              }}
+                              className="cursor-grab rounded-lg border border-sky-100 bg-sky-50/50 p-1 text-[#8aa2b9] transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-500 active:cursor-grabbing"
+                              aria-label="Arrastar atividade"
+                            >
+                              <GripVertical className="size-3.5 shrink-0" />
+                            </button>
                           </div>
-                          <div className="mt-1 flex items-center gap-1.5">
+                          <div className="mt-1.5 flex items-center gap-1.5">
                             <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${cat}`}>{atividade?.categoria ?? "—"}</span>
-                            <span className="text-[10px] text-gray-400">{atividade?.duracao ?? 0} min</span>
+                            <span className="text-[10px] text-[#8aa2b9]">{atividade?.duracao ?? 0} min</span>
                           </div>
                           <input type="time" value={slot.horario} onChange={(e) => updateSlot(day.value, slot.id, e.target.value)}
-                            className="mt-1.5 h-7 w-full rounded-lg border border-gray-200 bg-gray-50 px-2 text-xs text-gray-700 focus:outline-none" />
+                            className="mt-2 h-8 w-full rounded-lg border border-sky-100 bg-sky-50/40 px-2.5 text-xs font-medium text-[#3d5771] focus:outline-none focus:border-sky-300" />
                           <button onClick={() => removeSlot(day.value, slot.id)} type="button"
-                            className="mt-1 inline-flex items-center gap-1 text-[11px] text-red-400 transition hover:text-red-500">
+                            className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-red-400 transition hover:text-red-500">
                             <Trash2 className="size-3" /> Remover
                           </button>
                         </div>
                       );
                     })}
                     {!slots[day.value].length && (
-                      <p className="rounded-lg border border-dashed border-gray-200 p-3 text-center text-xs text-gray-400">Vazio</p>
+                      <div className="pf-empty py-8 text-xs">Vazio</div>
                     )}
                   </div>
                 </div>
               ))}
+              </div>
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2.5">
               <Button onClick={clearWeek} type="button" variant="outline"
-                className="rounded-xl border-gray-200 bg-white text-gray-500 hover:bg-red-50 hover:text-red-500 hover:border-red-200">
+                className="rounded-xl border-sky-100 bg-white text-[#6f88a2] hover:bg-red-50 hover:text-red-500 hover:border-red-200">
                 <Trash2 className="mr-2 size-4" /> Limpar semana
               </Button>
               <button onClick={handleSave} disabled={saving || loadingWeek} type="button"
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl px-5 text-sm font-bold text-white shadow-[0_4px_14px_-4px_rgba(0,184,148,0.5)] transition-all hover:-translate-y-0.5 disabled:opacity-60" style={{ background: "linear-gradient(135deg, #00B894 0%, #00a583 100%)" }}>
+                className="pf-btn-success px-6">
                 {saving ? <Loader2 className="size-4 animate-spin" /> : <CalendarClock className="size-4" />}
                 {saving ? "Salvando…" : "Salvar semana"}
               </button>
-              <div className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-500">
+              <Button
+                onClick={cloneToNextWeek}
+                disabled={cloning || saving || loadingWeek}
+                type="button"
+                className="rounded-xl border border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100"
+                variant="outline"
+              >
+                {cloning ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Copy className="mr-2 size-4" />}
+                {cloning ? "Clonando…" : "Clonar para próxima semana"}
+              </Button>
+              <span className="pf-chip border-sky-100 bg-sky-50/50 text-[#6f88a2]">
                 <Clock3 className="size-3.5" /> {weekStart} até {weekEnd}
-              </div>
-              <div className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-500">
-                <Sparkles className="size-3.5 text-[#6C5CE7]" /> {currentPlanId ? "Modo edição" : "Semana nova"}
-              </div>
+              </span>
+              <span className="pf-chip border-sky-100 bg-sky-50/50 text-[#6f88a2]">
+                <Sparkles className="size-3.5 text-sky-500" /> {currentPlanId ? "Modo edição" : "Semana nova"}
+              </span>
             </div>
           </CardContent>
         </Card>
 
         {/* Sugestões IA */}
-        <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-          <CardHeader>
-            <CardTitle className="font-heading text-xl text-gray-900">Sugestões com IA</CardTitle>
-            <CardDescription className="text-gray-500">
+        <Card className="pf-card rounded-[1.4rem] border-sky-100/80 bg-white">
+          <CardHeader className="p-5 pb-3">
+            <CardTitle className="font-heading text-lg text-[#223246]">Sugestões com IA</CardTitle>
+            <CardDescription className="text-[13px] font-semibold text-[#6f88a2]">
               Para {weekdays.find((d) => d.value === selectedDay)?.label}, com base na turma.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-3 p-5 pt-0">
             <Button type="button" variant="outline" onClick={refreshSuggestions} disabled={loadingSuggestions || !atividades.length}
               className="w-full rounded-xl border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100 hover:text-amber-700">
               {loadingSuggestions ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Lightbulb className="mr-2 size-4" />}
-              {loadingSuggestions ? "Atualizando…" : "Gerar novas sugestões"}
+              {loadingSuggestions ? "Atualizando…" : "✨ Gerar novas sugestões"}
             </Button>
 
-            <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-xs text-gray-500">
-              <p className="font-semibold text-gray-600">Etapa da turma</p>
+            <div className="rounded-2xl border border-sky-100 bg-sky-50/40 p-3.5 text-xs text-[#6f88a2]">
+              <p className="font-bold text-[#3d5771]">Etapa da turma</p>
               <p className="mt-0.5">{turmaEtapa}</p>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {sugestoesIa.map((atividade) => (
-                <article key={atividade.id} className="rounded-xl border border-gray-200 bg-gray-50/50 p-3 transition hover:border-gray-300 hover:shadow-sm">
+                <article key={atividade.id} className="rounded-2xl border border-sky-100 bg-sky-50/30 p-3.5 transition hover:border-sky-200 hover:shadow-sm">
                   <div className="mb-1.5 flex items-center gap-2">
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${getCategoryBadgeClass(atividade.categoria)}`}>{atividade.categoria}</span>
-                    <span className="text-[10px] text-gray-400">{atividade.duracao} min</span>
+                    <span className="text-[10px] text-[#8aa2b9]">{atividade.duracao} min</span>
                   </div>
-                  <p className="line-clamp-2 text-sm font-semibold text-gray-800">{atividade.titulo}</p>
-                  <p className="mt-0.5 line-clamp-1 text-[11px] text-gray-400">BNCC: {(atividade.bnccCodigos ?? []).join(", ") || "—"}</p>
+                  <p className="line-clamp-2 text-sm font-bold text-[#223246]">{atividade.titulo}</p>
+                  <p className="mt-0.5 line-clamp-1 text-[11px] text-[#8aa2b9]">BNCC: {(atividade.bnccCodigos ?? []).join(", ") || "—"}</p>
                   <Button type="button" onClick={() => addSuggestionToDay(atividade)}
-                    className="mt-2 h-8 w-full rounded-lg bg-violet-50 text-xs font-semibold text-[#6C5CE7] hover:bg-violet-100 border border-violet-200">
+                    className="mt-2.5 h-9 w-full rounded-xl border border-sky-200 bg-sky-50 text-xs font-bold text-sky-700 hover:bg-sky-100">
                     Adicionar na grade
                   </Button>
                 </article>
               ))}
               {!sugestoesIa.length && (
-                <p className="rounded-xl border border-dashed border-gray-300 p-3 text-sm text-gray-400">Ainda não há sugestões.</p>
+                <div className="pf-empty py-6">Ainda não há sugestões.</div>
               )}
             </div>
           </CardContent>
@@ -489,3 +597,4 @@ export default function PlanejamentoPage() {
     </div>
   );
 }
+

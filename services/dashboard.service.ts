@@ -5,7 +5,6 @@ import { ObservacaoRepository } from "@/repositories/observacao.repository";
 import { PlanejamentoRepository } from "@/repositories/planejamento.repository";
 import { ProjetoRepository } from "@/repositories/projeto.repository";
 import { RelatorioRepository } from "@/repositories/relatorio.repository";
-import { Plano } from "@prisma/client";
 
 export class DashboardService {
   private readonly planejamentoRepository = new PlanejamentoRepository();
@@ -18,7 +17,7 @@ export class DashboardService {
 
   private readonly relatorioRepository = new RelatorioRepository();
 
-  async summary(userId: string, plano: Plano) {
+  async summary(userId: string) {
     const now = new Date();
     const weekStart = startOfWeek(now, { weekStartsOn: 1 });
     const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
@@ -26,7 +25,7 @@ export class DashboardService {
     const [planejamentos, alunosSemObservacao, projetosSalvos, streak, totalAlunos, observacoesSemana, relatoriosMes, observacoesRecentes] = await Promise.all([
       this.planejamentoRepository.listByUser(userId),
       this.alunoRepository.listWithoutRecentObservation(userId, 14),
-      this.projetoRepository.list(userId, plano, { salvos: true }),
+      this.projetoRepository.list(userId, { salvos: true }),
       this.planejamentoRepository.weeklyStreak(userId),
       this.alunoRepository.countByUser(userId),
       this.observacaoRepository.countByUserSince(userId, weekStart),

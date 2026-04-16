@@ -2,8 +2,9 @@ import { Plano } from "@prisma/client";
 import { Session } from "next-auth";
 import type { Duration } from "@upstash/ratelimit";
 
-import { UnauthorizedError, PlanLimitError } from "@/dtos/errors";
+import { DomainError, PlanLimitError, ServiceUnavailableError, UnauthorizedError } from "@/dtos/errors";
 import { env } from "@/lib/env";
+import { fail } from "@/lib/http";
 import { requireSession } from "@/lib/session";
 import { AuditRepository } from "@/repositories/audit.repository";
 import { enforceRateLimit, enforcePlanAwareRateLimit } from "@/lib/rate-limit";
@@ -26,6 +27,16 @@ const defaultContext: RequestContext = {
   userAgent: null,
 };
 
+const TRIAL_EXEMPT_API_PATHS = new Set([
+  "/api/stripe/checkout",
+  "/api/account",
+  "/api/account/logout-all",
+]);
+
+function isTrialExemptPath(pathname: string) {
+  return TRIAL_EXEMPT_API_PATHS.has(pathname);
+}
+
 function withRequestMeta(context: RequestContext, request: Request): RequestContext {
   const requestHeaders = request.headers;
   return {
@@ -41,6 +52,12 @@ export function withAuth(handler: RouteHandler): RouteHandler {
 
     if (!session.user?.id) {
       throw new UnauthorizedError();
+    }
+
+    const pathname = new URL(request.url).pathname;
+
+    if (session.user.plano !== Plano.PRO && session.user.trialExpired && !isTrialExemptPath(pathname)) {
+      throw new PlanLimitError("Seu período grátis de 14 dias terminou. Ative o Pro para continuar.", env.STRIPE_UPGRADE_URL);
     }
 
     return handler(request, {
@@ -59,7 +76,9 @@ export function withPlan(requiredPlan: Plano) {
         throw new UnauthorizedError();
       }
 
-      if (requiredPlan === Plano.PRO && context.plano !== Plano.PRO) {
+      const hasTrialProAccess = context.session?.user?.trialExpired === false;
+
+      if (requiredPlan === Plano.PRO && context.plano !== Plano.PRO && !hasTrialProAccess) {
         throw new PlanLimitError("Funcionalidade exclusiva do Plano Pro", env.STRIPE_UPGRADE_URL);
       }
 
@@ -71,6 +90,7 @@ export function withPlan(requiredPlan: Plano) {
 export function withRateLimit(params: {
   keyPrefix: string;
   by: "user" | "ip";
+  failOpen?: boolean;
   fixed?: {
     points: number;
     window: Duration;
@@ -89,24 +109,42 @@ export function withRateLimit(params: {
         throw new UnauthorizedError();
       }
 
-      if (params.fixed) {
-        await enforceRateLimit({
-          key: rateKey,
-          prefix: params.keyPrefix,
-          points: params.fixed.points,
-          window: params.fixed.window,
-        });
-      }
+      try {
+        if (params.fixed) {
+          await enforceRateLimit({
+            key: rateKey,
+            prefix: params.keyPrefix,
+            points: params.fixed.points,
+            window: params.fixed.window,
+          });
+        }
 
-      if (params.planAware) {
-        await enforcePlanAwareRateLimit({
-          key: rateKey,
-          plan: context.plano,
-          prefix: params.keyPrefix,
-          freeLimit: params.planAware.freeLimit,
-          proLimit: params.planAware.proLimit,
-          window: params.planAware.window,
-        });
+        if (params.planAware) {
+          const effectivePlan =
+            context.plano === Plano.PRO || context.session?.user?.trialExpired === false
+              ? Plano.PRO
+              : context.plano;
+
+          await enforcePlanAwareRateLimit({
+            key: rateKey,
+            plan: effectivePlan,
+            prefix: params.keyPrefix,
+            freeLimit: params.planAware.freeLimit,
+            proLimit: params.planAware.proLimit,
+            window: params.planAware.window,
+          });
+        }
+      } catch (error) {
+        if (error instanceof DomainError) {
+          throw error;
+        }
+
+        if (params.failOpen) {
+          console.error("[rate-limit] backend unavailable, allowing request", error);
+          return handler(request, context);
+        }
+
+        throw new ServiceUnavailableError("Serviço de proteção temporariamente indisponível");
       }
 
       return handler(request, context);
@@ -140,6 +178,10 @@ export function route(handler: RouteHandler, wrappers: Array<(handler: RouteHand
   const composed = wrappers.reduceRight((acc, wrapper) => wrapper(acc), handler);
 
   return async (request: Request) => {
-    return composed(request, withRequestMeta(defaultContext, request));
+    try {
+      return await composed(request, withRequestMeta(defaultContext, request));
+    } catch (error) {
+      return fail(error);
+    }
   };
 }

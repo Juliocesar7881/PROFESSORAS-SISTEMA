@@ -3,25 +3,53 @@ import {
   ArrowRight,
   CalendarClock,
   ClipboardCheck,
-  FileCheck,
   FileText,
-  Flame,
+  Heart,
   FolderKanban,
-  Play,
-  Sparkles,
-  TriangleAlert,
-  TrendingUp,
+  Lightbulb,
+  MessageSquareHeart,
   Users,
+  WandSparkles,
 } from "lucide-react";
 
 import { auth } from "@/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { hasReachableDatabaseUrl } from "@/lib/runtime";
+import { cn } from "@/lib/utils";
 import { DashboardService } from "@/services/dashboard.service";
 
-const hasReachableDatabase = hasReachableDatabaseUrl(process.env.DATABASE_URL);
-
 const formatDate = (value: Date | string) => new Date(value).toLocaleDateString("pt-BR");
+
+type DashboardProjectItem = {
+  id: string;
+  titulo: string;
+  categoria: string;
+  faixaEtaria: string;
+};
+
+type DashboardObservationItem = {
+  id: string;
+  texto: string;
+  createdAt: Date | string;
+  aluno: {
+    id: string;
+    nome: string;
+    turma: {
+      nome: string;
+    };
+  };
+};
+
+type DashboardSummary = {
+  totalAlunos: number;
+  observacoesSemana: number;
+  planejamentosSemana: number;
+  relatoriosMes: number;
+  streak: number;
+  planejamentos: unknown[];
+  observacoesRecentes: DashboardObservationItem[];
+  alunosSemObservacao: Array<{ id: string; nome: string }>;
+  projetosSalvos: DashboardProjectItem[];
+};
 
 export default async function DashboardHomePage() {
   const session = await auth();
@@ -30,320 +58,239 @@ export default async function DashboardHomePage() {
     return null;
   }
 
-  const summary = hasReachableDatabase
-    ? await new DashboardService().summary(session.user.id, session.user.plano)
-    : {
-        totalAlunos: 0,
-        observacoesSemana: 0,
-        planejamentosSemana: 0,
-        relatoriosMes: 0,
-        streak: 0,
-        planejamentos: [],
-        observacoesRecentes: [],
-        alunosSemObservacao: [],
-        projetosSalvos: [],
-      };
+  const summary = (await new DashboardService().summary(session.user.id)) as DashboardSummary;
 
   const firstName = session.user.name?.split(" ")[0] ?? "Professora";
 
+  const quickActions = [
+    {
+      title: "Observações",
+      subtitle: "Registros diários da sua turma",
+      href: "/dashboard/observacoes",
+      icon: FileText,
+      soft: "bg-sky-50",
+      iconColor: "text-sky-600",
+      borderActive: "border-sky-200/80",
+      hoverBorder: "hover:border-sky-300",
+      glowColor: "group-hover:shadow-[0_16px_36px_-12px_rgba(56,189,248,0.25)]",
+    },
+    {
+      title: "Planejamento",
+      subtitle: "Arraste atividades e clone semanas",
+      href: "/dashboard/planejamento",
+      icon: CalendarClock,
+      soft: "bg-teal-50",
+      iconColor: "text-teal-600",
+      borderActive: "border-teal-200/80",
+      hoverBorder: "hover:border-teal-300",
+      glowColor: "group-hover:shadow-[0_16px_36px_-12px_rgba(45,212,191,0.25)]",
+    },
+    {
+      title: "Banco de Ideias",
+      subtitle: "Inspirações para faixa etária e tema",
+      href: "/dashboard/projetos",
+      icon: Lightbulb,
+      soft: "bg-amber-50",
+      iconColor: "text-amber-600",
+      borderActive: "border-amber-200/80",
+      hoverBorder: "hover:border-amber-300",
+      glowColor: "group-hover:shadow-[0_16px_36px_-12px_rgba(251,191,36,0.25)]",
+    },
+    {
+      title: "Avaliação com IA",
+      subtitle: "Relatórios pedagógicos em um clique",
+      href: "/dashboard/avaliacoes",
+      icon: WandSparkles,
+      soft: "bg-rose-50",
+      iconColor: "text-rose-600",
+      borderActive: "border-rose-200/80",
+      hoverBorder: "hover:border-rose-300",
+      glowColor: "group-hover:shadow-[0_16px_36px_-12px_rgba(244,63,94,0.25)]",
+    },
+    {
+      title: "Chamada",
+      subtitle: "Presente ou falta com botões grandes",
+      href: "/dashboard/chamada",
+      icon: ClipboardCheck,
+      soft: "bg-cyan-50",
+      iconColor: "text-cyan-600",
+      borderActive: "border-cyan-200/80",
+      hoverBorder: "hover:border-cyan-300",
+      glowColor: "group-hover:shadow-[0_16px_36px_-12px_rgba(34,211,238,0.25)]",
+    },
+    {
+      title: "Comunidade",
+      subtitle: "Trocas rápidas com outras professoras",
+      href: "/dashboard/comunidade",
+      icon: MessageSquareHeart,
+      soft: "bg-fuchsia-50",
+      iconColor: "text-fuchsia-600",
+      borderActive: "border-fuchsia-200/80",
+      hoverBorder: "hover:border-fuchsia-300",
+      glowColor: "group-hover:shadow-[0_16px_36px_-12px_rgba(217,70,239,0.25)]",
+    },
+  ];
+
   return (
-    <div className="mx-auto max-w-6xl space-y-7">
-
-      {/* ─── Hero Welcome Banner ─── */}
-      <div className="relative overflow-hidden rounded-3xl border border-violet-200/60 p-8 md:p-10" style={{ background: "linear-gradient(135deg, #6C5CE7 0%, #8B5CF6 40%, #7C3AED 100%)" }}>
-        {/* Decorative orbs */}
-        <div className="pointer-events-none absolute -top-16 right-[-5%] h-[280px] w-[280px] rounded-full opacity-30 blur-[60px]" style={{ background: "rgba(167, 139, 250, 0.5)" }} />
-        <div className="pointer-events-none absolute -bottom-16 left-[10%] h-[200px] w-[200px] rounded-full opacity-20 blur-[60px]" style={{ background: "rgba(0, 184, 148, 0.6)" }} />
-
-        {/* Dot grid overlay */}
-        <div className="pointer-events-none absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
-
-        {/* Top shimmer accent */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
-
-        <div className="relative z-10 flex flex-col items-start justify-between gap-6 lg:flex-row lg:items-center">
-          <div className="max-w-xl">
-            <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-sm">
-              <Sparkles className="size-3.5" />
-              Bom trabalho hoje!
-            </div>
-            <h2 className="font-heading text-3xl tracking-tight text-white md:text-4xl">
-              Olá, {firstName}! 👋
-            </h2>
-            <p className="mt-3 text-sm font-medium leading-relaxed text-white/80 md:text-base">
-              {summary.streak > 0 ? (
-                <>
-                  Você está em uma sequência incrível de{" "}
-                  <strong className="text-white">{summary.streak} semana{summary.streak > 1 ? "s" : ""}</strong>. Continue assim — seus alunos percebem a diferença!
-                </>
-              ) : (
-                "O Planejei já organizou tudo para você focar no que importa: a conexão com os alunos."
-              )}
-            </p>
-            {summary.streak > 0 && (
-              <div className="mt-4 inline-flex items-center gap-2 rounded-xl border border-amber-300/50 bg-amber-400/20 px-4 py-2 text-xs font-bold text-amber-100 backdrop-blur-sm">
-                <Flame className="size-4 animate-pulse text-amber-300" />
-                Sequência ativa: {summary.streak} semana{summary.streak > 1 ? "s" : ""} seguida{summary.streak > 1 ? "s" : ""}!
-              </div>
-            )}
-          </div>
-
-          <div className="flex w-full flex-col gap-2.5 sm:w-auto sm:flex-row">
-            <Link
-              href="/dashboard/observacoes"
-              className="group relative inline-flex h-11 items-center justify-center gap-2 overflow-hidden rounded-xl border border-white/30 bg-white px-6 text-sm font-bold text-violet-700 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.2)] transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.25)]"
-            >
-              <FileText className="size-4" />
-              Nova observação
-            </Link>
-            <Link
-              href="/dashboard/chamada"
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-6 text-sm font-bold text-white backdrop-blur-sm transition-all hover:bg-white/20"
-            >
-              <ClipboardCheck className="size-4 text-sky-200" />
-              Chamada
-            </Link>
-            <Link
-              href="/dashboard/avaliacoes"
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-6 text-sm font-bold text-white backdrop-blur-sm transition-all hover:bg-white/20"
-            >
-              <FileCheck className="size-4 text-emerald-200" />
-              Avaliar
-            </Link>
-          </div>
+    <div className="mx-auto max-w-7xl space-y-8">
+      {/* Hero greeting */}
+      <section className="pf-card overflow-hidden rounded-[1.4rem] border border-sky-100/80 bg-white p-6 md:p-9">
+        <div className="max-w-2xl">
+          <h2 className="font-heading text-[1.6rem] leading-tight text-[#223246] md:text-[2rem]">
+            Bom dia, {firstName}. Tudo organizado para você respirar e planejar com leveza.
+          </h2>
+          <p className="mt-3 text-sm font-semibold leading-relaxed text-[#5f7790] md:text-[15px]">
+            {summary.streak > 0
+              ? `🔥 Sequência ativa: ${summary.streak} semana${summary.streak > 1 ? "s" : ""} consecutivas.`
+              : "Comece com um projeto e monte sua semana em poucos cliques."}
+          </p>
         </div>
-      </div>
+      </section>
 
-      {/* ─── Stat Cards ─── */}
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {[
-          {
-            label: "Alunos",
-            value: summary.totalAlunos,
-            desc: "cadastrados no sistema",
-            icon: Users,
-            iconColor: "text-rose-500",
-            iconBg: "bg-rose-50",
-            accentColor: "from-rose-400 to-rose-500",
-            border: "border-rose-100",
-            trend: "+2 esta semana",
-          },
-          {
-            label: "Observações",
-            value: summary.observacoesSemana,
-            desc: "registradas esta semana",
-            icon: FileText,
-            iconColor: "text-violet-500",
-            iconBg: "bg-violet-50",
-            accentColor: "from-violet-400 to-violet-500",
-            border: "border-violet-100",
-            trend: "na semana atual",
-          },
-          {
-            label: "Planejamentos",
-            value: summary.planejamentosSemana,
-            desc: "criados esta semana",
-            icon: CalendarClock,
-            iconColor: "text-sky-500",
-            iconBg: "bg-sky-50",
-            accentColor: "from-sky-400 to-sky-500",
-            border: "border-sky-100",
-            trend: "na semana atual",
-          },
-          {
-            label: "Avaliações IA",
-            value: summary.relatoriosMes,
-            desc: "geradas este mês",
-            icon: FileCheck,
-            iconColor: "text-emerald-500",
-            iconBg: "bg-emerald-50",
-            accentColor: "from-emerald-400 to-emerald-500",
-            border: "border-emerald-100",
-            trend: "no mês atual",
-          },
-        ].map((stat) => (
-          <Card
-            key={stat.label}
-            className={`group relative overflow-hidden rounded-2xl border bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_32px_-8px_rgba(0,0,0,0.12)] ${stat.border}`}
+      {/* Quick actions */}
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {quickActions.map((item) => (
+          <Link
+            key={item.title}
+            href={item.href}
+            className={cn(
+              "group relative flex items-center justify-between gap-5 overflow-hidden rounded-[1.4rem] border bg-white p-5 transition-all duration-300 md:p-6",
+              item.borderActive,
+              item.hoverBorder,
+              item.glowColor,
+              "hover:-translate-y-1"
+            )}
           >
-            <CardContent className="relative p-5">
-              {/* Gradient accent top bar */}
-              <div className={`absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r ${stat.accentColor} opacity-60 transition-opacity group-hover:opacity-100`} />
-
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-gray-400">
-                    {stat.label}
-                  </p>
-                  <p className="mt-3 text-4xl font-black tracking-tight text-gray-900">
-                    {stat.value}
-                  </p>
-                  <p className="mt-1 text-xs font-medium text-gray-400">{stat.desc}</p>
-                </div>
-                <div className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${stat.iconBg} transition-transform group-hover:scale-110`}>
-                  <stat.icon className={`size-5 ${stat.iconColor}`} />
-                </div>
-              </div>
-
-              <div className="mt-4 flex items-center gap-1.5">
-                <TrendingUp className="size-3 text-gray-300" />
-                <span className="text-[10px] font-semibold text-gray-400">{stat.trend}</span>
-              </div>
-            </CardContent>
-          </Card>
+            <div className="absolute -right-6 -top-6 size-28 rounded-full opacity-[0.04] transition-transform duration-500 group-hover:scale-150" style={{ background: "currentColor", color: "inherit" }} />
+            <div className="relative z-10 min-w-0 flex-1">
+              <span className={cn("mb-3.5 flex size-12 shrink-0 items-center justify-center rounded-2xl transition-transform duration-300 group-hover:scale-110", item.soft)}>
+                <item.icon className={cn("size-6", item.iconColor)} />
+              </span>
+              <p className="font-heading text-lg font-bold leading-tight text-[#1c2939] md:text-xl">{item.title}</p>
+              <p className="mt-1.5 text-[13px] font-medium leading-snug text-[#647c98] line-clamp-2">{item.subtitle}</p>
+            </div>
+            <div className={cn("relative z-10 shrink-0 self-end rounded-full p-2.5 transition-colors duration-300", item.soft)}>
+              <ArrowRight className={cn("size-4", item.iconColor)} />
+            </div>
+          </Link>
         ))}
       </section>
 
-      {/* ─── Projects ─── */}
-      <section>
-        <div className="mb-4 flex items-center justify-between">
-          <div>
-            <h4 className="font-heading text-xl text-gray-900">Continue planejando</h4>
-            <p className="mt-0.5 text-xs text-gray-400">Projetos pedagógicos salvos por você</p>
-          </div>
-          <Link
-            href="/dashboard/projetos"
-            className="inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-bold text-violet-600 transition-all hover:bg-violet-100"
-          >
-            Explorar biblioteca
-            <ArrowRight className="size-3.5" />
-          </Link>
-        </div>
-
-        <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
-          {summary.projetosSalvos.slice(0, 8).map((projeto) => (
-            <Link
-              key={projeto.id}
-              href={`/dashboard/projetos/${projeto.id}`}
-              className="group min-w-[260px] rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-violet-200 hover:shadow-[0_12px_32px_-8px_rgba(108,92,231,0.15)]"
-            >
-              <div className="mb-4 flex items-center justify-between">
-                <span className="cat-linguagem rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em]">
-                  {projeto.categoria}
-                </span>
-                <div className="flex size-8 items-center justify-center rounded-full border border-gray-200 bg-gray-50 text-gray-400 transition-all group-hover:border-violet-200 group-hover:bg-violet-50 group-hover:text-violet-600">
-                  <Play className="ml-0.5 size-3.5" />
-                </div>
-              </div>
-              <p className="line-clamp-2 font-bold leading-snug text-gray-800 transition-colors group-hover:text-gray-900">
-                {projeto.titulo}
-              </p>
-              <p className="mt-2 text-xs font-semibold text-gray-400">{projeto.faixaEtaria}</p>
-            </Link>
-          ))}
-
-          {!summary.projetosSalvos.length && (
-            <div className="flex w-full min-h-[160px] flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-gray-50/60 p-6 text-center">
-              <div className="mb-3 flex size-12 items-center justify-center rounded-2xl bg-violet-50">
-                <FolderKanban className="size-6 text-violet-400" />
-              </div>
-              <p className="text-sm font-semibold text-gray-500">Nenhum projeto salvo ainda</p>
-              <p className="mt-1 text-xs text-gray-400">Explore a biblioteca e salve seus favoritos</p>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* ─── Bottom grid ─── */}
-      <section className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
-        {/* Últimas observações */}
-        <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-          <CardHeader className="pb-3">
+      {/* Projects + Summary */}
+      <section className="grid gap-6 xl:grid-cols-[1.7fr_1fr]">
+        <Card className="pf-card rounded-[1.4rem] border-sky-100/80 bg-white">
+          <CardHeader className="p-5 pb-3 md:p-6 md:pb-3">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="font-heading text-xl text-gray-900">Últimos registros</CardTitle>
-                <CardDescription className="mt-0.5 text-gray-400">Acompanhamento diário da turma</CardDescription>
+                <CardTitle className="font-heading text-xl text-[#223246]">Projetos Favoritos</CardTitle>
+                <CardDescription className="mt-1 text-[13px] font-semibold text-[#6f88a2]">
+                  Seu coração pedagógico salvo para reutilizar no planejamento.
+                </CardDescription>
               </div>
-              <Link href="/dashboard/observacoes" className="text-xs font-bold text-violet-600 transition-colors hover:text-violet-700">
-                Ver todos →
+              <Link href="/dashboard/projetos" className="pf-chip border-sky-200 bg-sky-50 text-sky-700">
+                Ver biblioteca
+                <ArrowRight className="size-3.5" />
               </Link>
             </div>
           </CardHeader>
-          <CardContent className="space-y-2">
-            {summary.observacoesRecentes.slice(0, 6).map((observacao) => (
-              <Link
-                key={observacao.id}
-                href={`/dashboard/alunos/${observacao.aluno.id}`}
-                className="group block rounded-xl border border-transparent bg-gray-50/80 p-4 transition-all hover:border-violet-100 hover:bg-violet-50/30"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-violet-100 text-[10px] font-black text-violet-600">
-                      {observacao.aluno.nome.slice(0, 2).toUpperCase()}
+          <CardContent className="p-5 pt-2 md:p-6 md:pt-2">
+            {summary.projetosSalvos.length > 0 ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {summary.projetosSalvos.slice(0, 6).map((projeto) => (
+                  <Link
+                    key={projeto.id}
+                    href={`/dashboard/projetos/${projeto.id}`}
+                    className="pf-card-hover rounded-2xl border border-sky-100 bg-sky-50/50 p-4"
+                  >
+                    <div className="mb-2.5 flex items-center justify-between">
+                      <span className="pf-chip border-rose-200 bg-rose-50 text-rose-600">
+                        <Heart className="size-3.5" />
+                        Favorito
+                      </span>
+                      <span className="pf-chip">{projeto.faixaEtaria}</span>
                     </div>
-                    <div>
-                      <p className="text-sm font-bold text-gray-800 transition-colors group-hover:text-violet-700">
-                        {observacao.aluno.nome}
-                      </p>
-                      <p className="mt-0.5 text-[10px] font-medium text-gray-400">
-                        {observacao.aluno.turma.nome}
-                        <span className="mx-1.5 text-gray-200">•</span>
-                        {formatDate(observacao.createdAt)}
-                      </p>
-                    </div>
-                  </div>
-                  <span className="obs-aprendizagem shrink-0 rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.1em]">
-                    {observacao.categoria.replaceAll("_", " ")}
-                  </span>
-                </div>
-                <p className="mt-2.5 line-clamp-2 text-sm leading-relaxed text-gray-500">
-                  {observacao.texto}
-                </p>
-              </Link>
-            ))}
-
-            {!summary.observacoesRecentes.length && (
-              <div className="flex min-h-[140px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-gray-200 p-5">
-                <FileText className="size-8 text-gray-300" />
-                <p className="text-sm font-medium text-gray-400">Nenhuma observação registrada recentemente.</p>
-                <Link href="/dashboard/observacoes" className="mt-1 text-xs font-bold text-violet-600 hover:text-violet-700">
-                  Fazer primeira observação →
+                    <p className="font-heading text-lg text-[#223246] line-clamp-2">{projeto.titulo}</p>
+                    <p className="mt-1.5 text-xs font-bold uppercase tracking-[0.12em] text-[#6f88a2]">{projeto.categoria}</p>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="pf-empty flex flex-col items-center py-10">
+                <FolderKanban className="size-8 text-sky-400" />
+                <p className="mt-3">Nenhum projeto salvo ainda.</p>
+                <Link href="/dashboard/projetos" className="mt-3 text-sm font-bold text-sky-600 underline underline-offset-2 hover:text-sky-500">
+                  Explorar biblioteca →
                 </Link>
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Atenção */}
-        <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="font-heading text-xl text-gray-900">🔔 Atenção</CardTitle>
-            <CardDescription className="text-gray-400">
-              Alunos sem registros há +14 dias
+        <Card className="pf-card rounded-[1.4rem] border-sky-100/80 bg-white">
+          <CardHeader className="p-5 pb-3 md:p-6 md:pb-3">
+            <CardTitle className="font-heading text-xl text-[#223246]">Resumo da Semana</CardTitle>
+            <CardDescription className="text-[13px] font-semibold text-[#6f88a2]">
+              Painel rápido para decisão diária.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2">
-            {summary.alunosSemObservacao.slice(0, 6).map((aluno) => (
-              <Link
-                key={aluno.id}
-                href={`/dashboard/alunos/${aluno.id}`}
-                className="group flex items-center justify-between rounded-xl border border-amber-100 bg-amber-50/60 p-3.5 transition-all hover:border-amber-200 hover:bg-amber-50"
-              >
+          <CardContent className="space-y-3 p-5 pt-2 md:p-6 md:pt-2">
+            {[
+              { label: "Alunos", value: summary.totalAlunos, icon: Users, chipClass: "bg-sky-50 text-sky-700 border-sky-200" },
+              { label: "Observações", value: summary.observacoesSemana, icon: FileText, chipClass: "bg-teal-50 text-teal-700 border-teal-200" },
+              { label: "Planejamentos", value: summary.planejamentosSemana, icon: CalendarClock, chipClass: "bg-amber-50 text-amber-700 border-amber-200" },
+              { label: "Relatórios IA", value: summary.relatoriosMes, icon: WandSparkles, chipClass: "bg-rose-50 text-rose-700 border-rose-200" },
+            ].map((item) => (
+              <div key={item.label} className="flex items-center justify-between rounded-2xl border border-sky-100 bg-sky-50/40 px-4 py-3.5">
                 <div className="flex items-center gap-3">
-                  <div className="flex size-8 items-center justify-center rounded-full bg-amber-100 text-amber-600 transition-all group-hover:bg-amber-200">
-                    <TriangleAlert className="size-3.5" />
-                  </div>
-                  <span className="text-sm font-bold text-amber-800">{aluno.nome}</span>
+                  <span className={cn("inline-flex size-10 items-center justify-center rounded-xl border", item.chipClass)}>
+                    <item.icon className="size-4.5" />
+                  </span>
+                  <p className="text-sm font-bold text-[#3d5771]">{item.label}</p>
                 </div>
-                <ArrowRight className="size-4 text-amber-300 opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100 group-hover:text-amber-500" />
-              </Link>
+                <p className="font-heading text-2xl text-[#223246]">{item.value}</p>
+              </div>
             ))}
 
-            {!summary.alunosSemObservacao.length && (
-              <div className="flex min-h-[100px] flex-col items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-                <div className="flex size-10 items-center justify-center rounded-full bg-emerald-100">
-                  <span className="text-lg">✓</span>
-                </div>
-                <p className="text-center text-sm font-semibold text-emerald-700">
-                  Acompanhamento em dia!
-                </p>
-                <p className="text-center text-xs text-emerald-500">Todos os alunos têm registros recentes.</p>
-              </div>
-            )}
+            <div className="rounded-2xl border border-teal-200 bg-gradient-to-r from-teal-50 to-emerald-50/60 p-4">
+              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-teal-700">Último foco</p>
+              <p className="mt-1.5 text-sm font-semibold text-teal-900">
+                {summary.alunosSemObservacao.length
+                  ? `${summary.alunosSemObservacao.length} aluno(s) sem registro recente.`
+                  : "✅ Acompanhamento em dia para toda a turma."}
+              </p>
+            </div>
           </CardContent>
         </Card>
+      </section>
+
+      {/* Recent observations */}
+      <section className="pf-card rounded-[1.4rem] border-sky-100/80 bg-white p-5 md:p-7">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="font-heading text-xl text-[#223246]">Registros Recentes</h3>
+          <Link href="/dashboard/observacoes" className="pf-chip border-sky-200 bg-sky-50 text-sky-700">
+            Ver todos
+          </Link>
+        </div>
+
+        {summary.observacoesRecentes.length > 0 ? (
+          <div className="grid gap-3 md:grid-cols-2">
+            {summary.observacoesRecentes.slice(0, 4).map((observacao) => (
+              <Link key={observacao.id} href={`/dashboard/alunos/${observacao.aluno.id}`} className="pf-card-hover rounded-2xl border border-sky-100 bg-sky-50/40 p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-bold text-[#3d5771]">{observacao.aluno.nome}</p>
+                  <span className="pf-chip bg-white">{formatDate(observacao.createdAt)}</span>
+                </div>
+                <p className="mt-1 text-xs font-bold uppercase tracking-[0.12em] text-[#6f88a2]">{observacao.aluno.turma.nome}</p>
+                <p className="mt-2.5 text-sm font-semibold leading-relaxed text-[#4f687f] line-clamp-2">{observacao.texto}</p>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="pf-empty">
+            Nenhum registro recente encontrado. Faça sua primeira observação!
+          </div>
+        )}
       </section>
     </div>
   );
 }
-

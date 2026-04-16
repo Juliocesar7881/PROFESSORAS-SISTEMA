@@ -1,28 +1,28 @@
 import type { Metadata } from "next";
-import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
+import { Baloo_2, Nunito } from "next/font/google";
 
 import { Providers } from "@/app/providers";
 import "./globals.css";
 
-const plusJakarta = Plus_Jakarta_Sans({
+const nunito = Nunito({
   subsets: ["latin"],
-  variable: "--font-plus-jakarta",
+  variable: "--font-nunito",
   weight: ["400", "500", "600", "700", "800"],
 });
 
-const fraunces = Fraunces({
+const baloo = Baloo_2({
   subsets: ["latin"],
-  variable: "--font-fraunces",
-  weight: ["400", "600", "700"],
+  variable: "--font-baloo",
+  weight: ["500", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
   title: {
-    default: "Planejei",
-    template: "%s | Planejei",
+    default: "Planejafácil",
+    template: "%s | Planejafácil",
   },
   description: "Planejamento pedagógico leve, visual e rápido para professoras brasileiras.",
-  applicationName: "Planejei",
+  applicationName: "Planejafácil",
   manifest: "/manifest.webmanifest",
 };
 
@@ -33,7 +33,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
-      <body className={`${plusJakarta.variable} ${fraunces.variable} theme antialiased`}>
+      <body className={`${nunito.variable} ${baloo.variable} theme antialiased`}>
         <Providers>{children}</Providers>
       </body>
     </html>

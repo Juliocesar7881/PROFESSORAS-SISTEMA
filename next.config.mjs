@@ -1,5 +1,10 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import withPWAInit from "next-pwa";
 import { withSentryConfig } from "@sentry/nextjs";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const isDev = process.env.NODE_ENV !== "production";
 
@@ -36,9 +41,16 @@ const securityHeaders = [
 	{ key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=()" },
 ];
 
+const pwaNoCacheHeaders = [
+	{ key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+	{ key: "Pragma", value: "no-cache" },
+	{ key: "Expires", value: "0" },
+];
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
 	reactStrictMode: true,
+	outputFileTracingRoot: __dirname,
 	images: {
 		remotePatterns: [
 			{
@@ -54,6 +66,10 @@ const nextConfig = {
 	async headers() {
 		return [
 			{
+				source: "/sw.js",
+				headers: [...securityHeaders, ...pwaNoCacheHeaders],
+			},
+			{
 				source: "/:path*",
 				headers: securityHeaders,
 			},
@@ -63,5 +79,9 @@ const nextConfig = {
 
 export default withSentryConfig(withPWA(nextConfig), {
 	silent: true,
-	disableLogger: true,
+	webpack: {
+		treeshake: {
+			removeDebugLogging: true,
+		},
+	},
 });

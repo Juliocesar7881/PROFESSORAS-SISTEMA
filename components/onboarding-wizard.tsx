@@ -15,20 +15,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { PrefeituraNote } from "@/components/prefeitura-note";
-
-const faixaEtariaOptions = [
-  "Berçário (0-1 ano)",
-  "Maternal I (1-2 anos)",
-  "Maternal II (2-3 anos)",
-  "Jardim I (3-4 anos)",
-  "Jardim II (4-5 anos)",
-  "Pré I (5-6 anos)",
-  "Pré II (6-7 anos)",
-  "1º ano",
-  "2º ano",
-  "3º ano",
-];
 
 const alunoSchema = z.object({
   nome: z.string().min(2),
@@ -36,11 +22,11 @@ const alunoSchema = z.object({
 });
 
 const onboardingFormSchema = z.object({
-  turmaNome: z.string().min(2),
-  faixaEtaria: z.string().min(2),
-  ano: z.number().int().min(2020),
+  turmaNome: z.string().min(1, "Nome é obrigatório"),
+  faixaEtaria: z.string().min(1, "Faixa etária é obrigatória"),
+  ano: z.number().int().min(2000, "Ano inválido"),
   alunosTexto: z.string(),
-  consentimentoLGPD: z.boolean().refine((value) => value),
+  consentimentoLGPD: z.boolean(),
 });
 
 type OnboardingFormInput = z.infer<typeof onboardingFormSchema>;
@@ -92,7 +78,7 @@ export function OnboardingWizard({ userName, userImage }: OnboardingWizardProps)
     const valid = await form.trigger(["turmaNome", "faixaEtaria", "ano"]);
 
     if (!valid) {
-      toast.error("Preencha os dados da turma para continuar");
+      toast.error("Revise os dados da turma e tente novamente");
       return;
     }
 
@@ -123,6 +109,11 @@ export function OnboardingWizard({ userName, userImage }: OnboardingWizardProps)
       return;
     }
 
+    if (!values.consentimentoLGPD) {
+      toast.error("Confirme o consentimento LGPD para concluir");
+      return;
+    }
+
     setSaving(true);
 
     const response = await fetch("/api/onboarding", {
@@ -142,9 +133,22 @@ export function OnboardingWizard({ userName, userImage }: OnboardingWizardProps)
       }),
     });
 
+    const json = await response.json().catch(() => null);
+
     if (!response.ok) {
       setSaving(false);
-      toast.error("Não foi possível concluir o onboarding");
+
+      const apiMessage = json?.error?.message as string | undefined;
+      const apiCode = json?.error?.code as string | undefined;
+
+      if (response.status === 409 || apiCode === "CONFLICT") {
+        toast.success("Seu onboarding já foi concluído. Indo para o dashboard...");
+        router.replace("/dashboard");
+        router.refresh();
+        return;
+      }
+
+      toast.error(apiMessage ?? "Não foi possível concluir o onboarding");
       return;
     }
 
@@ -227,7 +231,6 @@ export function OnboardingWizard({ userName, userImage }: OnboardingWizardProps)
                   <p className="text-gray-600">
                     O Planejei é seu assistente pedagógico para organizar planejamento, observações e desenvolvimento de cada criança. Simples, visual e feito para o dia a dia da sala de aula.
                   </p>
-                  <PrefeituraNote />
                   <Button type="button" onClick={goToTurmaStep} className="h-11 w-full bg-[#6C5CE7] text-white hover:bg-[#5a4bd6] md:w-auto">
                     Continuar
                     <ArrowRight className="ml-1 size-4" />
@@ -256,18 +259,8 @@ export function OnboardingWizard({ userName, userImage }: OnboardingWizardProps)
                     <Input placeholder="Ex: Jardim II A" {...form.register("turmaNome")} />
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-semibold text-gray-500">Faixa etária</label>
-                    <select
-                      className="h-10 w-full rounded-md border border-gray-200 bg-gray-50 px-3 text-sm text-gray-800"
-                      {...form.register("faixaEtaria")}
-                    >
-                      <option value="">Selecione...</option>
-                      {faixaEtariaOptions.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
+                    <label className="mb-1 block text-xs font-semibold text-gray-500">Faixa etária / Ano escolar</label>
+                    <Input placeholder="Ex: 1º Ensino Médio" {...form.register("faixaEtaria")} />
                   </div>
                   <div>
                     <label className="mb-1 block text-xs font-semibold text-gray-500">Ano letivo</label>

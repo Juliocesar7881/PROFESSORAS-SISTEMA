@@ -311,7 +311,7 @@ export const PROJECT_CATALOG: CatalogProject[] = [
       "Experimentar tecnicas artisticas variadas",
       "Compartilhar processos e producoes com o grupo",
     ],
-    premium: true,
+    premium: false,
     atividades: [
       {
         titulo: "Pintura com elementos naturais",
@@ -395,7 +395,7 @@ export const PROJECT_CATALOG: CatalogProject[] = [
       "Investigar fenomenos naturais com metodologia simples",
       "Comunicar descobertas para diferentes interlocutores",
     ],
-    premium: true,
+    premium: false,
     atividades: [
       {
         titulo: "Desafio da germinacao",

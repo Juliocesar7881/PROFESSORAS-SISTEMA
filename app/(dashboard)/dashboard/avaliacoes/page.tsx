@@ -4,15 +4,22 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
-import { Bot, Camera, FileText, Loader2, Search, Sparkles, UserRound } from "lucide-react";
+import { Bot, Camera, FileText, Loader2, Search, Sparkles, Trash2, UserRound } from "lucide-react";
 
+import { DashboardPageHero } from "@/components/dashboard-page-hero";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 
 type Turma = { id: string; nome: string; faixaEtaria: string };
 type Aluno = { id: string; nome: string; turma: { id: string; nome: string } };
-type Observacao = { id: string; texto: string; categoria: "APRENDIZAGEM" | "LINGUAGEM" | "SOCIAL" | "MOTOR" | "CRIATIVIDADE"; createdAt: string };
+type Observacao = {
+  id: string;
+  texto: string;
+  categoria: "APRENDIZAGEM" | "LINGUAGEM" | "SOCIAL" | "MOTOR" | "CRIATIVIDADE";
+  createdAt: string;
+  fotos: Array<{ id: string; url: string | null }>;
+};
 type Relatorio = { id: string; texto: string; periodo: string; createdAt: string };
 
 const categoriaOptions: Array<{ value: Observacao["categoria"]; label: string; color: string }> = [
@@ -30,8 +37,7 @@ const quickTemplates = [
   "Expressou ideias com autonomia e ampliou vocabulário durante a conversa.",
 ];
 
-const lightSelect = "h-11 w-full rounded-xl border border-gray-200 bg-white px-3.5 text-sm font-medium text-gray-800 transition-all focus:border-violet-300 focus:outline-none focus:ring-2 focus:ring-violet-100 hover:border-gray-300 appearance-none";
-const lightInput  = "h-11 w-full rounded-xl border border-gray-200 bg-white px-3.5 text-sm font-medium text-gray-800 placeholder:text-gray-300 transition-all focus:border-violet-300 focus:outline-none focus:ring-2 focus:ring-violet-100 hover:border-gray-300";
+/* Using global pf-select and pf-input classes */
 
 export default function AvaliacoesPage() {
   const [turmas, setTurmas] = useState<Turma[]>([]);
@@ -50,6 +56,8 @@ export default function AvaliacoesPage() {
   const [loadingContext, setLoadingContext] = useState(false);
   const [savingObservation, setSavingObservation] = useState(false);
   const [generatingReport, setGeneratingReport] = useState(false);
+  const [deletingObservacaoId, setDeletingObservacaoId] = useState<string | null>(null);
+  const [deletingRelatorioId, setDeletingRelatorioId] = useState<string | null>(null);
 
   const fotoPreview = useMemo(() => (foto ? URL.createObjectURL(foto) : null), [foto]);
   useEffect(() => () => { if (fotoPreview) URL.revokeObjectURL(fotoPreview); }, [fotoPreview]);
@@ -114,10 +122,28 @@ export default function AvaliacoesPage() {
       formData.append("alunoId", selectedAlunoId);
       if (foto) formData.append("foto", foto);
       const r = await fetch("/api/observacoes", { method: "POST", body: formData });
-      const j = await r.json();
+      const j = (await r.json()) as {
+        data?: {
+          upload?: {
+            uploadedCount?: number;
+            failedCount?: number;
+            message?: string;
+          };
+        };
+        error?: { message?: string };
+      };
       if (!r.ok) throw new Error(j.error?.message ?? "Falha");
       setTexto(""); setFoto(null);
-      toast.success("Avaliação registrada");
+
+      const upload = j.data?.upload;
+      const failedCount = upload?.failedCount ?? 0;
+
+      if (failedCount > 0) {
+        toast.warning(upload?.message ?? "Avaliação salva, mas houve falha no envio de imagem.");
+      } else {
+        toast.success(upload?.message ?? "Avaliação registrada");
+      }
+
       await loadAlunoContext(selectedAlunoId);
     } catch (e) { toast.error(e instanceof Error ? e.message : "Falha"); }
     finally { setSavingObservation(false); }
@@ -137,65 +163,93 @@ export default function AvaliacoesPage() {
     finally { setGeneratingReport(false); }
   };
 
+  const handleDeleteObservation = async (observacaoId: string) => {
+    if (!window.confirm("Deseja excluir esta observação? Esta ação não pode ser desfeita.")) {
+      return;
+    }
+
+    setDeletingObservacaoId(observacaoId);
+    try {
+      const r = await fetch(`/api/observacoes/${observacaoId}`, { method: "DELETE" });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error?.message ?? "Falha ao excluir observação");
+      setObservacoes((current) => current.filter((item) => item.id !== observacaoId));
+      toast.success("Observação excluída");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha");
+    } finally {
+      setDeletingObservacaoId(null);
+    }
+  };
+
+  const handleDeleteReport = async (relatorioId: string) => {
+    if (!window.confirm("Deseja excluir este relatório? Esta ação não pode ser desfeita.")) {
+      return;
+    }
+
+    setDeletingRelatorioId(relatorioId);
+    try {
+      const r = await fetch(`/api/relatorios/${relatorioId}`, { method: "DELETE" });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error?.message ?? "Falha ao excluir relatório");
+      setRelatorios((current) => current.filter((item) => item.id !== relatorioId));
+      toast.success("Relatório excluído");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha");
+    } finally {
+      setDeletingRelatorioId(null);
+    }
+  };
+
   const obsProgress = Math.min(observacoes.length, 5);
 
   return (
-    <div className="mx-auto max-w-6xl space-y-5">
-      {/* ─── Hero Banner ─── */}
-      <div
-        className="relative overflow-hidden rounded-3xl border border-emerald-200/60 p-7 md:p-8"
-        style={{ background: "linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%)" }}
-      >
-        <div className="pointer-events-none absolute -top-12 right-[-5%] h-[200px] w-[200px] rounded-full opacity-25 blur-[60px]" style={{ background: "rgba(167, 243, 208, 0.6)" }} />
-        <div className="pointer-events-none absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
-        <div className="relative z-10">
-          <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold text-white/90 shadow-sm backdrop-blur-md">
-            <Sparkles className="size-3" />
-            Avaliação Contínua
-          </div>
-          <h2 className="font-heading text-2xl tracking-tight text-white md:text-3xl">Registros e Relatórios com IA</h2>
-          <p className="mt-1 text-sm text-white/80">
-            Acompanhe o desenvolvimento individual, registre observações categorizadas e gere relatórios automáticos.
-          </p>
-        </div>
-      </div>
+    <div className="mx-auto max-w-6xl space-y-6">
+      <DashboardPageHero
+        icon={Sparkles}
+        badge="Avaliação Contínua"
+        title="Registros e Relatórios com IA"
+        description="Acompanhe o desenvolvimento individual, registre observações categorizadas e gere relatórios automáticos."
+        gradient="linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%)"
+        orbColor="rgba(167, 243, 208, 0.6)"
+        borderClassName="border-emerald-200/60"
+      />
 
       <div className="grid gap-5 xl:grid-cols-[320px_1fr]">
         {/* Painel de alunos */}
-        <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-          <CardHeader>
-            <CardTitle className="font-heading text-xl text-gray-900">Turma e alunos</CardTitle>
-            <CardDescription className="text-gray-500">Selecione quem será avaliado hoje.</CardDescription>
+        <Card className="pf-card rounded-[1.4rem] border-sky-100/80 bg-white">
+          <CardHeader className="p-5 pb-3">
+            <CardTitle className="font-heading text-lg text-[#223246]">Turma e alunos</CardTitle>
+            <CardDescription className="text-[13px] font-semibold text-[#6f88a2]">Selecione quem será avaliado hoje.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <select value={selectedTurma} onChange={(e) => setSelectedTurma(e.target.value)} className={lightSelect} disabled={loadingTurmas || !turmas.length}>
+          <CardContent className="space-y-3 p-5 pt-0">
+            <select value={selectedTurma} onChange={(e) => setSelectedTurma(e.target.value)} className="pf-select" disabled={loadingTurmas || !turmas.length}>
               {!turmas.length && <option value="">Sem turmas cadastradas</option>}
               {turmas.map((t) => (<option key={t.id} value={t.id}>{t.nome} ({t.faixaEtaria})</option>))}
             </select>
 
             <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-2.5 size-4 text-gray-400" />
-              <input className={`${lightInput} pl-9`} placeholder="Buscar aluno…" value={searchAluno} onChange={(e) => setSearchAluno(e.target.value)} />
+              <Search className="pointer-events-none absolute left-3.5 top-3 size-4 text-[#8aa2b9]" />
+              <input className="pf-input pl-10" placeholder="Buscar aluno…" value={searchAluno} onChange={(e) => setSearchAluno(e.target.value)} />
             </div>
 
             <div className="max-h-[580px] space-y-2 overflow-y-auto pr-1 scrollbar-hide">
               {(loadingTurmas || loadingAlunos) && (
-                <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm text-gray-500">
-                  <Loader2 className="size-4 animate-spin text-[#6C5CE7]" /> Carregando alunos…
+                <div className="flex items-center gap-2.5 rounded-2xl border border-sky-100 bg-sky-50/50 p-3.5 text-sm font-semibold text-[#6f88a2]">
+                  <Loader2 className="size-4 animate-spin text-sky-500" /> Carregando alunos…
                 </div>
               )}
               {!loadingTurmas && !loadingAlunos && filteredAlunos.map((aluno) => (
                 <button key={aluno.id} type="button" onClick={() => setSelectedAlunoId(aluno.id)}
-                  className={`w-full rounded-xl border p-3 text-left transition-all ${selectedAlunoId === aluno.id ? "border-[#6C5CE7]/30 bg-violet-50" : "border-gray-200 bg-gray-50/50 hover:border-gray-300 hover:shadow-sm"}`}>
-                  <p className={`font-semibold ${selectedAlunoId === aluno.id ? "text-[#6C5CE7]" : "text-gray-800"}`}>{aluno.nome}</p>
-                  <p className="text-xs text-gray-400">{aluno.turma.nome}</p>
+                  className={`w-full rounded-2xl border p-3.5 text-left transition-all ${selectedAlunoId === aluno.id ? "border-sky-300/60 bg-sky-50/70 shadow-sm" : "border-sky-100 bg-sky-50/30 hover:border-sky-200 hover:shadow-sm"}`}>
+                  <p className={`font-bold ${selectedAlunoId === aluno.id ? "text-sky-700" : "text-[#223246]"}`}>{aluno.nome}</p>
+                  <p className="text-xs font-medium text-[#8aa2b9]">{aluno.turma.nome}</p>
                 </button>
               ))}
               {!loadingTurmas && !loadingAlunos && !filteredAlunos.length && (
-                <p className="rounded-xl border border-dashed border-gray-300 p-3 text-sm text-gray-400">
+                <div className="pf-empty">
                   {alunos.length ? "Nenhum aluno encontrado." : "Turma sem alunos cadastrados."}
-                </p>
+                </div>
               )}
             </div>
           </CardContent>
@@ -203,14 +257,14 @@ export default function AvaliacoesPage() {
 
         {/* Avaliação + histórico */}
         <div className="space-y-5">
-          <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-            <CardHeader>
-              <CardTitle className="font-heading text-xl text-gray-900">Registro de avaliação</CardTitle>
-              <CardDescription className="text-gray-500">Use os modelos abaixo para agilizar o preenchimento.</CardDescription>
+          <Card className="pf-card rounded-[1.4rem] border-sky-100/80 bg-white">
+            <CardHeader className="p-5 pb-3">
+              <CardTitle className="font-heading text-lg text-[#223246]">Registro de avaliação</CardTitle>
+              <CardDescription className="text-[13px] font-semibold text-[#6f88a2]">Use os modelos abaixo para agilizar o preenchimento.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 p-5 pt-0">
               {!selectedAluno && (
-                <div className="rounded-xl border border-dashed border-gray-300 p-4 text-sm text-gray-400">
+                <div className="pf-empty">
                   Selecione um aluno para iniciar a avaliação.
                 </div>
               )}
@@ -218,21 +272,21 @@ export default function AvaliacoesPage() {
               {selectedAluno && (
                 <>
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge className="rounded-full bg-[#6C5CE7] text-white">{selectedAluno.nome}</Badge>
-                    <Badge variant="outline" className="rounded-full border-gray-200 text-gray-500">{selectedAluno.turma.nome}</Badge>
-                    <Badge variant="outline" className="rounded-full border-gray-200 text-gray-500">{observacoes.length} obs.</Badge>
-                    <Badge variant="outline" className="rounded-full border-gray-200 text-gray-500">{relatorios.length} rel.</Badge>
-                    <Link href={`/dashboard/alunos/${selectedAluno.id}`} className="text-xs font-semibold text-emerald-600 underline underline-offset-2 hover:text-emerald-500 transition-colors">
+                    <Badge className="rounded-full bg-sky-500 text-white">{selectedAluno.nome}</Badge>
+                    <Badge variant="outline" className="rounded-full border-sky-100 text-[#6f88a2]">{selectedAluno.turma.nome}</Badge>
+                    <Badge variant="outline" className="rounded-full border-sky-100 text-[#6f88a2]">{observacoes.length} obs.</Badge>
+                    <Badge variant="outline" className="rounded-full border-sky-100 text-[#6f88a2]">{relatorios.length} rel.</Badge>
+                    <Link href={`/dashboard/alunos/${selectedAluno.id}`} className="text-xs font-bold text-emerald-600 underline underline-offset-2 hover:text-emerald-500 transition-colors">
                       Abrir ficha completa →
                     </Link>
                   </div>
 
                   <div>
-                    <p className="mb-2 px-1 text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">Modelos rápidos</p>
+                    <p className="pf-label">Modelos rápidos</p>
                     <div className="grid gap-2 md:grid-cols-2">
                       {quickTemplates.map((template) => (
                         <button key={template} type="button" onClick={() => setTexto(template)}
-                          className="rounded-xl border border-gray-200 bg-gray-50/50 px-3 py-2 text-left text-xs text-gray-500 transition hover:border-emerald-200 hover:bg-emerald-50/60 hover:text-emerald-600">
+                          className="rounded-2xl border border-sky-100 bg-sky-50/30 px-3.5 py-2.5 text-left text-xs font-medium text-[#3d5771] transition hover:border-emerald-200 hover:bg-emerald-50/60 hover:text-emerald-600">
                           {template}
                         </button>
                       ))}
@@ -240,11 +294,11 @@ export default function AvaliacoesPage() {
                   </div>
 
                   <div>
-                    <p className="mb-2 px-1 text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">Categoria da observação</p>
+                    <p className="pf-label">Categoria da observação</p>
                     <div className="flex flex-wrap gap-2">
                       {categoriaOptions.map((item) => (
                         <button key={item.value} type="button" onClick={() => setCategoria(item.value)}
-                          className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-all ${categoria === item.value ? item.color + " ring-1 ring-offset-0" : "border-gray-200 bg-white text-gray-400 hover:text-gray-600"}`}>
+                          className={`rounded-full border px-3.5 py-2 text-[13px] font-bold transition-all ${categoria === item.value ? item.color + " ring-2 ring-offset-1" : "border-sky-100 bg-white text-[#6f88a2] hover:border-sky-200 hover:bg-sky-50/50"}`}>
                           {item.label}
                         </button>
                       ))}
@@ -253,20 +307,27 @@ export default function AvaliacoesPage() {
 
                   <Textarea value={texto} onChange={(e) => setTexto(e.target.value)}
                     placeholder="Descreva o que foi observado hoje…"
-                    className="min-h-[140px] rounded-xl border border-gray-200 bg-white text-gray-800 placeholder:text-gray-300 transition-all focus:border-violet-300 focus:ring-violet-100 focus-visible:ring-2 hover:border-gray-300" />
+                    className="min-h-[140px] rounded-2xl border-sky-100 bg-white text-[15px] leading-relaxed text-[#3d5771] placeholder:text-[#a3bdd2] transition-all focus:border-sky-300 focus:ring-sky-100 focus-visible:ring-2" />
 
-                  <input type="file" accept="image/*" capture="environment" onChange={(e) => setFoto(e.target.files?.[0] ?? null)}
-                    className="block w-full rounded-xl border border-gray-200 bg-[#F1F3F9] px-3 py-2 text-sm text-gray-500 file:mr-3 file:rounded-lg file:border-0 file:bg-violet-50 file:px-3 file:py-1 file:text-xs file:font-bold file:text-[#6C5CE7] hover:file:bg-violet-100" />
+                  <label className="flex cursor-pointer items-center gap-3 rounded-2xl border-2 border-dashed border-sky-200 bg-sky-50/40 p-4 transition-colors hover:border-sky-300 hover:bg-sky-50/70">
+                    <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-sky-100">
+                      <Camera className="size-5 text-sky-600" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold text-[#3d5771]">Adicionar foto</p>
+                      <p className="text-xs text-[#8aa2b9]">JPG, PNG ou WEBP</p>
+                    </div>
+                    <input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={(e) => setFoto(e.target.files?.[0] ?? null)} className="sr-only" />
+                  </label>
 
                   {fotoPreview && (
-                    <a href={fotoPreview} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-xl border border-gray-200">
+                    <a href={fotoPreview} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-2xl border border-sky-100">
                       <Image src={fotoPreview} alt="Pré-visualização" width={960} height={640} unoptimized className="h-40 w-full object-cover" />
                     </a>
                   )}
 
                   <button type="button" onClick={handleSaveObservation} disabled={savingObservation}
-                    className="flex h-11 w-full items-center justify-center gap-2 rounded-xl px-6 text-sm font-bold text-white shadow-[0_4px_14px_-4px_rgba(16,185,129,0.5)] transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
-                    style={{ background: "linear-gradient(135deg, #10b981 0%, #059669 100%)" }}>
+                    className="pf-btn-success w-full">
                     {savingObservation ? <Loader2 className="size-4 animate-spin" /> : <Camera className="size-4" />}
                     {savingObservation ? "Salvando…" : "Salvar avaliação"}
                   </button>
@@ -277,69 +338,109 @@ export default function AvaliacoesPage() {
 
           <div className="grid gap-5 lg:grid-cols-2">
             {/* IA */}
-            <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-              <CardHeader>
-                <CardTitle className="font-heading text-lg text-gray-900">Relatório por IA</CardTitle>
-                <CardDescription className="text-gray-500">Disponível a partir de 5 observações.</CardDescription>
+            <Card className="pf-card rounded-[1.4rem] border-sky-100/80 bg-white">
+              <CardHeader className="p-5 pb-3">
+                <CardTitle className="font-heading text-lg text-[#223246]">Relatório por IA</CardTitle>
+                <CardDescription className="text-[13px] font-semibold text-[#6f88a2]">Disponível a partir de 5 observações.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <input value={periodo} onChange={(e) => setPeriodo(e.target.value)} placeholder="Período" className={lightInput} />
+              <CardContent className="space-y-3 p-5 pt-0">
+                <input value={periodo} onChange={(e) => setPeriodo(e.target.value)} placeholder="Período" className="pf-input" />
 
                 {/* Progress bar */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-gray-500">Progresso para relatório</span>
-                    <span className={obsProgress >= 5 ? "text-emerald-600 font-bold" : "text-gray-400"}>{obsProgress}/5</span>
+                    <span className="font-semibold text-[#6f88a2]">Progresso para relatório</span>
+                    <span className={obsProgress >= 5 ? "text-emerald-600 font-bold" : "text-[#8aa2b9]"}>{obsProgress}/5</span>
                   </div>
-                  <div className="h-1.5 w-full rounded-full bg-gray-100">
-                    <div className="h-full rounded-full bg-gradient-to-r from-[#6C5CE7] to-[#a78bfa] transition-all" style={{ width: `${(obsProgress / 5) * 100}%` }} />
+                  <div className="h-2 w-full rounded-full bg-sky-50">
+                    <div className="h-full rounded-full bg-gradient-to-r from-sky-400 to-sky-600 transition-all" style={{ width: `${(obsProgress / 5) * 100}%` }} />
                   </div>
                 </div>
 
                 <button type="button" onClick={handleGenerateReport} disabled={generatingReport || observacoes.length < 5 || !selectedAluno}
-                  className="flex h-11 w-full items-center justify-center gap-2 rounded-xl px-6 text-sm font-bold text-white shadow-[0_4px_14px_-4px_rgba(108,92,231,0.5)] transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
-                  style={{ background: "linear-gradient(135deg, #6C5CE7 0%, #8B5CF6 100%)" }}>
+                  className="pf-btn-primary w-full">
                   {generatingReport ? <Loader2 className="size-4 animate-spin" /> : <Bot className="size-4" />}
-                  {generatingReport ? "Gerando…" : "Gerar relatório"}
+                  {generatingReport ? "Gerando…" : "✨ Gerar relatório"}
                 </button>
+
+                <Link
+                  href="/dashboard/relatorios"
+                  className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2.5 text-sm font-bold text-sky-700 transition hover:bg-sky-100"
+                >
+                  <FileText className="size-4" />
+                  Ver histórico completo
+                </Link>
 
                 <div className="space-y-2">
                   {(loadingContext ? [] : relatorios.slice(0, 2)).map((r) => (
-                    <article key={r.id} className="rounded-xl border border-gray-200 bg-gray-50/50 p-3">
-                      <p className="text-xs font-semibold text-gray-400">{r.periodo}</p>
-                      <p className="mt-1 line-clamp-4 text-sm text-gray-700">{r.texto}</p>
+                    <article key={r.id} className="rounded-2xl border border-sky-100 bg-sky-50/30 p-3.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-bold text-[#8aa2b9]">{r.periodo}</p>
+                        <button
+                          type="button"
+                          onClick={() => void handleDeleteReport(r.id)}
+                          disabled={deletingRelatorioId === r.id}
+                          className="inline-flex h-7 items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 text-[11px] font-semibold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {deletingRelatorioId === r.id ? <Loader2 className="size-3 animate-spin" /> : <Trash2 className="size-3" />}
+                          Excluir
+                        </button>
+                      </div>
+                      <p className="mt-1.5 line-clamp-4 text-sm text-[#3d5771]">{r.texto}</p>
                     </article>
                   ))}
                   {!loadingContext && !relatorios.length && (
-                    <p className="rounded-xl border border-dashed border-gray-300 p-3 text-sm text-gray-400">Nenhum relatório gerado.</p>
+                    <div className="pf-empty">Nenhum relatório gerado.</div>
                   )}
                 </div>
               </CardContent>
             </Card>
 
             {/* Histórico */}
-            <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-              <CardHeader>
-                <CardTitle className="font-heading text-lg text-gray-900">Últimas observações</CardTitle>
-                <CardDescription className="text-gray-500">Histórico rápido do aluno.</CardDescription>
+            <Card className="pf-card rounded-[1.4rem] border-sky-100/80 bg-white">
+              <CardHeader className="p-5 pb-3">
+                <CardTitle className="font-heading text-lg text-[#223246]">Últimas observações</CardTitle>
+                <CardDescription className="text-[13px] font-semibold text-[#6f88a2]">Histórico rápido do aluno.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-2">
+              <CardContent className="space-y-2.5 p-5 pt-0">
                 {loadingContext && (
-                  <div className="flex items-center gap-2 p-3 text-sm text-gray-500">
-                    <Loader2 className="size-4 animate-spin text-[#6C5CE7]" /> Carregando…
+                  <div className="flex items-center gap-2.5 rounded-2xl border border-sky-100 bg-sky-50/50 p-3.5 text-sm font-semibold text-[#6f88a2]">
+                    <Loader2 className="size-4 animate-spin text-sky-500" /> Carregando…
                   </div>
                 )}
                 {!loadingContext && observacoes.slice(0, 6).map((o) => (
-                  <article key={o.id} className="rounded-xl border border-gray-200 bg-gray-50/50 p-3">
+                  <article key={o.id} className="rounded-2xl border border-sky-100 bg-sky-50/30 p-3.5">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-xs font-semibold text-gray-400">{new Date(o.createdAt).toLocaleDateString("pt-BR")}</p>
-                      <span className={`obs-${o.categoria.toLowerCase()} rounded-full px-2.5 py-0.5 text-[10px] font-bold`}>{o.categoria}</span>
+                      <p className="text-xs font-bold text-[#8aa2b9]">{new Date(o.createdAt).toLocaleDateString("pt-BR")}</p>
+                      <div className="flex items-center gap-2">
+                        <span className={`obs-${o.categoria.toLowerCase()} rounded-full px-2.5 py-0.5 text-[10px] font-bold`}>{o.categoria}</span>
+                        <button
+                          type="button"
+                          onClick={() => void handleDeleteObservation(o.id)}
+                          disabled={deletingObservacaoId === o.id}
+                          className="inline-flex h-7 items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 text-[11px] font-semibold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {deletingObservacaoId === o.id ? <Loader2 className="size-3 animate-spin" /> : <Trash2 className="size-3" />}
+                          Excluir
+                        </button>
+                      </div>
                     </div>
-                    <p className="mt-1 line-clamp-3 text-sm text-gray-600">{o.texto}</p>
+                    <p className="mt-1.5 line-clamp-3 text-sm text-[#3d5771]">{o.texto}</p>
+                    {o.fotos?.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {o.fotos.map((fotoItem) =>
+                          fotoItem.url ? (
+                            <a key={fotoItem.id} href={fotoItem.url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg border border-gray-200">
+                              <Image src={fotoItem.url} alt="Registro da observação" width={84} height={84} className="size-[84px] object-cover" />
+                            </a>
+                          ) : null,
+                        )}
+                      </div>
+                    )}
                   </article>
                 ))}
                 {!loadingContext && !observacoes.length && (
-                  <p className="rounded-xl border border-dashed border-gray-300 p-3 text-sm text-gray-400">Ainda não há observações.</p>
+                  <div className="pf-empty">Ainda não há observações.</div>
                 )}
                 {!!selectedAluno && (
                   <Link href={`/dashboard/alunos/${selectedAluno.id}`} className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 underline underline-offset-2 hover:text-emerald-500 transition-colors">
@@ -353,8 +454,8 @@ export default function AvaliacoesPage() {
       </div>
 
       {/* Footer info */}
-      <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-        <CardContent className="flex flex-wrap items-center gap-2 py-4">
+      <Card className="pf-card rounded-[1.4rem] border-sky-100/80 bg-white">
+        <CardContent className="flex flex-wrap items-center gap-2.5 p-5 md:p-6">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-600">
             <Sparkles className="size-3.5" /> Linguagem simples para uso no dia a dia
           </span>

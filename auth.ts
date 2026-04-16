@@ -5,49 +5,37 @@ import { Plano } from "@prisma/client";
 
 import { env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
-import { hasReachableDatabaseUrl } from "@/lib/runtime";
+import { getTrialStatus } from "@/lib/subscription";
 
-const hasReachableDatabase = hasReachableDatabaseUrl(env.DATABASE_URL);
 const isProduction = env.NODE_ENV === "production";
 const sessionCookieName = isProduction ? "__Secure-authjs.session-token" : "authjs.session-token";
-
-const providers = [
-  Google({
-    checks: ["pkce", "state"],
-    authorization: {
-      params: {
-        prompt: "consent",
-        access_type: "offline",
-        response_type: "code",
-      },
-    },
-    clientId: env.AUTH_GOOGLE_ID,
-    clientSecret: env.AUTH_GOOGLE_SECRET,
-  }),
-];
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
   pages: {
     signIn: "/login",
+    error: "/login",
   },
-  providers,
-  ...(hasReachableDatabase
-    ? {
-        adapter: PrismaAdapter(prisma),
-        session: {
-          strategy: "database" as const,
-          maxAge: 60 * 60 * 24 * 30,
-          updateAge: 0,
+  providers: [
+    Google({
+      checks: ["pkce", "state"],
+      authorization: {
+        params: {
+          prompt: "consent",
+          access_type: "offline",
+          response_type: "code",
         },
-      }
-    : {
-        session: {
-          strategy: "jwt" as const,
-          maxAge: 60 * 60 * 24 * 30,
-          updateAge: 0,
-        },
-      }),
+      },
+      clientId: env.AUTH_GOOGLE_ID,
+      clientSecret: env.AUTH_GOOGLE_SECRET,
+    }),
+  ],
+  adapter: PrismaAdapter(prisma),
+  session: {
+    strategy: "database",
+    maxAge: 60 * 60 * 24 * 30,
+    updateAge: 0,
+  },
   cookies: {
     sessionToken: {
       name: sessionCookieName,
@@ -62,31 +50,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
   callbacks: {
-    async jwt({ token, user, profile }) {
-      if (!hasReachableDatabase) {
-        const userId = typeof user?.id === "string" ? user.id : undefined;
-        const profileSub = profile && "sub" in profile && typeof profile.sub === "string" ? profile.sub : undefined;
-        const tokenEmail = typeof token.email === "string" ? token.email : undefined;
-        token.id = (token.id as string | undefined) ?? userId ?? profileSub ?? token.sub ?? tokenEmail;
-      }
-
-      if (!token.plano) {
-        token.plano = Plano.GRATUITO;
-      }
-
-      return token;
-    },
-    async session({ session, user, token }) {
+    async session({ session, user }) {
       if (!session.user) {
         return session;
       }
 
-      const tokenEmail = typeof token.email === "string" ? token.email : undefined;
-      const jwtId = (token.id as string | undefined) ?? token.sub ?? tokenEmail;
-      session.user.id = hasReachableDatabase ? user.id : (jwtId ?? "temp-user");
-      session.user.plano = hasReachableDatabase
-        ? (user as { plano?: Plano }).plano ?? Plano.GRATUITO
-        : ((token.plano as Plano | undefined) ?? Plano.GRATUITO);
+      const plano = (user as { plano?: Plano }).plano ?? Plano.GRATUITO;
+      const trialStatus = getTrialStatus({
+        createdAt: (user as { createdAt?: Date | string | null }).createdAt,
+        plan: plano,
+      });
+
+      session.user.id = user.id;
+      session.user.plano = plano;
+      session.user.trialEndsAt = trialStatus.trialEndsAt;
+      session.user.trialDaysLeft = trialStatus.trialDaysLeft;
+      session.user.trialExpired = trialStatus.trialExpired;
+      session.user.requiresUpgrade = trialStatus.requiresUpgrade;
       return session;
     },
   },

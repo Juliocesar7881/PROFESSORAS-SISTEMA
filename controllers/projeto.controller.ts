@@ -15,7 +15,7 @@ export class ProjetoController {
   list = async (request: Request, context: RequestContext) => {
     try {
       const query = projetoQuerySchema.parse(Object.fromEntries(new URL(request.url).searchParams));
-      const projetos = await this.projetoService.list(context.userId!, context.plano, query);
+      const projetos = await this.projetoService.list(context.userId!, query);
       return ok(projetos);
     } catch (error) {
       return fail(error);
@@ -25,7 +25,7 @@ export class ProjetoController {
   detail = async (_request: Request, context: RequestContext, params: { id: string }) => {
     try {
       const { id } = projetoIdPathSchema.parse(params);
-      const projeto = await this.projetoService.detail(context.userId!, context.plano, id);
+      const projeto = await this.projetoService.detail(context.userId!, id);
       return ok(projeto);
     } catch (error) {
       return fail(error);

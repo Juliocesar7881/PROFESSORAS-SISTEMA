@@ -7,6 +7,7 @@ export const POST = route(handler, [
   withRateLimit({
     keyPrefix: "login:ip",
     by: "ip",
+    failOpen: true,
     fixed: {
       points: FREE_PLAN_LIMITS.LOGIN_ATTEMPTS_PER_IP_HOUR,
       window: "1 h",

@@ -9,14 +9,14 @@ import { PlanejamentoRepository } from "@/repositories/planejamento.repository";
 export class PlanejamentoService {
   private readonly planejamentoRepository = new PlanejamentoRepository();
 
-  async create(userId: string, plano: Plano, payload: CreatePlanejamentoInput) {
+  async create(userId: string, plano: Plano, payload: CreatePlanejamentoInput, trialExpired = true) {
     const hasPlanForWeek = await this.planejamentoRepository.existsByUserTurmaAndWeek(
       userId,
       payload.turmaId,
       payload.semanaInicio,
     );
 
-    if (plano === Plano.GRATUITO) {
+    if (plano === Plano.GRATUITO && trialExpired) {
       const currentCount = await this.planejamentoRepository.countByUser(userId);
 
       if (!hasPlanForWeek && currentCount >= FREE_PLAN_LIMITS.MAX_PLANEJAMENTOS) {

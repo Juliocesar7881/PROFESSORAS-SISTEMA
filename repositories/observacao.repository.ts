@@ -107,6 +107,37 @@ export class ObservacaoRepository extends BaseRepository {
     });
   }
 
+  async findOwnedById(userId: string, observacaoId: string) {
+    const observacao = await prisma.observacao.findFirst({
+      where: {
+        id: observacaoId,
+        aluno: {
+          turma: {
+            userId,
+          },
+        },
+      },
+      include: {
+        fotos: {
+          select: {
+            id: true,
+            storageKey: true,
+          },
+        },
+      },
+    });
+
+    return this.assertFound(observacao, "Observacao nao encontrada");
+  }
+
+  async deleteById(observacaoId: string) {
+    return prisma.observacao.delete({
+      where: {
+        id: observacaoId,
+      },
+    });
+  }
+
   async countByUserSince(userId: string, since: Date) {
     return prisma.observacao.count({
       where: {

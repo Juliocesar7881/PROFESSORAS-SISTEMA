@@ -11,6 +11,12 @@ export class OnboardingService {
 
   private readonly userRepository = new UserRepository();
 
+  private createPlaceholderBirthDate() {
+    const placeholder = new Date();
+    placeholder.setHours(12, 0, 0, 0);
+    return placeholder;
+  }
+
   async run(userId: string, payload: OnboardingInput) {
     const alreadyConfigured = await this.userRepository.hasAnyTurma(userId);
 
@@ -24,7 +30,7 @@ export class OnboardingService {
       payload.alunos.map((aluno) =>
         this.alunoRepository.create(userId, {
           nome: aluno.nome,
-          dataNasc: aluno.dataNasc,
+          dataNasc: aluno.dataNasc ?? this.createPlaceholderBirthDate(),
           turmaId: turma.id,
         }),
       ),

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 
 const stepData = [
@@ -140,9 +141,15 @@ export function LandingPage() {
       <main className="pj-root">
         <header className="pj-nav">
           <a href="#top" className="pj-logo">
-            <span className="pj-logo-icon">✏️</span>
-            Planejei
-            <span className="pj-logo-dot">.</span>
+            <Image
+              src="/icons/logo-planejafacil-mark.png"
+              alt="Planejafácil"
+              width={34}
+              height={34}
+              className="pj-logo-img"
+              priority
+            />
+            <span className="pj-logo-text">Planejafácil</span>
           </a>
 
           <button type="button" className="pj-menu-btn" onClick={() => setMenuOpen((prev) => !prev)} aria-label="Abrir menu">
@@ -193,7 +200,7 @@ export function LandingPage() {
 
           <div className="pj-hero-right">
             <div className="pj-pill pj-pill-1">📸 Foto registrada!</div>
-            <div className="pj-pill pj-pill-2">🌟 7 dias seguidos</div>
+            <div className="pj-pill pj-pill-2">🌟 14 dias seguidos</div>
             <div className="pj-pill pj-pill-3">📄 PDF gerado!</div>
 
             <div className="pj-app-frame pj-reveal">
@@ -213,7 +220,7 @@ export function LandingPage() {
                     <p className="pj-streak-sub">Continue registrando</p>
                   </div>
                 </div>
-                <strong>7 dias</strong>
+                <strong>14 dias</strong>
               </div>
 
               <p className="pj-aluno-label">Aluno em destaque</p>
@@ -316,27 +323,27 @@ export function LandingPage() {
         <section className="pj-section pj-pricing" id="precos">
           <span className="pj-label pj-reveal">🩵 Preços</span>
           <h2 className="pj-title pj-reveal">Simples como deveria <span>ser</span></h2>
-          <p className="pj-sub pj-reveal">Sem contrato longo. Cancele quando quiser. 14 dias grátis para começar.</p>
+          <p className="pj-sub pj-reveal">14 dias grátis no acesso completo após o primeiro login. Depois, assinatura obrigatória para continuar.</p>
 
           <div className="pj-pricing-wrap">
             <article className="pj-price-card pj-reveal">
-              <p className="pj-price-plan">Gratuito</p>
+              <p className="pj-price-plan">Teste Pro</p>
               <p className="pj-price-value">R$0</p>
-              <p className="pj-price-meta">Para sempre</p>
+              <p className="pj-price-meta">14 dias após o primeiro login</p>
               <ul>
-                <li>Até 4 semanas salvas</li>
-                <li>20% do catálogo de projetos</li>
-                <li>3 avaliações com IA por mês</li>
-                <li>Registro mobile com fotos</li>
+                <li>Acesso total a todos os módulos</li>
+                <li>100% do catálogo de projetos</li>
+                <li>Relatórios com IA e exportações</li>
+                <li>Sem cartão no início do teste</li>
               </ul>
-              <Link className="pj-btn pj-btn-ghost" href="/login">Criar conta grátis</Link>
+              <Link className="pj-btn pj-btn-ghost" href="/login">Iniciar 14 dias grátis</Link>
             </article>
 
             <article className="pj-price-card pj-popular pj-reveal">
               <span className="pj-pop-badge">⭐ Mais popular</span>
               <p className="pj-price-plan">Pro</p>
-              <p className="pj-price-value">R$9,90</p>
-              <p className="pj-price-meta">por mês · menos que um café</p>
+              <p className="pj-price-value">R$18,99</p>
+              <p className="pj-price-meta">por mês ou R$150,00 por ano</p>
               <ul>
                 <li>Sem limite de semanas</li>
                 <li>100% do catálogo de projetos</li>
@@ -347,7 +354,7 @@ export function LandingPage() {
                 <li>Uso offline completo</li>
                 <li>Suporte por WhatsApp</li>
               </ul>
-              <Link className="pj-btn pj-btn-purple" href="/login">Começar 14 dias grátis 🎉</Link>
+              <Link className="pj-btn pj-btn-purple" href="/login">Assinar após o teste 🎉</Link>
             </article>
           </div>
         </section>
@@ -376,7 +383,7 @@ export function LandingPage() {
         <section className="pj-cta-wrap pj-reveal">
           <p className="pj-cta-label">✨ Comece hoje</p>
           <h2>Sua prática merece uma ferramenta à sua altura 🩵</h2>
-          <p>14 dias grátis. Sem cartão. Cancele quando quiser.</p>
+          <p>14 dias grátis no primeiro login Google. Depois, assinatura obrigatória para continuar.</p>
           <div className="pj-cta-actions">
             <Link href="/login" className="pj-btn pj-btn-white">Criar conta gratuita 🎉</Link>
             <a href="#como-funciona" className="pj-btn pj-btn-outline-white">Ver demonstração →</a>
@@ -385,9 +392,14 @@ export function LandingPage() {
 
         <footer className="pj-footer">
           <a href="#top" className="pj-logo">
-            <span className="pj-logo-icon">✏️</span>
-            Planejei
-            <span className="pj-logo-dot">.</span>
+            <Image
+              src="/icons/logo-planejafacil-mark.png"
+              alt="Planejafácil"
+              width={34}
+              height={34}
+              className="pj-logo-img"
+            />
+            <span className="pj-logo-text">Planejafácil</span>
           </a>
           <nav>
             <Link href="/privacidade">Privacidade</Link>
@@ -459,7 +471,21 @@ export function LandingPage() {
           text-decoration: none;
           display: flex;
           align-items: center;
-          gap: 0.3rem;
+          gap: 0.5rem;
+        }
+
+        .pj-logo-img {
+          width: 34px;
+          height: 34px;
+          border-radius: 10px;
+          border: 1px solid rgba(11, 184, 168, 0.2);
+          flex-shrink: 0;
+          object-fit: cover;
+          box-shadow: 0 6px 16px -8px rgba(11, 184, 168, 0.65);
+        }
+
+        .pj-logo-text {
+          line-height: 1;
         }
 
         .pj-logo-dot {

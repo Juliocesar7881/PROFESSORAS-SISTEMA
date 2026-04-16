@@ -11,6 +11,7 @@ export const POST = route(controller.create, [
   withRateLimit({
     keyPrefix: "upload:photo",
     by: "user",
+    failOpen: true,
     planAware: {
       freeLimit: FREE_PLAN_LIMITS.PHOTO_UPLOADS_PER_HOUR,
       proLimit: PRO_PLAN_LIMITS.PHOTO_UPLOADS_PER_HOUR,

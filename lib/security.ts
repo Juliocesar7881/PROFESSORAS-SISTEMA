@@ -4,8 +4,6 @@ import sharp from "sharp";
 import { MAX_PHOTO_SIZE_BYTES } from "@/lib/constants";
 import { ValidationError } from "@/dtos/errors";
 
-const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-
 export async function validateAndSanitizeImage(file: File): Promise<Buffer> {
   if (file.size > MAX_PHOTO_SIZE_BYTES) {
     throw new ValidationError("Foto excede o limite de 10MB");
@@ -15,12 +13,16 @@ export async function validateAndSanitizeImage(file: File): Promise<Buffer> {
   const sourceBuffer = Buffer.from(arrayBuffer);
   const detectedType = await fileTypeFromBuffer(sourceBuffer);
 
-  if (!detectedType || !ALLOWED_MIME_TYPES.has(detectedType.mime)) {
+  if (!detectedType || !detectedType.mime.startsWith("image/")) {
     throw new ValidationError("Formato de imagem não suportado");
   }
 
-  // Re-encode strips EXIF metadata by default.
-  return sharp(sourceBuffer).rotate().jpeg({ quality: 86 }).toBuffer();
+  try {
+    // Re-encode strips EXIF metadata by default.
+    return await sharp(sourceBuffer).rotate().jpeg({ quality: 86 }).toBuffer();
+  } catch {
+    throw new ValidationError("Nao foi possivel processar a imagem. Tente JPG, PNG ou WEBP.");
+  }
 }
 
 export function sanitizeSentryText(value: string): string {

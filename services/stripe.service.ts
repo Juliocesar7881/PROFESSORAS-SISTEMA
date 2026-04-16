@@ -3,6 +3,7 @@ import type Stripe from "stripe";
 
 import { stripe } from "@/lib/stripe";
 import { env } from "@/lib/env";
+import { MONTHLY_PRICE_CENTS, YEARLY_PRICE_CENTS } from "@/lib/subscription";
 import { StripeRepository } from "@/repositories/stripe.repository";
 import { UserRepository } from "@/repositories/user.repository";
 import { NotFoundError } from "@/dtos/errors";
@@ -34,7 +35,9 @@ export class StripeService {
       await this.userRepository.setStripeCustomerId(userId, customer.id);
     }
 
-    const priceId = ciclo === "anual" ? env.STRIPE_PRICE_YEARLY : env.STRIPE_PRICE_MONTHLY;
+    const unitAmount = ciclo === "anual" ? YEARLY_PRICE_CENTS : MONTHLY_PRICE_CENTS;
+    const recurringInterval: "month" | "year" = ciclo === "anual" ? "year" : "month";
+    const productName = ciclo === "anual" ? "Planejei Pro - Anual" : "Planejei Pro - Mensal";
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
@@ -44,10 +47,21 @@ export class StripeService {
       cancel_url: `${env.NEXT_PUBLIC_APP_URL}/dashboard/configuracoes?checkout=canceled`,
       line_items: [
         {
-          price: priceId,
+          price_data: {
+            currency: "brl",
+            recurring: {
+              interval: recurringInterval,
+            },
+            unit_amount: unitAmount,
+            product_data: {
+              name: productName,
+              description: "Acesso completo ao Planejei para gestão pedagógica.",
+            },
+          },
           quantity: 1,
         },
       ],
+      locale: "pt-BR",
       metadata: {
         userId,
         ciclo,

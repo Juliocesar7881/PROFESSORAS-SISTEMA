@@ -1,5 +1,3 @@
-import { Plano } from "@prisma/client";
-
 import { inferEtapaTurma, type EtapaTurma } from "@/lib/etapa";
 import { ProjetoRepository } from "@/repositories/projeto.repository";
 import { TurmaRepository } from "@/repositories/turma.repository";
@@ -11,7 +9,6 @@ export class ProjetoService {
 
   async list(
     userId: string,
-    plano: Plano,
     filters: {
       categoria?: string;
       faixaEtaria?: string;
@@ -29,21 +26,22 @@ export class ProjetoService {
       etapa = inferEtapaTurma(turma.faixaEtaria) ?? undefined;
     }
 
-    return this.projetoRepository.list(userId, plano, {
+    return this.projetoRepository.list(userId, {
       ...filters,
       etapa,
     });
   }
 
-  async detail(userId: string, plano: Plano, id: string) {
+  async detail(userId: string, id: string) {
     const projeto = await this.projetoRepository.findById(id);
 
     const saved = await this.projetoRepository.isSaved(userId, id);
 
     return {
       ...projeto,
+      premium: false,
       salvo: saved,
-      premiumBloqueado: projeto.premium && plano !== Plano.PRO,
+      premiumBloqueado: false,
     };
   }
 

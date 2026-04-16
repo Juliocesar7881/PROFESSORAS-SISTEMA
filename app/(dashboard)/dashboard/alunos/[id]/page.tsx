@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import { useParams } from "next/navigation";
 import { toast } from "sonner";
-import { Bot, Camera, CalendarDays, ClipboardList, Filter, NotebookPen, UserRound } from "lucide-react";
+import { Bot, Camera, CalendarDays, ClipboardList, Filter, Loader2, NotebookPen, Trash2, UserRound } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,7 +33,9 @@ type AlunoDetail = {
 
 const categorias = ["APRENDIZAGEM", "LINGUAGEM", "SOCIAL", "MOTOR", "CRIATIVIDADE"] as const;
 
-export default function AlunoDetailPage({ params }: { params: { id: string } }) {
+export default function AlunoDetailPage() {
+  const params = useParams<{ id: string }>();
+  const alunoId = typeof params?.id === "string" ? params.id : "";
   const [aluno, setAluno] = useState<AlunoDetail | null>(null);
   const [observacoes, setObservacoes] = useState<Observacao[]>([]);
   const [relatorios, setRelatorios] = useState<Relatorio[]>([]);
@@ -42,6 +45,8 @@ export default function AlunoDetailPage({ params }: { params: { id: string } }) 
   const [periodo, setPeriodo] = useState("Bimestre atual");
   const [filtroCategoria, setFiltroCategoria] = useState<string>("TODAS");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [deletingObservacaoId, setDeletingObservacaoId] = useState<string | null>(null);
+  const [deletingRelatorioId, setDeletingRelatorioId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!foto) {
@@ -58,23 +63,52 @@ export default function AlunoDetailPage({ params }: { params: { id: string } }) 
   }, [foto]);
 
   const load = useCallback(async () => {
+    if (!alunoId) {
+      return;
+    }
+
     const [alunoResponse, observacoesResponse, relatoriosResponse] = await Promise.all([
-      fetch(`/api/alunos/${params.id}`),
-      fetch(`/api/observacoes?alunoId=${params.id}`),
-      fetch(`/api/relatorios?alunoId=${params.id}`),
+      fetch(`/api/alunos/${alunoId}`),
+      fetch(`/api/observacoes?alunoId=${alunoId}`),
+      fetch(`/api/relatorios?alunoId=${alunoId}`),
     ]);
 
-    const alunoJson = await alunoResponse.json();
-    const observacoesJson = await observacoesResponse.json();
-    const relatoriosJson = await relatoriosResponse.json();
+    const [alunoJson, observacoesJson, relatoriosJson] = await Promise.all([
+      alunoResponse.json(),
+      observacoesResponse.json(),
+      relatoriosResponse.json(),
+    ]);
 
-    setAluno(alunoJson.data);
+    if (!alunoResponse.ok) {
+      throw new Error(alunoJson.error?.message ?? "Falha ao carregar aluno");
+    }
+
+    if (!observacoesResponse.ok) {
+      throw new Error(observacoesJson.error?.message ?? "Falha ao carregar observações");
+    }
+
+    if (!relatoriosResponse.ok) {
+      throw new Error(relatoriosJson.error?.message ?? "Falha ao carregar relatórios");
+    }
+
+    setAluno(alunoJson.data ?? null);
     setObservacoes(observacoesJson.data ?? []);
     setRelatorios(relatoriosJson.data ?? []);
-  }, [params.id]);
+  }, [alunoId]);
 
   useEffect(() => {
-    void load();
+    const execute = async () => {
+      try {
+        await load();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Falha ao carregar dados do aluno");
+        setAluno(null);
+        setObservacoes([]);
+        setRelatorios([]);
+      }
+    };
+
+    void execute();
   }, [load]);
 
   const observacoesFiltradas = useMemo(() => {
@@ -145,7 +179,7 @@ export default function AlunoDetailPage({ params }: { params: { id: string } }) 
     const formData = new FormData();
     formData.append("texto", texto);
     formData.append("categoria", categoria);
-    formData.append("alunoId", params.id);
+    formData.append("alunoId", alunoId);
 
     if (foto) {
       formData.append("foto", foto);
@@ -156,7 +190,16 @@ export default function AlunoDetailPage({ params }: { params: { id: string } }) 
       body: formData,
     });
 
-    const json = await response.json();
+    const json = (await response.json()) as {
+      data?: {
+        upload?: {
+          uploadedCount?: number;
+          failedCount?: number;
+          message?: string;
+        };
+      };
+      error?: { message?: string };
+    };
 
     if (!response.ok) {
       toast.error(json.error?.message ?? "Falha ao salvar observação");
@@ -165,8 +208,21 @@ export default function AlunoDetailPage({ params }: { params: { id: string } }) 
 
     setTexto("");
     setFoto(null);
-    toast.success(json.data?.upload?.message ?? "Observação salva");
-    await load();
+
+    const upload = json.data?.upload;
+    const failedCount = upload?.failedCount ?? 0;
+
+    if (failedCount > 0) {
+      toast.warning(upload?.message ?? "Observação salva, mas houve falha no envio de imagem.");
+    } else {
+      toast.success(upload?.message ?? "Observação salva");
+    }
+
+    try {
+      await load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Falha ao atualizar tela");
+    }
   };
 
   const gerarRelatorio = async () => {
@@ -174,7 +230,7 @@ export default function AlunoDetailPage({ params }: { params: { id: string } }) 
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        alunoId: params.id,
+        alunoId,
         periodo,
       }),
     });
@@ -187,7 +243,63 @@ export default function AlunoDetailPage({ params }: { params: { id: string } }) 
     }
 
     toast.success("Relatório gerado e salvo");
-    await load();
+    try {
+      await load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Falha ao atualizar tela");
+    }
+  };
+
+  const excluirObservacao = async (observacaoId: string) => {
+    if (!window.confirm("Deseja excluir esta observação? Esta ação não pode ser desfeita.")) {
+      return;
+    }
+
+    setDeletingObservacaoId(observacaoId);
+
+    try {
+      const response = await fetch(`/api/observacoes/${observacaoId}`, {
+        method: "DELETE",
+      });
+      const json = await response.json();
+
+      if (!response.ok) {
+        throw new Error(json.error?.message ?? "Falha ao excluir observação");
+      }
+
+      setObservacoes((current) => current.filter((item) => item.id !== observacaoId));
+      toast.success("Observação excluída");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Falha ao excluir observação");
+    } finally {
+      setDeletingObservacaoId(null);
+    }
+  };
+
+  const excluirRelatorio = async (relatorioId: string) => {
+    if (!window.confirm("Deseja excluir este relatório? Esta ação não pode ser desfeita.")) {
+      return;
+    }
+
+    setDeletingRelatorioId(relatorioId);
+
+    try {
+      const response = await fetch(`/api/relatorios/${relatorioId}`, {
+        method: "DELETE",
+      });
+      const json = await response.json();
+
+      if (!response.ok) {
+        throw new Error(json.error?.message ?? "Falha ao excluir relatório");
+      }
+
+      setRelatorios((current) => current.filter((item) => item.id !== relatorioId));
+      toast.success("Relatório excluído");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Falha ao excluir relatório");
+    } finally {
+      setDeletingRelatorioId(null);
+    }
   };
 
   if (!aluno) {
@@ -233,11 +345,13 @@ export default function AlunoDetailPage({ params }: { params: { id: string } }) 
             </div>
             <Input
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp"
               capture="environment"
               onChange={(event) => setFoto(event.target.files?.[0] ?? null)}
               className="mt-3 border-gray-200 bg-white"
             />
+
+            <p className="mt-2 text-xs text-gray-400">Formatos recomendados: JPG, PNG ou WEBP.</p>
 
             {previewUrl && (
               <a href={previewUrl} target="_blank" rel="noreferrer" className="mt-3 block overflow-hidden rounded-xl border border-gray-200">
@@ -278,7 +392,18 @@ export default function AlunoDetailPage({ params }: { params: { id: string } }) 
               <article key={observacao.id} className="rounded-xl border border-gray-200 bg-white p-3">
                 <div className="mb-2 flex items-center justify-between">
                   <Badge className={getCategoriaClass(observacao.categoria)}>{observacao.categoria}</Badge>
-                  <span className="text-xs text-gray-400">{new Date(observacao.createdAt).toLocaleString("pt-BR")}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-400">{new Date(observacao.createdAt).toLocaleString("pt-BR")}</span>
+                    <button
+                      type="button"
+                      onClick={() => void excluirObservacao(observacao.id)}
+                      disabled={deletingObservacaoId === observacao.id}
+                      className="inline-flex h-7 items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 text-[11px] font-semibold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {deletingObservacaoId === observacao.id ? <Loader2 className="size-3 animate-spin" /> : <Trash2 className="size-3" />}
+                      Excluir
+                    </button>
+                  </div>
                 </div>
                 <p className="text-sm text-gray-700">{observacao.texto}</p>
                 <div className="mt-2 flex flex-wrap gap-2">
@@ -321,10 +446,21 @@ export default function AlunoDetailPage({ params }: { params: { id: string } }) 
           <div className="space-y-2">
             {relatorios.map((relatorio) => (
               <article key={relatorio.id} className="rounded-xl border border-gray-200 bg-gray-50 p-3">
-                <p className="inline-flex items-center gap-1 text-xs text-gray-400">
-                  <CalendarDays className="size-3.5" />
-                  {relatorio.periodo}
-                </p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="inline-flex items-center gap-1 text-xs text-gray-400">
+                    <CalendarDays className="size-3.5" />
+                    {relatorio.periodo}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => void excluirRelatorio(relatorio.id)}
+                    disabled={deletingRelatorioId === relatorio.id}
+                    className="inline-flex h-7 items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 text-[11px] font-semibold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {deletingRelatorioId === relatorio.id ? <Loader2 className="size-3 animate-spin" /> : <Trash2 className="size-3" />}
+                    Excluir
+                  </button>
+                </div>
                 <p className="mt-1 text-sm text-gray-700">{relatorio.texto}</p>
               </article>
             ))}

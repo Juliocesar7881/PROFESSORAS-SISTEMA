@@ -3,10 +3,7 @@ import { unstable_cache } from "next/cache";
 
 import { auth } from "@/auth";
 import { DashboardShell } from "@/components/dashboard-shell";
-import { hasReachableDatabaseUrl } from "@/lib/runtime";
 import { UserRepository } from "@/repositories/user.repository";
-
-const hasReachableDatabase = hasReachableDatabaseUrl(process.env.DATABASE_URL);
 
 const hasAnyTurmaCached = unstable_cache(
   async (userId: string) => {
@@ -24,22 +21,22 @@ export default async function DashboardLayout({ children }: { children: React.Re
     redirect("/login");
   }
 
-  if (!hasReachableDatabase) {
-    return (
-      <DashboardShell userName={session.user.name ?? "Professora"} userPlano={session.user.plano}>
-        {children}
-      </DashboardShell>
-    );
-  }
+  const trialExpired = Boolean(session.user.trialExpired);
 
   const hasTurma = await hasAnyTurmaCached(session.user.id);
 
-  if (!hasTurma) {
+  if (!hasTurma && !trialExpired) {
     redirect("/onboarding");
   }
 
   return (
-    <DashboardShell userName={session.user.name ?? "Professora"} userPlano={session.user.plano}>
+    <DashboardShell
+      userName={session.user.name ?? "Professora"}
+      userPlano={session.user.plano}
+      trialExpired={trialExpired}
+      trialDaysLeft={Number(session.user.trialDaysLeft ?? 0)}
+      trialEndsAt={session.user.trialEndsAt ?? null}
+    >
       {children}
     </DashboardShell>
   );

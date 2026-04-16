@@ -24,7 +24,8 @@ export class PlanejamentoController {
   create = async (request: Request, context: RequestContext) => {
     try {
       const payload = createPlanejamentoSchema.parse(await request.json());
-      const planejamento = await this.planejamentoService.create(context.userId!, context.plano, payload);
+      const trialExpired = context.session?.user?.trialExpired !== false;
+      const planejamento = await this.planejamentoService.create(context.userId!, context.plano, payload, trialExpired);
       return ok(planejamento, 201);
     } catch (error) {
       return fail(error);

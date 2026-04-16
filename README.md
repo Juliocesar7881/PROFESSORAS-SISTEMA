@@ -34,7 +34,7 @@ npm run deploy:vercel
 ## Setup local
 
 1. Copie `.env.example` para `.env.local`.
-2. Preencha todas as variaveis.
+2. Preencha todas as variaveis com credenciais reais.
 3. Instale dependencias:
 
 ```bash
@@ -52,6 +52,12 @@ npm run db:generate
 ```bash
 npm run dev
 ```
+
+### Requisitos obrigatorios para autenticacao e dados reais
+
+- O login funciona apenas com Google OAuth real (`AUTH_GOOGLE_ID` e `AUTH_GOOGLE_SECRET`).
+- O banco deve apontar para PostgreSQL remoto (Supabase) em `DATABASE_URL` e `DIRECT_URL`.
+- Nao existe fallback para banco local nem modo demonstracao.
 
 ## Variaveis de ambiente obrigatorias
 

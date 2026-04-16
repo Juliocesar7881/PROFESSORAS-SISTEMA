@@ -1,0 +1,236 @@
+DOCUMENTACAO GERAL - PEDIDOS X IMPLEMENTACOES
+Data de atualizacao: 2026-04-09
+Projeto: PROFESSORAS-SISTEMA-main
+
+============================================================
+1) OBJETIVO DESTE ARQUIVO
+============================================================
+Este documento resume, desde o inicio desta etapa de trabalho:
+- o que foi pedido por voce,
+- o que foi implementado no sistema,
+- o que ja foi validado,
+- e o que pode faltar pedir para fechar 100% do lancamento.
+
+
+============================================================
+2) HISTORICO DE PEDIDOS (DESDE O COMECO) E STATUS
+============================================================
+
+FASE A - CONTINUAR E FECHAR PENDENCIAS TECNICAS
+Pedido:
+- "continue", "faça os proximos passos", "termine tudo"
+
+Entrega:
+- Ajustes de estabilidade geral no app.
+- Correcoes de compatibilidade, seguranca e fluxo de producao.
+- Validacoes de lint, tipos e deploy em producao.
+- Ponto real identificado em producao: backend de rate-limit (Upstash) sem resolucao DNS em algumas requisicoes, operando em modo permissivo (fail-open).
+
+Status: PARCIAL (ha dependencia de configuracao externa para ficar 100%)
+
+
+FASE B - SISTEMA PRONTO PARA LANCAMENTO COM TRIAL E COBRANCA
+Pedido:
+- 14 dias gratis apos login com Google.
+- Acesso total durante o periodo gratis.
+- Pagamento obrigatorio apos fim do trial.
+- Preco mensal R$18,99.
+- Preco anual R$150,00.
+- Link de pagamento funcionando.
+
+Entrega:
+- Regras centrais de trial de 14 dias implementadas.
+- Sessao do usuario com campos de trial (dias restantes, expirado, data fim).
+- Paywall apos expiracao do trial.
+- Checkout Stripe com preco mensal e anual fixos em BRL.
+- Textos comerciais alinhados com os valores pedidos.
+
+Status: CONCLUIDO
+
+
+FASE C - SIMPLIFICAR DASHBOARD E AJUSTAR SIDEBAR
+Pedido:
+- Remover "PlannerFlow para professoras" e icone da home.
+- Remover botoes "Nova observacao" e "Chamada rapida" da home.
+- Sidebar esquerda fixa no desktop, independente da rolagem da direita.
+- Trocar nome PlannerFlow para PlanejeiFacil.
+- Manter sem limitacao durante trial; bloquear so apos 14 dias.
+
+Entrega:
+- Limpeza visual da home do dashboard.
+- Sidebar esquerda fixada no desktop com comportamento mais padrao web.
+- Ocorrencias de "PlannerFlow" removidas.
+- Regras de limite por plano revisadas para nao limitar durante trial ativo.
+
+Status: CONCLUIDO
+
+
+FASE D - BIBLIOTECA SEM PREMIUM + OBSERVACOES FACEIS
+Pedido:
+- Na biblioteca de projetos nao deve existir projeto premium.
+- Na secao Observacoes, registrar texto e imagem de aluno/turma de forma facil.
+- Texto no banco da conta da professora.
+- Imagem fora do banco (para nao pesar), por conta da usuaria logada com Google.
+
+Entrega:
+- Premium removido da biblioteca (dados + UI + seed + repositorio).
+- Tela de Observacoes refeita para fluxo rapido:
+  turma -> aluno -> categoria -> texto -> imagens -> salvar.
+- Upload multiplo de imagens por observacao.
+- Imagens salvas em storage segregado por usuaria:
+  users/{userId}/observacoes/{observacaoId}/...
+- Banco guarda apenas metadados/chaves (nao armazena binario da imagem).
+
+Status: CONCLUIDO
+
+
+============================================================
+3) O QUE O SISTEMA FAZ HOJE (FUNCIONALMENTE)
+============================================================
+
+3.1 Autenticacao e conta
+- Login com Google funcionando.
+- Sessao do usuario carrega dados de plano e trial.
+
+3.2 Trial e pagamento
+- Trial de 14 dias ativo desde criacao da conta.
+- Durante trial: acesso completo.
+- Apos trial: bloqueio com CTA de assinatura.
+- Checkout Stripe para mensal e anual.
+
+3.3 Dashboard
+- Home mais limpa (menos ruido visual).
+- Sidebar esquerda fixa no desktop.
+
+3.4 Biblioteca de projetos
+- Projetos sem premium/bloqueio premium na experiencia atual.
+- Navegacao, filtros e detalhe de projeto ativos.
+
+3.5 Observacoes
+- Fluxo rapido em pagina dedicada de observacoes.
+- Selecao de turma e aluno.
+- Registro de texto com categoria.
+- Upload de varias imagens em uma observacao.
+- Historico do aluno selecionado na mesma tela.
+
+3.6 Relatorios
+- Gera relatorios por observacoes.
+- Exportacao PDF/Word e copia de texto conforme regras atuais.
+
+3.7 Armazenamento de imagens
+- Imagens vao para storage (Supabase bucket), nao para tabela com binario.
+- Tabela guarda referencia da imagem (storageKey) ligada a observacao.
+- URL assinada para visualizacao de imagem.
+
+
+============================================================
+4) PRINCIPAIS ARQUIVOS ALTERADOS NESTA JORNADA
+============================================================
+
+Monetizacao / trial:
+- auth.ts
+- lib/subscription.ts
+- middleware/api.ts
+- services/stripe.service.ts
+- components/dashboard-shell.tsx
+- app/(dashboard)/dashboard/configuracoes/page.tsx
+- components/landing-page.tsx
+
+Dashboard UX e sidebar:
+- app/(dashboard)/dashboard/page.tsx
+- components/dashboard-shell.tsx
+
+Projetos sem premium:
+- app/(dashboard)/dashboard/projetos/page.tsx
+- app/(dashboard)/dashboard/projetos/[id]/page.tsx
+- lib/project-showcase.ts
+- lib/project-catalog.ts
+- repositories/projeto.repository.ts
+- services/projeto.service.ts
+- controllers/projeto.controller.ts
+- prisma/seed.ts
+
+Observacoes (fluxo rapido + imagens por conta):
+- app/(dashboard)/dashboard/observacoes/page.tsx
+- controllers/observacao.controller.ts
+- services/observacao.service.ts
+- repositories/observacao.repository.ts
+- app/api/observacoes/route.ts
+
+
+============================================================
+5) VALIDACOES QUE FORAM FEITAS
+============================================================
+
+Validacoes locais:
+- Lint executado com sucesso.
+- TypeScript (tsc --noEmit) executado com sucesso.
+- Sem erros de editor nos arquivos alterados.
+
+Validacoes em producao:
+- Deploy realizado para URL de producao.
+- Smoke tests com respostas esperadas:
+  - Home publica: 200
+  - Rotas protegidas sem login: redirect/autorizacao esperada
+  - APIs protegidas sem login: 401
+- Consulta de logs sem indicio recente de erro 500 apos deploy.
+- Logs com alerta real encontrado (sem gerar 500):
+  - "[rate-limit] backend unavailable, allowing request"
+  - Causa observada: ENOTFOUND example.upstash.io em /api/auth/login-attempt
+  - Impacto: limite de tentativas de login pode nao ser aplicado ate corrigir configuracao Upstash.
+
+
+============================================================
+5.1) O QUE AINDA NAO FOI COMPROVADO 100% EM USO REAL
+============================================================
+
+- Fluxo autenticado ponta a ponta com conta real da professora em producao,
+  cobrindo varios cenarios de uso continuo (nao apenas smoke sem login).
+- Checkout Stripe com pagamento real completo (criacao, renovacao, cancelamento e webhook em producao).
+- Fluxo de observacoes com upload multiplo testado em ambiente real com volume alto de imagens.
+- Comportamento de protecao/rate-limit sob carga real enquanto Upstash estiver com configuracao pendente.
+
+
+============================================================
+6) O QUE PODE FALTAR PEDIR (CHECKLIST DE PROXIMOS PASSOS)
+============================================================
+
+PRIORIDADE ALTA (negocio/operacao)
+- Corrigir imediatamente Upstash em producao:
+  - configurar UPSTASH_REDIS_REST_URL e UPSTASH_REDIS_REST_TOKEN validos no Vercel,
+  - remover qualquer valor placeholder (ex.: example.upstash.io),
+  - confirmar que /api/auth/login-attempt aplica limite sem fallback.
+- Confirmar conta Stripe totalmente pronta para recebimento:
+  onboarding financeiro, dados bancarios, impostos e webhook em producao.
+- Revisar textos finais comerciais e juridicos (termos, privacidade, cancelamento).
+
+PRIORIDADE MEDIA (produto)
+- Unificar fluxo de observacoes entre pagina dedicada e pagina do aluno,
+  para evitar duplicidade de experiencia e manter padrao unico.
+- Permitir excluir foto de observacao individualmente.
+- Adicionar busca por aluno na tela de observacoes quando houver muitas turmas/alunos.
+
+PRIORIDADE MEDIA/BAIXA (tecnica)
+- Criar rotinas de limpeza de arquivos orfaos no storage (quando houver).
+- Criar testes e2e para fluxos criticos: trial, checkout, observacao com imagem.
+- Checklist de monitoramento (alertas Sentry + logs + webhook failures).
+
+
+============================================================
+7) RESUMO EXECUTIVO
+============================================================
+
+Pelo escopo pedido por voce ate agora, o sistema esta funcional e publicado com:
+- trial de 14 dias,
+- cobranca apos expiracao,
+- dashboard simplificado,
+- biblioteca sem premium,
+- observacoes com texto no banco e imagens fora do banco por conta da professora.
+
+Em termos de "o que falta mandar fazer", o principal agora e refinamento:
+- correcao de configuracao externa de rate-limit (Upstash),
+- operacao Stripe completa,
+- acabamento de UX,
+- e automacao de testes/monitoramento.
+
+Fim do documento.

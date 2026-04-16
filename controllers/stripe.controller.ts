@@ -1,5 +1,6 @@
 import type Stripe from "stripe";
 
+import { ValidationError } from "@/dtos/errors";
 import { createCheckoutSchema } from "@/dtos/stripe.dto";
 import { fail, ok } from "@/lib/http";
 import { stripe } from "@/lib/stripe";
@@ -25,11 +26,18 @@ export class StripeController {
       const signature = request.headers.get("stripe-signature");
 
       if (!signature) {
-        return fail(new Error("Assinatura Stripe ausente"));
+        return fail(new ValidationError("Assinatura Stripe ausente"));
       }
 
       const rawBody = await request.text();
-      const event = stripe.webhooks.constructEvent(rawBody, signature, env.STRIPE_WEBHOOK_SECRET) as Stripe.Event;
+      let event: Stripe.Event;
+
+      try {
+        event = stripe.webhooks.constructEvent(rawBody, signature, env.STRIPE_WEBHOOK_SECRET) as Stripe.Event;
+      } catch {
+        return fail(new ValidationError("Assinatura Stripe inválida"));
+      }
+
       const result = await this.stripeService.processWebhook(event);
 
       return ok(result);

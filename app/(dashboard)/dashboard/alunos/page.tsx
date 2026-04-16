@@ -3,13 +3,20 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Pencil, PlusCircle, Search, Trash2, UsersRound } from "lucide-react";
+import { Loader2, Pencil, PlusCircle, Search, Trash2, UsersRound } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type Turma = { id: string; nome: string };
 type Aluno = { id: string; nome: string; dataNasc: string; turma: { id: string; nome: string } };
+
+function toDateInput(value: string) {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "";
+  return parsed.toISOString().slice(0, 10);
+}
 
 const avatarPalette = [
   "from-rose-400 to-pink-500",
@@ -34,6 +41,10 @@ export default function AlunosPage() {
   const [turmaFiltro, setTurmaFiltro] = useState("TODAS");
   const [busca, setBusca] = useState("");
   const [loading, setLoading] = useState(true);
+  const [editingAluno, setEditingAluno] = useState<Aluno | null>(null);
+  const [editNome, setEditNome] = useState("");
+  const [editDataNasc, setEditDataNasc] = useState("");
+  const [savingEditAluno, setSavingEditAluno] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -71,13 +82,44 @@ export default function AlunosPage() {
     setNome(""); setDataNasc(""); toast.success("Aluno adicionado"); await loadData();
   };
 
-  const updateAluno = async (aluno: Aluno) => {
-    const newName = window.prompt("Novo nome do aluno", aluno.nome)?.trim();
-    if (!newName || newName === aluno.nome) return;
-    const r = await fetch(`/api/alunos/${aluno.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nome: newName }) });
+  const startEditAluno = (aluno: Aluno) => {
+    setEditingAluno(aluno);
+    setEditNome(aluno.nome);
+    setEditDataNasc(toDateInput(aluno.dataNasc));
+  };
+
+  const saveEditAluno = async () => {
+    if (!editingAluno) return;
+
+    const nomeNormalizado = editNome.trim();
+    if (!nomeNormalizado) {
+      toast.error("Informe o nome do aluno");
+      return;
+    }
+
+    if (!editDataNasc) {
+      toast.error("Informe a data de nascimento");
+      return;
+    }
+
+    setSavingEditAluno(true);
+
+    const r = await fetch(`/api/alunos/${editingAluno.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nome: nomeNormalizado, dataNasc: editDataNasc }),
+    });
     const j = await r.json();
-    if (!r.ok) { toast.error(j.error?.message ?? "Falha"); return; }
-    toast.success("Aluno atualizado"); await loadData();
+    setSavingEditAluno(false);
+
+    if (!r.ok) {
+      toast.error(j.error?.message ?? "Falha");
+      return;
+    }
+
+    toast.success("Aluno atualizado");
+    setEditingAluno(null);
+    await loadData();
   };
 
   const removeAluno = async (aluno: Aluno) => {
@@ -194,7 +236,7 @@ export default function AlunosPage() {
                   </div>
                 </Link>
                 <div className="relative z-10 mt-3 flex gap-2">
-                  <Button type="button" variant="ghost" onClick={() => updateAluno(aluno)}
+                  <Button type="button" variant="ghost" onClick={() => startEditAluno(aluno)}
                     className="h-8 flex-1 justify-center rounded-lg bg-gray-50 text-xs font-semibold text-gray-500 hover:bg-gray-100 hover:text-gray-700">
                     <Pencil className="mr-1.5 size-3" /> Editar
                   </Button>
@@ -224,6 +266,73 @@ export default function AlunosPage() {
         </CardContent>
       </Card>
       </div>
+
+      <Dialog
+        open={Boolean(editingAluno)}
+        onOpenChange={(open) => {
+          if (!open && !savingEditAluno) {
+            setEditingAluno(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-md rounded-2xl border border-gray-200 bg-white p-0">
+          <DialogHeader className="space-y-1 border-b border-gray-100 px-5 py-4">
+            <DialogTitle className="font-heading text-xl text-gray-900">Editar aluno</DialogTitle>
+            <DialogDescription className="text-sm text-gray-500">
+              Atualize os dados do aluno de forma rápida.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 px-5 py-4">
+            <div>
+              <label className={lightLabel}>Nome completo</label>
+              <input
+                className={lightInput}
+                value={editNome}
+                onChange={(event) => setEditNome(event.target.value)}
+                placeholder="Ex: Maria Clara"
+              />
+            </div>
+
+            <div>
+              <label className={lightLabel}>Data de nascimento</label>
+              <input
+                className={lightInput}
+                type="date"
+                value={editDataNasc}
+                onChange={(event) => setEditDataNasc(event.target.value)}
+              />
+            </div>
+
+            {editingAluno?.turma?.nome && (
+              <p className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-500">
+                Turma: <span className="font-semibold text-gray-700">{editingAluno.turma.nome}</span>
+              </p>
+            )}
+          </div>
+
+          <DialogFooter className="rounded-b-2xl border-t border-gray-100 bg-gray-50 px-5 py-3 sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-xl border-gray-200"
+              onClick={() => setEditingAluno(null)}
+              disabled={savingEditAluno}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              className="rounded-xl bg-violet-600 text-white hover:bg-violet-700"
+              onClick={saveEditAluno}
+              disabled={savingEditAluno}
+            >
+              {savingEditAluno ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Pencil className="mr-2 size-4" />}
+              Salvar alterações
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

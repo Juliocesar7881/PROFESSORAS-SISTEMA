@@ -56,3 +56,9 @@ export class RateLimitError extends DomainError {
     super(message, 429, "RATE_LIMITED", details);
   }
 }
+
+export class ServiceUnavailableError extends DomainError {
+  constructor(message = "Serviço temporariamente indisponível", details?: unknown) {
+    super(message, 503, "SERVICE_UNAVAILABLE", details);
+  }
+}

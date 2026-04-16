@@ -123,4 +123,14 @@ export class RelatorioRepository extends BaseRepository {
 
     return this.assertFound(relatorio, "Relatório não encontrado");
   }
+
+  async deleteOwnedById(userId: string, relatorioId: string) {
+    const relatorio = await this.findOwnedById(userId, relatorioId);
+
+    return prisma.avaliacao.delete({
+      where: {
+        id: relatorio.id,
+      },
+    });
+  }
 }

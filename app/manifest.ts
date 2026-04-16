@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Planejei",
-    short_name: "Planejei",
+    name: "Planejafácil",
+    short_name: "Planejafácil",
     description: "Seu caderno de observacoes digital. Nunca mais perca uma anotacao.",
     start_url: "/",
     scope: "/",
