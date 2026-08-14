@@ -59,6 +59,7 @@ export default function TabsLayout() {
         options={{
           title: "Novo",
           tabBarItemStyle: styles.newItem,
+          tabBarLabel: () => null,
           tabBarIcon: () => (
             <View style={styles.newButton}>
               <Plus size={28} color="white" strokeWidth={2.5} />
