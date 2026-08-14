@@ -318,11 +318,11 @@ export default function ProjetosPage() {
         summary={
           <span>
             {projetosFiltrados.length} de {totalProjetos} projeto{totalProjetos !== 1 ? "s" : ""}
-            <span className="mx-2 text-[#e5c4d3]">/</span>
+            <span className="mx-2 text-[#dcd3f7]">/</span>
             {etapa === "TODAS" ? "Todas as etapas" : ETAPA_LABELS[etapa]}
             {usingCatalogFallback ? (
               <>
-                <span className="mx-2 text-[#e5c4d3]">/</span>
+                <span className="mx-2 text-[#dcd3f7]">/</span>
                 Catalogo local
               </>
             ) : null}
@@ -332,17 +332,17 @@ export default function ProjetosPage() {
       >
         <ProjectImportDialog compact onCreated={() => { setCollection("importados"); void loadData(); }} />
         <div className="relative lg:w-[340px]">
-          <Search className="pointer-events-none absolute left-3.5 top-3 size-4 text-[#a99ba5]" />
+          <Search className="pointer-events-none absolute left-3.5 top-3 size-4 text-[#8c899b]" />
           <Input
             value={busca}
             onChange={(event) => setBusca(event.target.value)}
-            className="h-11 w-full rounded-xl border-2 border-[#e5c4d3] bg-white pl-10 text-sm font-bold text-[#312834] placeholder:text-[#a99ba5] focus:border-[#d8a4bb] focus:ring-2 focus:ring-[#f8dbe7]"
+            className="h-11 w-full rounded-xl border-2 border-[#dcd3f7] bg-white pl-10 text-sm font-bold text-[#17213f] placeholder:text-[#8c899b] focus:border-[#a995ec] focus:ring-2 focus:ring-[#ebe6fb]"
             placeholder="Buscar titulo, atividade ou tema..."
           />
         </div>
 
         <select
-          className="h-11 w-full appearance-none rounded-xl border-2 border-[#e5c4d3] bg-white px-3.5 text-sm font-bold text-[#312834] focus:border-[#d8a4bb] focus:outline-none focus:ring-2 focus:ring-[#f8dbe7] lg:w-[220px]"
+          className="h-11 w-full appearance-none rounded-xl border-2 border-[#dcd3f7] bg-white px-3.5 text-sm font-bold text-[#17213f] focus:border-[#a995ec] focus:outline-none focus:ring-2 focus:ring-[#ebe6fb] lg:w-[220px]"
           value={etapa}
           onChange={(event) => setEtapa(event.target.value as "TODAS" | EtapaTurma)}
         >
@@ -354,7 +354,7 @@ export default function ProjetosPage() {
         </select>
 
         <select
-          className="h-11 w-full appearance-none rounded-xl border-2 border-[#e5c4d3] bg-white px-3.5 text-sm font-bold text-[#312834] focus:border-[#d8a4bb] focus:outline-none focus:ring-2 focus:ring-[#f8dbe7] lg:w-[180px]"
+          className="h-11 w-full appearance-none rounded-xl border-2 border-[#dcd3f7] bg-white px-3.5 text-sm font-bold text-[#17213f] focus:border-[#a995ec] focus:outline-none focus:ring-2 focus:ring-[#ebe6fb] lg:w-[180px]"
           value={categoria}
           onChange={(event) => setCategoria(event.target.value)}
         >
@@ -365,32 +365,32 @@ export default function ProjetosPage() {
           ))}
         </select>
 
-        <div className="flex h-11 items-center justify-center gap-2 rounded-xl border-2 border-[#e5c4d3] bg-white px-4 text-sm font-black text-[#a65f7f]">
+        <div className="flex h-11 items-center justify-center gap-2 rounded-xl border-2 border-[#dcd3f7] bg-white px-4 text-sm font-black text-[#6757c8]">
           <Layers3 className="size-4" />
           {projetosFiltrados.length}
         </div>
       </DashboardFilterBar>
 
-      <div className="flex w-full gap-1 overflow-x-auto rounded-lg border border-[#eadde5] bg-white p-1 scrollbar-hide sm:w-fit">
-        <button type="button" onClick={() => setCollection("todos")} className={cn("inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-md px-4 text-sm font-black transition", collection === "todos" ? "bg-[#7d405d] text-white" : "text-[#74616d] hover:bg-[#f8eef3]")}>
+      <div className="flex w-full gap-1 overflow-x-auto rounded-lg border border-[#e8e3f0] bg-white p-1 scrollbar-hide sm:w-fit">
+        <button type="button" onClick={() => setCollection("todos")} className={cn("inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-md px-4 text-sm font-black transition", collection === "todos" ? "bg-[#6757c8] text-white" : "text-[#6d6c82] hover:bg-[#f4f1fb]")}>
           <Layers3 className="size-4" /> Todos
         </button>
-        <button type="button" onClick={() => setCollection("salvos")} className={cn("inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-md px-4 text-sm font-black transition", collection === "salvos" ? "bg-[#7d405d] text-white" : "text-[#74616d] hover:bg-[#f8eef3]")}>
+        <button type="button" onClick={() => setCollection("salvos")} className={cn("inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-md px-4 text-sm font-black transition", collection === "salvos" ? "bg-[#6757c8] text-white" : "text-[#6d6c82] hover:bg-[#f4f1fb]")}>
           <Heart className="size-4" /> Projetos salvos <span className="opacity-70">{savedCount}</span>
         </button>
-        <button type="button" onClick={() => setCollection("importados")} className={cn("inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-md px-4 text-sm font-black transition", collection === "importados" ? "bg-[#7d405d] text-white" : "text-[#74616d] hover:bg-[#f8eef3]")}>
+        <button type="button" onClick={() => setCollection("importados")} className={cn("inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-md px-4 text-sm font-black transition", collection === "importados" ? "bg-[#6757c8] text-white" : "text-[#6d6c82] hover:bg-[#f4f1fb]")}>
           <FileUp className="size-4" /> Projetos importados <span className="opacity-70">{importedCount}</span>
         </button>
       </div>
 
       {loading && (
-        <div className="rounded-2xl border-2 border-[#f0e2e8] bg-white p-5 text-sm font-extrabold text-[#857582]">
+        <div className="rounded-2xl border-2 border-[#e8e3f0] bg-white p-5 text-sm font-extrabold text-[#6d6c82]">
           Carregando projetos...
         </div>
       )}
 
       {!loading && !projetosOrdenados.length && (
-        <div className="rounded-2xl border-2 border-dashed border-[#e5c4d3] bg-white p-5 text-sm font-extrabold text-[#857582]">
+        <div className="rounded-2xl border-2 border-dashed border-[#dcd3f7] bg-white p-5 text-sm font-extrabold text-[#6d6c82]">
           Nenhum projeto encontrado com os filtros atuais.
         </div>
       )}
@@ -401,9 +401,9 @@ export default function ProjetosPage() {
             return (
               <article
                 key={project.id}
-                className="group relative overflow-hidden rounded-[1rem] border border-[#f0e2e8] bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:border-[#e5c4d3] hover:shadow-md"
+                className="group relative overflow-hidden rounded-[1rem] border border-[#e8e3f0] bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:border-[#dcd3f7] hover:shadow-md"
               >
-                <div className="relative aspect-[3/1.65] overflow-hidden bg-[#f4edf1]">
+                <div className="relative aspect-[3/1.65] overflow-hidden bg-[#f4f1fb]">
                   <Image
                     src={getProjectCoverPath(project.coverKey)}
                     alt={`Prévia do projeto ${project.titulo}`}
@@ -412,7 +412,7 @@ export default function ProjetosPage() {
                     className="object-cover transition duration-500 group-hover:scale-[1.03]"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#2f2330]/35 via-transparent to-white/5" />
-                  <span className="absolute left-3 top-3 rounded-full border border-white/75 bg-white/90 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#312834] shadow-sm backdrop-blur-sm">
+                  <span className="absolute left-3 top-3 rounded-full border border-white/75 bg-white/90 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#17213f] shadow-sm backdrop-blur-sm">
                     {project.origem === "importado" ? "Meu projeto" : project.categoria}
                   </span>
                   {project.origem !== "importado" ? (
@@ -422,7 +422,7 @@ export default function ProjetosPage() {
                       disabled={savingProjectId === project.id}
                       className={cn(
                         "absolute right-3 top-3 inline-flex size-9 items-center justify-center rounded-xl border border-white/75 bg-white/90 shadow-sm backdrop-blur-sm transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60",
-                        project.salvo ? "text-[#a65f7f]" : "text-[#312834]",
+                        project.salvo ? "text-[#6757c8]" : "text-[#17213f]",
                       )}
                       aria-label={project.salvo ? "Remover dos favoritos" : "Salvar projeto"}
                     >
@@ -433,30 +433,30 @@ export default function ProjetosPage() {
 
                 <div className="space-y-2.5 p-3.5">
                   <div>
-                    <h3 className="line-clamp-2 font-heading text-lg leading-tight text-[#312834]">{project.titulo}</h3>
-                    <p className="mt-1 line-clamp-2 text-xs font-semibold text-[#857582]">{project.descricao}</p>
+                    <h3 className="line-clamp-2 font-heading text-lg leading-tight text-[#17213f]">{project.titulo}</h3>
+                    <p className="mt-1 line-clamp-2 text-xs font-semibold text-[#6d6c82]">{project.descricao}</p>
                   </div>
 
                   <div className="flex flex-wrap gap-1.5">
-                    <span className="rounded-full border border-[#e5c4d3] bg-[#fff3f7] px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#a65f7f]">
+                    <span className="rounded-full border border-[#dcd3f7] bg-[#f3f0ff] px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#6757c8]">
                       {project.faixaEtaria}
                     </span>
-                    <span className="rounded-full border border-[#e5c4d3] bg-[#fff3f7] px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#a65f7f]">
+                    <span className="rounded-full border border-[#dcd3f7] bg-[#f3f0ff] px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#6757c8]">
                       {project.duracao}
                     </span>
-                    <span className="rounded-full border border-[#e5c4d3] bg-[#fff3f7] px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#a65f7f]">
+                    <span className="rounded-full border border-[#dcd3f7] bg-[#f3f0ff] px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#6757c8]">
                       {project.atividadesCount} atividades
                     </span>
                   </div>
 
-                  <p className="line-clamp-1 text-xs font-bold uppercase tracking-[0.1em] text-[#857582]">
+                  <p className="line-clamp-1 text-xs font-bold uppercase tracking-[0.1em] text-[#6d6c82]">
                     Etapas: {project.turmasIndicadas.join(" / ")}
                   </p>
 
                   <Link
                     href={`/dashboard/projetos/${project.id}`}
                     className={buttonVariants({
-                      className: "h-10 w-full rounded-xl bg-[#a65f7f] text-sm font-black text-white transition hover:bg-[#8b4e6a]",
+                      className: "h-10 w-full rounded-xl bg-[#6757c8] text-sm font-black text-white transition hover:bg-[#5443ad]",
                     })}
                   >
                     <PlayCircle className="mr-2 size-4" />

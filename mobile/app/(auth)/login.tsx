@@ -15,7 +15,7 @@ export default function LoginScreen() {
   return (
     <SafeAreaView edges={["top", "right", "bottom", "left"]} style={styles.screen}>
       <Animated.View entering={FadeIn.duration(260).reduceMotion(ReduceMotion.System)} style={styles.brand}>
-        <Image source={require("../../assets/icon.png")} style={styles.brandImage} contentFit="cover" transition={180} />
+        <Image source={require("../../assets/brand-mark.png")} style={styles.brandImage} contentFit="cover" transition={180} />
       </Animated.View>
       <Animated.View entering={FadeInDown.delay(70).duration(260).reduceMotion(ReduceMotion.System)} style={styles.content}>
         <Text accessibilityRole="header" style={styles.title}>Pequenos Passos</Text>

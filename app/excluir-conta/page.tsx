@@ -11,8 +11,8 @@ export const metadata: Metadata = {
 
 export default function DeleteAccountPage() {
   return (
-    <main className="mesh-bg min-h-dvh px-4 py-10 text-[#312834] md:px-6">
-      <article className="mx-auto max-w-2xl rounded-[0.95rem] border border-[#eadde5] bg-white p-6 shadow-[0_30px_90px_-52px_rgba(91,58,85,0.5)] md:p-8">
+    <main className="mesh-bg min-h-dvh px-4 py-10 text-[#17213f] md:px-6">
+      <article className="mx-auto max-w-2xl rounded-[0.95rem] border border-[#e8e3f0] bg-white p-6 shadow-[0_30px_90px_-52px_rgba(91,58,85,0.5)] md:p-8">
         <BrandMark href="/" />
         <span className="mt-8 inline-flex items-center gap-2 rounded-full border border-[#f4c7cf] bg-[#fff4f6] px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-[#a8324d]">
           <Trash2 className="size-3.5" />
@@ -35,7 +35,7 @@ export default function DeleteAccountPage() {
         >
           Entrar para excluir minha conta
         </Link>
-        <p className="mt-5 flex items-start gap-2 text-xs font-semibold leading-relaxed text-[#857582]">
+        <p className="mt-5 flex items-start gap-2 text-xs font-semibold leading-relaxed text-[#6d6c82]">
           <ShieldCheck className="mt-0.5 size-4 shrink-0 text-[#16804a]" />
           Por seguranca, apenas a pessoa autenticada com a conta Google pode confirmar a exclusao.
         </p>

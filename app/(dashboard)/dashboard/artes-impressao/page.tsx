@@ -83,7 +83,7 @@ function PresetMiniature({ option }: { option: PresetOption }) {
   if (option.narrative) {
     return (
       <span
-        className="grid h-11 w-9 shrink-0 gap-0.5 rounded border border-[#dfccd6] bg-white p-1"
+        className="grid h-11 w-9 shrink-0 gap-0.5 rounded border border-[#dcd3f7] bg-white p-1"
         style={{ gridTemplateRows: `repeat(${option.rows}, minmax(0, 1fr))` }}
         aria-hidden="true"
       >
@@ -105,7 +105,7 @@ function PresetMiniature({ option }: { option: PresetOption }) {
 
   return (
     <span
-      className="grid h-11 w-9 shrink-0 gap-0.5 rounded border border-[#dfccd6] bg-white p-1"
+      className="grid h-11 w-9 shrink-0 gap-0.5 rounded border border-[#dcd3f7] bg-white p-1"
       style={{
         gridTemplateColumns: `repeat(${option.columns}, minmax(0, 1fr))`,
         gridTemplateRows: `repeat(${option.rows}, minmax(0, 1fr))`,
@@ -291,7 +291,7 @@ export default function ArtesImpressaoPage() {
         summary={`${selectedPhotos.length} foto${selectedPhotos.length !== 1 ? "s" : ""} no material`}
         controlsClassName="lg:flex-wrap"
       >
-        <label className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#d8a4bb] bg-white px-4 text-sm font-black text-[#a65f7f] transition hover:bg-[#fff3f7]">
+        <label className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#a995ec] bg-white px-4 text-sm font-black text-[#6757c8] transition hover:bg-[#f3f0ff]">
           <ImagePlus className="size-4" />
           Enviar imagens
           <input
@@ -317,14 +317,14 @@ export default function ArtesImpressaoPage() {
 
       <div className="grid gap-4 xl:grid-cols-[310px_minmax(0,1fr)] xl:items-start">
         <aside className="order-2 space-y-3 xl:order-1 xl:sticky xl:top-24">
-          <section className="overflow-hidden rounded-lg border border-[#eadde5] bg-white">
-            <header className="border-b border-[#eee3e9] px-4 py-3">
-              <h2 className="font-heading text-lg text-[#312834]">Fotos</h2>
-              <p className="mt-0.5 text-xs font-bold text-[#8d7d87]">{selectedPhotos.length} de {uploadedPhotos.length} selecionadas</p>
+          <section className="overflow-hidden rounded-lg border border-[#e8e3f0] bg-white">
+            <header className="border-b border-[#e8e3f0] px-4 py-3">
+              <h2 className="font-heading text-lg text-[#17213f]">Fotos</h2>
+              <p className="mt-0.5 text-xs font-bold text-[#6d6c82]">{selectedPhotos.length} de {uploadedPhotos.length} selecionadas</p>
             </header>
             <div className="p-3">
-              <label className="flex min-h-28 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-[#d8a4bb] bg-[#fffafd] p-4 text-center transition hover:bg-[#fff3f7]">
-                <span className="inline-flex size-10 items-center justify-center rounded-lg bg-[#f8dbe7] text-[#a65f7f]"><ImagePlus className="size-5" /></span>
+              <label className="flex min-h-28 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-[#a995ec] bg-[#fbfaf8] p-4 text-center transition hover:bg-[#f3f0ff]">
+                <span className="inline-flex size-10 items-center justify-center rounded-lg bg-[#ebe6fb] text-[#6757c8]"><ImagePlus className="size-5" /></span>
                 <span className="text-sm font-black text-[#493b44]">Adicionar imagens</span>
                 <input
                   type="file"
@@ -348,21 +348,21 @@ export default function ArtesImpressaoPage() {
                         type="button"
                         onClick={() => togglePhoto(photo.id)}
                         className={cn(
-                          "group relative overflow-hidden rounded-lg border-2 bg-[#fffafd] text-left transition",
-                          selected ? "border-[#a65f7f] ring-2 ring-[#f8dbe7]" : "border-[#eee3e9] hover:border-[#d8a4bb]",
+                          "group relative overflow-hidden rounded-lg border-2 bg-[#fbfaf8] text-left transition",
+                          selected ? "border-[#6757c8] ring-2 ring-[#ebe6fb]" : "border-[#e8e3f0] hover:border-[#a995ec]",
                         )}
                       >
-                        <span className="relative block aspect-square overflow-hidden bg-[#f4edf1]">
+                        <span className="relative block aspect-square overflow-hidden bg-[#f4f1fb]">
                           <Image src={photo.previewUrl} alt={photo.file.name} fill unoptimized sizes="140px" className="object-cover" />
-                          {selected ? <span className="absolute right-1.5 top-1.5 inline-flex size-6 items-center justify-center rounded-full bg-[#a65f7f] text-white"><Check className="size-3.5" /></span> : null}
+                          {selected ? <span className="absolute right-1.5 top-1.5 inline-flex size-6 items-center justify-center rounded-full bg-[#6757c8] text-white"><Check className="size-3.5" /></span> : null}
                         </span>
-                        <span className="block truncate px-2 py-1.5 text-[11px] font-bold text-[#6b5a64]">{photo.file.name}</span>
+                        <span className="block truncate px-2 py-1.5 text-[11px] font-bold text-[#6d6c82]">{photo.file.name}</span>
                       </button>
                     );
                   })}
                 </div>
               ) : (
-                <div className="mt-3 rounded-lg border border-dashed border-[#e5d5de] px-3 py-8 text-center text-xs font-bold text-[#978791]">Nenhuma foto</div>
+                <div className="mt-3 rounded-lg border border-dashed border-[#dcd3f7] px-3 py-8 text-center text-xs font-bold text-[#8c899b]">Nenhuma foto</div>
               )}
 
               {uploadedPhotos.length ? (
@@ -374,15 +374,15 @@ export default function ArtesImpressaoPage() {
           </section>
         </aside>
 
-        <section className="order-1 min-w-0 overflow-hidden rounded-lg border border-[#eadde5] bg-[#faf7f9] xl:order-2">
-          <header className="border-b border-[#eadde5] bg-white p-4">
+        <section className="order-1 min-w-0 overflow-hidden rounded-lg border border-[#e8e3f0] bg-[#faf7f9] xl:order-2">
+          <header className="border-b border-[#e8e3f0] bg-white p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h2 className="flex items-center gap-2 font-heading text-xl text-[#312834]"><LayoutTemplate className="size-5 text-[#a65f7f]" /> Pré-visualização</h2>
-                <p className="mt-0.5 text-xs font-bold text-[#8d7d87]">Página {safePreviewPage + 1} de {pageCount}</p>
+                <h2 className="flex items-center gap-2 font-heading text-xl text-[#17213f]"><LayoutTemplate className="size-5 text-[#6757c8]" /> Pré-visualização</h2>
+                <p className="mt-0.5 text-xs font-bold text-[#6d6c82]">Página {safePreviewPage + 1} de {pageCount}</p>
               </div>
-              <label className="inline-flex items-center gap-2 rounded-lg border border-[#eadde5] bg-[#fffafd] px-3 py-2 text-xs font-black text-[#66545f]">
-                <input type="checkbox" checked={includeDate} onChange={(event) => setIncludeDate(event.target.checked)} className="size-4 accent-[#a65f7f]" />
+              <label className="inline-flex items-center gap-2 rounded-lg border border-[#e8e3f0] bg-[#fbfaf8] px-3 py-2 text-xs font-black text-[#6d6c82]">
+                <input type="checkbox" checked={includeDate} onChange={(event) => setIncludeDate(event.target.checked)} className="size-4 accent-[#6757c8]" />
                 Datas
               </label>
             </div>
@@ -394,14 +394,14 @@ export default function ArtesImpressaoPage() {
                   type="button"
                   onClick={() => selectPreset(option.value)}
                   className={cn(
-                    "flex min-h-16 items-center gap-2 rounded-lg border-2 bg-white p-2 text-left transition hover:border-[#d8a4bb]",
-                    preset === option.value ? "border-[#a65f7f] bg-[#fff8fb] shadow-sm" : "border-[#eee3e9]",
+                    "flex min-h-16 items-center gap-2 rounded-lg border-2 bg-white p-2 text-left transition hover:border-[#a995ec]",
+                    preset === option.value ? "border-[#6757c8] bg-[#f8f6ff] shadow-sm" : "border-[#e8e3f0]",
                   )}
                 >
                   <PresetMiniature option={option} />
                   <span className="min-w-0">
                     <span className="block text-xs font-black text-[#493b44]">{option.label}</span>
-                    <span className="mt-0.5 block text-[10px] font-bold text-[#978791]">{option.description}</span>
+                    <span className="mt-0.5 block text-[10px] font-bold text-[#8c899b]">{option.description}</span>
                   </span>
                 </button>
               ))}
@@ -410,34 +410,34 @@ export default function ArtesImpressaoPage() {
 
           <div className="p-3 sm:p-5 lg:p-8">
             <div className="mx-auto flex max-w-[820px] items-center justify-between gap-3 pb-3">
-              <button type="button" onClick={() => setPreviewPage(Math.max(0, safePreviewPage - 1))} disabled={safePreviewPage === 0} className="inline-flex size-10 items-center justify-center rounded-lg border border-[#dfd2da] bg-white text-[#7d405d] disabled:opacity-30" title="Página anterior" aria-label="Página anterior"><ChevronLeft className="size-5" /></button>
-              <span className="text-xs font-black uppercase tracking-[0.12em] text-[#8d7d87]">Folha A4</span>
-              <button type="button" onClick={() => setPreviewPage(Math.min(pageCount - 1, safePreviewPage + 1))} disabled={safePreviewPage >= pageCount - 1} className="inline-flex size-10 items-center justify-center rounded-lg border border-[#dfd2da] bg-white text-[#7d405d] disabled:opacity-30" title="Próxima página" aria-label="Próxima página"><ChevronRight className="size-5" /></button>
+              <button type="button" onClick={() => setPreviewPage(Math.max(0, safePreviewPage - 1))} disabled={safePreviewPage === 0} className="inline-flex size-10 items-center justify-center rounded-lg border border-[#dcd3f7] bg-white text-[#6757c8] disabled:opacity-30" title="Página anterior" aria-label="Página anterior"><ChevronLeft className="size-5" /></button>
+              <span className="text-xs font-black uppercase tracking-[0.12em] text-[#6d6c82]">Folha A4</span>
+              <button type="button" onClick={() => setPreviewPage(Math.min(pageCount - 1, safePreviewPage + 1))} disabled={safePreviewPage >= pageCount - 1} className="inline-flex size-10 items-center justify-center rounded-lg border border-[#dcd3f7] bg-white text-[#6757c8] disabled:opacity-30" title="Próxima página" aria-label="Próxima página"><ChevronRight className="size-5" /></button>
             </div>
 
-            <div className="mx-auto aspect-[210/297] w-full max-w-[820px] overflow-hidden bg-white p-[4.5%] shadow-[0_24px_70px_-32px_rgba(68,43,58,0.38)] ring-1 ring-[#e8dde3]">
+            <div className="mx-auto aspect-[210/297] w-full max-w-[820px] overflow-hidden bg-white p-[4.5%] shadow-[0_24px_70px_-32px_rgba(68,43,58,0.38)] ring-1 ring-[#e8e3f0]">
               <div className="flex h-full min-h-0 flex-col">
-                <header className="shrink-0 border-b border-[#dfd2da] pb-3 text-center">
+                <header className="shrink-0 border-b border-[#dcd3f7] pb-3 text-center">
                   <input
                     value={titulo}
                     onChange={(event) => setTitulo(event.target.value)}
                     maxLength={90}
                     aria-label="Título do material"
                     placeholder="Título do material"
-                    className="w-full border-0 bg-transparent text-center font-heading text-lg text-[#312834] outline-none placeholder:text-[#b9abb4] focus:bg-[#fff8fb] sm:text-2xl"
+                    className="w-full border-0 bg-transparent text-center font-heading text-lg text-[#17213f] outline-none placeholder:text-[#b9abb4] focus:bg-[#f8f6ff] sm:text-2xl"
                   />
                   <div className="mt-2 grid grid-cols-3 gap-2">
-                    <input value={nomeEscola} onChange={(event) => setNomeEscola(event.target.value)} maxLength={120} aria-label="Instituição" placeholder="Instituição" className="min-w-0 border-0 border-b border-dashed border-[#e3d6dd] bg-transparent px-1 py-1 text-center text-[8px] font-bold text-[#6b5a64] outline-none placeholder:text-[#b2a2ac] focus:border-[#a65f7f] sm:text-xs" />
-                    <input value={nomeProfessora} onChange={(event) => setNomeProfessora(event.target.value)} maxLength={120} aria-label="Professora" placeholder="Professora" className="min-w-0 border-0 border-b border-dashed border-[#e3d6dd] bg-transparent px-1 py-1 text-center text-[8px] font-bold text-[#6b5a64] outline-none placeholder:text-[#b2a2ac] focus:border-[#a65f7f] sm:text-xs" />
-                    <input value={dataLabel} onChange={(event) => setDataLabel(event.target.value)} maxLength={80} aria-label="Data ou período" placeholder="Data ou período" className="min-w-0 border-0 border-b border-dashed border-[#e3d6dd] bg-transparent px-1 py-1 text-center text-[8px] font-bold text-[#6b5a64] outline-none placeholder:text-[#b2a2ac] focus:border-[#a65f7f] sm:text-xs" />
+                    <input value={nomeEscola} onChange={(event) => setNomeEscola(event.target.value)} maxLength={120} aria-label="Instituição" placeholder="Instituição" className="min-w-0 border-0 border-b border-dashed border-[#dcd3f7] bg-transparent px-1 py-1 text-center text-[8px] font-bold text-[#6d6c82] outline-none placeholder:text-[#8c899b] focus:border-[#6757c8] sm:text-xs" />
+                    <input value={nomeProfessora} onChange={(event) => setNomeProfessora(event.target.value)} maxLength={120} aria-label="Professora" placeholder="Professora" className="min-w-0 border-0 border-b border-dashed border-[#dcd3f7] bg-transparent px-1 py-1 text-center text-[8px] font-bold text-[#6d6c82] outline-none placeholder:text-[#8c899b] focus:border-[#6757c8] sm:text-xs" />
+                    <input value={dataLabel} onChange={(event) => setDataLabel(event.target.value)} maxLength={80} aria-label="Data ou período" placeholder="Data ou período" className="min-w-0 border-0 border-b border-dashed border-[#dcd3f7] bg-transparent px-1 py-1 text-center text-[8px] font-bold text-[#6d6c82] outline-none placeholder:text-[#8c899b] focus:border-[#6757c8] sm:text-xs" />
                   </div>
-                  <textarea value={legenda} onChange={(event) => setLegenda(event.target.value)} maxLength={280} aria-label="Legenda geral" placeholder="Legenda geral opcional" rows={1} className="mt-2 w-full resize-none border-0 bg-transparent text-center text-[8px] font-semibold leading-4 text-[#796a73] outline-none placeholder:text-[#b9abb4] focus:bg-[#fff8fb] sm:text-xs" />
+                  <textarea value={legenda} onChange={(event) => setLegenda(event.target.value)} maxLength={280} aria-label="Legenda geral" placeholder="Legenda geral opcional" rows={1} className="mt-2 w-full resize-none border-0 bg-transparent text-center text-[8px] font-semibold leading-4 text-[#796a73] outline-none placeholder:text-[#b9abb4] focus:bg-[#f8f6ff] sm:text-xs" />
                 </header>
 
                 <div className="mt-[3%] min-h-0 flex-1">
                   {!pagePhotos.length ? (
-                    <label className="flex h-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-[#dfccd6] bg-[#fffafd] p-5 text-center">
-                      <ImagePlus className="size-8 text-[#a65f7f]" />
+                    <label className="flex h-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-[#dcd3f7] bg-[#fbfaf8] p-5 text-center">
+                      <ImagePlus className="size-8 text-[#6757c8]" />
                       <span className="mt-2 text-sm font-black text-[#675660]">Adicionar fotos</span>
                       <input type="file" accept="image/jpeg,image/png,image/webp" multiple className="sr-only" onChange={(event) => { handleUploadChange(event.target.files); event.currentTarget.value = ""; }} />
                     </label>
@@ -448,11 +448,11 @@ export default function ArtesImpressaoPage() {
                         const globalIndex = safePreviewPage * pageSize + index;
                         return (
                           <div key={photo.id} className="grid min-h-0 grid-cols-[42%_1fr] gap-[3%]">
-                            <div className={cn("group relative min-h-0 overflow-hidden rounded-lg border border-[#eadde5] bg-[#f6eef2]", !photoFirst && "order-2")}>
+                            <div className={cn("group relative min-h-0 overflow-hidden rounded-lg border border-[#e8e3f0] bg-[#f6eef2]", !photoFirst && "order-2")}>
                               <Image src={photo.previewUrl} alt={photo.file.name} fill unoptimized sizes="380px" className="object-cover" />
                               <div className="absolute right-1.5 top-1.5 flex gap-1 opacity-100 sm:opacity-0 sm:transition sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
-                                <button type="button" onClick={() => moveSelectedItem(globalIndex, -1)} disabled={globalIndex === 0} className="inline-flex size-7 items-center justify-center rounded-md bg-white/95 text-[#7d405d] shadow disabled:opacity-35" title="Mover para cima" aria-label="Mover foto para cima"><ArrowUp className="size-3.5" /></button>
-                                <button type="button" onClick={() => moveSelectedItem(globalIndex, 1)} disabled={globalIndex === selectedPhotos.length - 1} className="inline-flex size-7 items-center justify-center rounded-md bg-white/95 text-[#7d405d] shadow disabled:opacity-35" title="Mover para baixo" aria-label="Mover foto para baixo"><ArrowDown className="size-3.5" /></button>
+                                <button type="button" onClick={() => moveSelectedItem(globalIndex, -1)} disabled={globalIndex === 0} className="inline-flex size-7 items-center justify-center rounded-md bg-white/95 text-[#6757c8] shadow disabled:opacity-35" title="Mover para cima" aria-label="Mover foto para cima"><ArrowUp className="size-3.5" /></button>
+                                <button type="button" onClick={() => moveSelectedItem(globalIndex, 1)} disabled={globalIndex === selectedPhotos.length - 1} className="inline-flex size-7 items-center justify-center rounded-md bg-white/95 text-[#6757c8] shadow disabled:opacity-35" title="Mover para baixo" aria-label="Mover foto para baixo"><ArrowDown className="size-3.5" /></button>
                                 <button type="button" onClick={() => removePhoto(photo.id)} className="inline-flex size-7 items-center justify-center rounded-md bg-white/95 text-rose-600 shadow" title="Remover" aria-label="Remover foto"><Trash2 className="size-3.5" /></button>
                               </div>
                               {includeDate ? (
@@ -472,7 +472,7 @@ export default function ArtesImpressaoPage() {
                               aria-label={`Relato da foto ${index + 1}`}
                               placeholder="Escreva o relato desta vivência..."
                               className={cn(
-                                "h-full min-h-0 w-full resize-none rounded-md border border-dashed border-transparent bg-transparent p-2 font-semibold leading-[1.5] text-[#4f424b] outline-none transition hover:border-[#e1cbd6] focus:border-[#c783a1] focus:bg-[#fffafd]",
+                                "h-full min-h-0 w-full resize-none rounded-md border border-dashed border-transparent bg-transparent p-2 font-semibold leading-[1.5] text-[#17213f] outline-none transition hover:border-[#dcd3f7] focus:border-[#8b78dc] focus:bg-[#fbfaf8]",
                                 activePreset.rows === 2 ? "text-[10px] sm:text-sm" : activePreset.rows === 3 ? "text-[8px] sm:text-xs" : "text-[7px] sm:text-[10px]",
                                 !photoFirst && "order-1 text-right",
                               )}
@@ -486,11 +486,11 @@ export default function ArtesImpressaoPage() {
                       {pagePhotos.map((photo, index) => {
                         const globalIndex = safePreviewPage * pageSize + index;
                         return (
-                          <div key={photo.id} className="group relative min-h-0 overflow-hidden rounded-md border border-[#eadde5] bg-[#f6eef2]">
+                          <div key={photo.id} className="group relative min-h-0 overflow-hidden rounded-md border border-[#e8e3f0] bg-[#f6eef2]">
                             <Image src={photo.previewUrl} alt={photo.file.name} fill unoptimized sizes="420px" className="object-contain" />
                             <div className="absolute right-1.5 top-1.5 flex gap-1 opacity-100 sm:opacity-0 sm:transition sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
-                              <button type="button" onClick={() => moveSelectedItem(globalIndex, -1)} disabled={globalIndex === 0} className="inline-flex size-7 items-center justify-center rounded-md bg-white/95 text-[#7d405d] shadow disabled:opacity-35" title="Mover para cima" aria-label="Mover foto para cima"><ArrowUp className="size-3.5" /></button>
-                              <button type="button" onClick={() => moveSelectedItem(globalIndex, 1)} disabled={globalIndex === selectedPhotos.length - 1} className="inline-flex size-7 items-center justify-center rounded-md bg-white/95 text-[#7d405d] shadow disabled:opacity-35" title="Mover para baixo" aria-label="Mover foto para baixo"><ArrowDown className="size-3.5" /></button>
+                              <button type="button" onClick={() => moveSelectedItem(globalIndex, -1)} disabled={globalIndex === 0} className="inline-flex size-7 items-center justify-center rounded-md bg-white/95 text-[#6757c8] shadow disabled:opacity-35" title="Mover para cima" aria-label="Mover foto para cima"><ArrowUp className="size-3.5" /></button>
+                              <button type="button" onClick={() => moveSelectedItem(globalIndex, 1)} disabled={globalIndex === selectedPhotos.length - 1} className="inline-flex size-7 items-center justify-center rounded-md bg-white/95 text-[#6757c8] shadow disabled:opacity-35" title="Mover para baixo" aria-label="Mover foto para baixo"><ArrowDown className="size-3.5" /></button>
                               <button type="button" onClick={() => removePhoto(photo.id)} className="inline-flex size-7 items-center justify-center rounded-md bg-white/95 text-rose-600 shadow" title="Remover" aria-label="Remover foto"><Trash2 className="size-3.5" /></button>
                             </div>
                             {includeDate ? <span className="absolute bottom-1.5 left-1.5 rounded bg-white/95 px-1.5 py-1 text-[7px] font-bold text-[#5c4d56] shadow sm:text-[9px]">{formatDate(photo.createdAt)}</span> : null}

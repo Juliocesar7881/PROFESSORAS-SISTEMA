@@ -8,18 +8,18 @@
         }
 
         .pj-root {
-          --primary-blue: #a65f7f;
-          --cyan: #f0b8c9;
-          --blue-soft: #fff3f7;
-          --blue-pale: #fff7fa;
+          --primary-blue: #6757c8;
+          --cyan: #b9a9f2;
+          --blue-soft: #f3f0ff;
+          --blue-pale: #f8f6ff;
           --peach: #ff7b5e;
           --peach-soft: #ffede9;
           --yellow: #ffca28;
           --yellow-soft: #fff7dc;
           --mint: #3cc8a0;
           --mint-soft: #e0f9f2;
-          --blue: #f0b8c9;
-          --blue-soft: #fff3f7;
+          --blue: #b9a9f2;
+          --blue-soft: #f3f0ff;
           --text: #1e1740;
           --text-mid: #6b6490;
           --text-soft: #a09bc4;
@@ -68,7 +68,7 @@
           width: 34px;
           height: 34px;
           border-radius: 10px;
-          background: linear-gradient(135deg, #a65f7f 0%, #f0b8c9 100%);
+          background: linear-gradient(135deg, #6757c8 0%, #b9a9f2 100%);
           display: flex;
           align-items: center;
           justify-content: center;

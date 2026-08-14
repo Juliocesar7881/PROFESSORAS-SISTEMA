@@ -39,6 +39,7 @@ function RootNavigator() {
     >
       <Stack.Screen name="index" options={{ animation: reducedMotion ? "none" : "fade" }} />
       <Stack.Screen name="(auth)" options={{ animation: reducedMotion ? "none" : "fade" }} />
+      <Stack.Screen name="auth" options={{ animation: reducedMotion ? "none" : "fade" }} />
       <Stack.Screen name="(tabs)" options={{ animation: reducedMotion ? "none" : "fade" }} />
       <Stack.Screen name="registro/[id]" />
     </Stack>

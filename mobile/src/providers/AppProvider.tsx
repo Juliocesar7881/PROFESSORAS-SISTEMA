@@ -36,7 +36,6 @@ import {
 import {
   cacheRecord,
   claimLegacyLocalData,
-  clearUserData,
   completePhotoUpload,
   discardPhotoUpload,
   failPhotoUpload,
@@ -80,7 +79,8 @@ type AppContextValue = {
   turmas: Turma[];
   criancas: Crianca[];
   login: () => Promise<void>;
-  logout: () => void;
+  completeLoginCode: (code: string) => Promise<void>;
+  logout: () => Promise<void>;
   refreshBase: () => Promise<void>;
   syncNow: (forcePhotos?: boolean) => Promise<void>;
   retryPhoto: (id: string) => Promise<void>;
@@ -134,6 +134,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const tokenRef = useRef<string | null>(null);
   const userRef = useRef<User | null>(null);
   const onlineRef = useRef(true);
+  const loginExchangeRef = useRef<{ code: string; promise: Promise<void> } | null>(null);
 
   useEffect(() => { tokenRef.current = token; }, [token]);
   useEffect(() => { userRef.current = user; }, [user]);
@@ -424,18 +425,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => subscription.remove();
   }, [refreshBase, syncNow]);
 
-  const login = useCallback(async () => {
-    if (loginLoading) return;
-    setLoginLoading(true);
-    try {
-      const redirect = "planejei://auth";
-      const authUrl = `${API_URL}/mobile-connect?redirect=${encodeURIComponent(redirect)}&choose=1`;
-      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirect, { showInRecents: false });
-      if (result.type !== "success") return;
-      const code = new URL(result.url).searchParams.get("code");
-      if (!code) throw new Error("Codigo de acesso ausente.");
+  const completeLoginCode = useCallback(async (code: string) => {
+    const normalizedCode = code.trim();
+    if (!normalizedCode) throw new Error("Codigo de acesso ausente.");
 
-      const session = await exchangeCode(code);
+    const running = loginExchangeRef.current;
+    if (running?.code === normalizedCode) return running.promise;
+
+    setLoginLoading(true);
+    const promise = (async () => {
+      const session = await exchangeCode(normalizedCode);
       await Promise.all([
         SecureStore.setItemAsync(TOKEN_KEY, session.token),
         SecureStore.setItemAsync(USER_KEY, JSON.stringify(session.user)),
@@ -453,12 +452,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
       await refreshPendingState(session.user.id);
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setTimeout(() => { void syncNow(true); }, 0);
+    })();
+
+    loginExchangeRef.current = { code: normalizedCode, promise };
+    try {
+      await promise;
+    } finally {
+      if (loginExchangeRef.current?.code === normalizedCode) loginExchangeRef.current = null;
+      setLoginLoading(false);
+    }
+  }, [refreshBaseWithToken, refreshPendingState, syncNow]);
+
+  const login = useCallback(async () => {
+    if (loginLoading || loginExchangeRef.current) return;
+    setLoginLoading(true);
+    try {
+      const redirect = "planejei://auth";
+      const authUrl = `${API_URL}/mobile-connect?redirect=${encodeURIComponent(redirect)}&choose=1`;
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirect, { showInRecents: false });
+      if (result.type !== "success") return;
+      const code = new URL(result.url).searchParams.get("code");
+      if (!code) throw new Error("Codigo de acesso ausente.");
+      await completeLoginCode(code);
     } catch (error) {
       Alert.alert("Entrar", error instanceof Error ? error.message : "Nao foi possivel entrar.");
     } finally {
-      setLoginLoading(false);
+      if (!loginExchangeRef.current) setLoginLoading(false);
     }
-  }, [loginLoading, refreshBaseWithToken, refreshPendingState, syncNow]);
+  }, [completeLoginCode, loginLoading]);
 
   const disconnectAccount = useCallback(async () => {
     if (accountBusy) return;
@@ -480,52 +501,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [accountBusy, clearSession, feedback]);
 
-  const deleteAccount = useCallback(async () => {
-    if (accountBusy) return;
-    const activeToken = tokenRef.current;
-    const activeUser = userRef.current;
-    if (!activeToken || !activeUser) return;
-
-    setAccountBusy(true);
-    try {
-      await request(activeToken, "/api/account", { method: "DELETE" });
-      await clearUserData(activeUser.id);
-      await clearSession();
-      feedback("Sua conta e os dados locais foram excluidos.", { tone: "success", duration: 5200 });
-    } catch (error) {
-      Alert.alert(
-        "Excluir conta",
-        error instanceof Error ? error.message : "Nao foi possivel excluir a conta agora.",
-      );
-    } finally {
-      setAccountBusy(false);
-    }
-  }, [accountBusy, clearSession, feedback]);
-
-  const logout = useCallback(() => {
-    Alert.alert(
-      "Sua conta",
-      `${userRef.current?.name || userRef.current?.email || "Conta conectada"}\n\nSeus rascunhos e fotos pendentes permanecem protegidos e separados por conta neste aparelho.`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Excluir conta",
-          style: "destructive",
-          onPress: () => {
-            Alert.alert(
-              "Excluir conta e dados?",
-              "Esta acao e permanente e remove registros, fotos, turmas, criancas e rascunhos desta conta.",
-              [
-                { text: "Cancelar", style: "cancel" },
-                { text: "Excluir definitivamente", style: "destructive", onPress: () => void deleteAccount() },
-              ],
-            );
-          },
-        },
-        { text: "Sair e escolher outra conta", onPress: () => void disconnectAccount() },
-      ],
-    );
-  }, [deleteAccount, disconnectAccount]);
+  const logout = useCallback(async () => {
+    await disconnectAccount();
+  }, [disconnectAccount]);
 
   const queueDraft = useCallback(async (draft: OfflineDraft) => {
     const activeUser = userRef.current;
@@ -595,6 +573,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     turmas,
     criancas,
     login,
+    completeLoginCode,
     logout,
     refreshBase,
     syncNow,
@@ -619,6 +598,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     turmas,
     criancas,
     login,
+    completeLoginCode,
     logout,
     refreshBase,
     syncNow,

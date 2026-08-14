@@ -266,21 +266,21 @@ export function AvaliacoesClient({ initialReports }: AvaliacoesClientProps) {
         summary={`${historicoRelatorios.length} avaliação${historicoRelatorios.length !== 1 ? "ões" : ""} no histórico`}
         controlsClassName="lg:flex-wrap"
       >
-        <span className="inline-flex h-11 items-center gap-2 rounded-xl border-2 border-[#e5c4d3] bg-white px-4 text-sm font-black text-[#a65f7f]">
+        <span className="inline-flex h-11 items-center gap-2 rounded-xl border-2 border-[#dcd3f7] bg-white px-4 text-sm font-black text-[#6757c8]">
           <Sparkles className="size-4" />
           Gemini
         </span>
-        <span className="inline-flex h-11 items-center gap-2 rounded-xl border-2 border-[#e5c4d3] bg-white px-4 text-sm font-black text-[#a65f7f]">
+        <span className="inline-flex h-11 items-center gap-2 rounded-xl border-2 border-[#dcd3f7] bg-white px-4 text-sm font-black text-[#6757c8]">
           <Pencil className="size-4" />
           Revisão editável
         </span>
-        <span className="inline-flex h-11 items-center gap-2 rounded-xl border-2 border-[#e5c4d3] bg-white px-4 text-sm font-black text-[#a65f7f]">
+        <span className="inline-flex h-11 items-center gap-2 rounded-xl border-2 border-[#dcd3f7] bg-white px-4 text-sm font-black text-[#6757c8]">
           PDF liberado
         </span>
       </DashboardFilterBar>
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <Card size="sm" className="border-[#f0e2e8] bg-white/95">
+        <Card size="sm" className="border-[#e8e3f0] bg-white/95">
           <CardHeader className="px-4">
             <CardTitle>Nova avaliação</CardTitle>
             <CardDescription>Registre evidências reais; a IA organiza o texto para sua revisão.</CardDescription>
@@ -307,19 +307,19 @@ export function AvaliacoesClient({ initialReports }: AvaliacoesClientProps) {
                 value={descricaoRapida}
                 onChange={(event) => setDescricaoRapida(event.target.value)}
                 placeholder="Conte como a criança participa, interage e aprende. Inclua avanços percebidos, situações concretas e apoios que ainda ajudam."
-                className="min-h-[230px] rounded-xl border-[#f0e2e8] bg-white text-[15px] leading-relaxed text-[#74616d] placeholder:text-[#a99ba5] focus:border-[#d8a4bb] focus-visible:ring-2"
+                className="min-h-[230px] rounded-xl border-[#e8e3f0] bg-white text-[15px] leading-relaxed text-[#6d6c82] placeholder:text-[#8c899b] focus:border-[#a995ec] focus-visible:ring-2"
               />
             </label>
 
-            <div className="rounded-xl border border-[#f0e2e8] bg-[#fff3f7]/60 p-3">
-              <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-black text-[#857582]">
+            <div className="rounded-xl border border-[#e8e3f0] bg-[#f3f0ff]/60 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-black text-[#6d6c82]">
                 <span>20 mínimo · 180+ recomendado para maior precisão</span>
-                <span className={descricaoTrimmed.length >= 180 ? "text-emerald-600" : descricaoTrimmed.length >= 20 ? "text-[#a65f7f]" : "text-[#9b8d96]"}>
+                <span className={descricaoTrimmed.length >= 180 ? "text-emerald-600" : descricaoTrimmed.length >= 20 ? "text-[#6757c8]" : "text-[#8c899b]"}>
                   {descricaoTrimmed.length} caracteres
                 </span>
               </div>
               <div className="mt-2 h-2 overflow-hidden rounded-full bg-white">
-                <div className="h-full rounded-full bg-[#a65f7f] transition-all" style={{ width: `${characterProgress}%` }} />
+                <div className="h-full rounded-full bg-[#6757c8] transition-all" style={{ width: `${characterProgress}%` }} />
               </div>
             </div>
 
@@ -331,7 +331,7 @@ export function AvaliacoesClient({ initialReports }: AvaliacoesClientProps) {
                     key={example}
                     type="button"
                     onClick={() => setDescricaoRapida(example)}
-                    className="rounded-lg border border-[#f0e2e8] bg-[#fff3f7]/50 px-3 py-2 text-left text-xs font-bold leading-relaxed text-[#74616d] transition hover:border-[#e5c4d3] hover:bg-[#fff3f7]"
+                    className="rounded-lg border border-[#e8e3f0] bg-[#f3f0ff]/50 px-3 py-2 text-left text-xs font-bold leading-relaxed text-[#6d6c82] transition hover:border-[#dcd3f7] hover:bg-[#f3f0ff]"
                   >
                     {example}
                   </button>
@@ -346,15 +346,15 @@ export function AvaliacoesClient({ initialReports }: AvaliacoesClientProps) {
           </CardContent>
         </Card>
 
-        <Card size="sm" className="border-[#f0e2e8] bg-white/95 xl:sticky xl:top-28 xl:self-start">
+        <Card size="sm" className="border-[#e8e3f0] bg-white/95 xl:sticky xl:top-28 xl:self-start">
           <CardHeader className="px-4">
             <CardTitle>Evidências úteis</CardTitle>
             <CardDescription>Quanto mais concreto o registro, melhor o resultado.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2 px-4 text-sm font-semibold leading-relaxed text-[#74616d]">
+          <CardContent className="space-y-2 px-4 text-sm font-semibold leading-relaxed text-[#6d6c82]">
             {["Participação e interesses", "Interações e comunicação", "Autonomia e estratégias", "Avanços observados", "Apoios que ainda favorecem"].map((item) => (
-              <p key={item} className="flex items-center gap-2 rounded-xl border border-[#f0e2e8] bg-[#fff3f7]/45 p-3">
-                <Check className="size-4 shrink-0 text-[#a65f7f]" />
+              <p key={item} className="flex items-center gap-2 rounded-xl border border-[#e8e3f0] bg-[#f3f0ff]/45 p-3">
+                <Check className="size-4 shrink-0 text-[#6757c8]" />
                 {item}
               </p>
             ))}
@@ -362,7 +362,7 @@ export function AvaliacoesClient({ initialReports }: AvaliacoesClientProps) {
         </Card>
       </div>
 
-      <Card size="sm" className="border-[#f0e2e8] bg-white/95">
+      <Card size="sm" className="border-[#e8e3f0] bg-white/95">
         <CardHeader className="px-4">
           <CardTitle>Histórico e revisão</CardTitle>
           <CardDescription>Edite o texto no Pequenos Passos antes de copiar ou exportar.</CardDescription>
@@ -379,18 +379,18 @@ export function AvaliacoesClient({ initialReports }: AvaliacoesClientProps) {
                 <article
                   id={`avaliacao-${relatorio.id}`}
                   key={relatorio.id}
-                  className="scroll-mt-28 rounded-xl border border-[#f0e2e8] bg-white p-4 transition hover:border-[#e5c4d3] hover:shadow-sm"
+                  className="scroll-mt-28 rounded-xl border border-[#e8e3f0] bg-white p-4 transition hover:border-[#dcd3f7] hover:shadow-sm"
                 >
                   {editing ? (
                     <div className="space-y-4">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
-                          <span className="rounded-full border border-[#e5c4d3] bg-[#fff3f7] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-[#a65f7f]">
+                          <span className="rounded-full border border-[#dcd3f7] bg-[#f3f0ff] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-[#6757c8]">
                             Revisando
                           </span>
-                          <span className="text-xs font-bold text-[#9b8d96]">{getModelLabel(relatorio.modeloIa)}</span>
+                          <span className="text-xs font-bold text-[#8c899b]">{getModelLabel(relatorio.modeloIa)}</span>
                         </div>
-                        <button type="button" onClick={cancelEditing} className="inline-flex size-9 items-center justify-center rounded-lg border border-[#e5c4d3] text-[#857582] transition hover:bg-[#fff3f7]" aria-label="Cancelar edição">
+                        <button type="button" onClick={cancelEditing} className="inline-flex size-9 items-center justify-center rounded-lg border border-[#dcd3f7] text-[#6d6c82] transition hover:bg-[#f3f0ff]" aria-label="Cancelar edição">
                           <X className="size-4" />
                         </button>
                       </div>
@@ -415,14 +415,14 @@ export function AvaliacoesClient({ initialReports }: AvaliacoesClientProps) {
                         <Textarea
                           value={draft.texto}
                           onChange={(event) => setDraft({ ...draft, texto: event.target.value })}
-                          className="min-h-[340px] rounded-xl border-[#e5c4d3] bg-[#fffdfd] text-[15px] leading-7 text-[#4e414a] focus:border-[#d8a4bb] focus-visible:ring-2"
+                          className="min-h-[340px] rounded-xl border-[#dcd3f7] bg-[#ffffff] text-[15px] leading-7 text-[#4e414a] focus:border-[#a995ec] focus-visible:ring-2"
                         />
                       </label>
 
                       <div className="flex flex-col-reverse gap-2 border-t border-[#f5ecf1] pt-3 sm:flex-row sm:items-center sm:justify-between">
-                        <span className="text-xs font-bold text-[#9b8d96]">{draft.texto.length} caracteres</span>
+                        <span className="text-xs font-bold text-[#8c899b]">{draft.texto.length} caracteres</span>
                         <div className="flex gap-2">
-                          <button type="button" onClick={cancelEditing} className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-[#e5c4d3] bg-white px-4 text-xs font-black text-[#857582] transition hover:bg-[#fff3f7] sm:flex-none">
+                          <button type="button" onClick={cancelEditing} className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-[#dcd3f7] bg-white px-4 text-xs font-black text-[#6d6c82] transition hover:bg-[#f3f0ff] sm:flex-none">
                             <X className="size-3.5" /> Cancelar
                           </button>
                           <button type="button" onClick={() => void handleSaveReport(relatorio.id)} disabled={saving || draft.texto.trim().length < 80} className="pf-btn-primary h-10 flex-1 px-4 text-xs sm:flex-none">
@@ -437,8 +437,8 @@ export function AvaliacoesClient({ initialReports }: AvaliacoesClientProps) {
                       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <p className="truncate font-heading text-lg leading-tight text-[#312834]">{relatorio.nomeCrianca || "Criança sem nome"}</p>
-                            <span className="rounded-full border border-[#e5c4d3] bg-[#fff3f7] px-2 py-0.5 text-[10px] font-black text-[#a65f7f]">
+                            <p className="truncate font-heading text-lg leading-tight text-[#17213f]">{relatorio.nomeCrianca || "Criança sem nome"}</p>
+                            <span className="rounded-full border border-[#dcd3f7] bg-[#f3f0ff] px-2 py-0.5 text-[10px] font-black text-[#6757c8]">
                               {getModelLabel(relatorio.modeloIa)}
                             </span>
                             {isEdited(relatorio) ? (
@@ -447,7 +447,7 @@ export function AvaliacoesClient({ initialReports }: AvaliacoesClientProps) {
                               </span>
                             ) : null}
                           </div>
-                          <p className="mt-1 text-xs font-bold text-[#9b8d96]">
+                          <p className="mt-1 text-xs font-bold text-[#8c899b]">
                             {[relatorio.contexto, relatorio.periodo, new Date(relatorio.createdAt).toLocaleDateString("pt-BR")].filter(Boolean).join(" | ")}
                           </p>
                         </div>
@@ -462,19 +462,19 @@ export function AvaliacoesClient({ initialReports }: AvaliacoesClientProps) {
                         </button>
                       </div>
 
-                      <p className="mt-3 whitespace-pre-line text-sm leading-7 text-[#66545f]">{relatorio.texto}</p>
+                      <p className="mt-3 whitespace-pre-line text-sm leading-7 text-[#6d6c82]">{relatorio.texto}</p>
 
                       <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[#f5ecf1] pt-3">
-                        <button type="button" onClick={() => startEditing(relatorio)} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#a65f7f] px-3 text-xs font-black text-white transition hover:bg-[#8b4e6a]">
+                        <button type="button" onClick={() => startEditing(relatorio)} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#6757c8] px-3 text-xs font-black text-white transition hover:bg-[#5443ad]">
                           <Pencil className="size-3.5" /> Editar
                         </button>
                         <CopyTextButton text={relatorio.texto} label="Copiar" />
 
-                        <button type="button" onClick={() => downloadWord(relatorio)} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#e5c4d3] bg-[#fff3f7] px-3 text-xs font-black text-[#a65f7f] transition hover:bg-[#f8dbe7]">
+                        <button type="button" onClick={() => downloadWord(relatorio)} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#dcd3f7] bg-[#f3f0ff] px-3 text-xs font-black text-[#6757c8] transition hover:bg-[#ebe6fb]">
                           <FileText className="size-3.5" /> Word
                         </button>
 
-                        <a href={`/api/relatorios/export?relatorioId=${relatorio.id}`} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#e5c4d3] bg-[#fff3f7] px-3 text-xs font-black text-[#a65f7f] transition hover:bg-[#f8dbe7]">
+                        <a href={`/api/relatorios/export?relatorioId=${relatorio.id}`} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#dcd3f7] bg-[#f3f0ff] px-3 text-xs font-black text-[#6757c8] transition hover:bg-[#ebe6fb]">
                           <Download className="size-3.5" /> PDF
                         </a>
                       </div>

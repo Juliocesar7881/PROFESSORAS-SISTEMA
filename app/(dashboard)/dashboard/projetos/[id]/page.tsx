@@ -130,8 +130,8 @@ async function getProjectForPage(id: string): Promise<DetailProject | null> {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="space-y-2 border-t border-[#f0e2e8] pt-4">
-      <h2 className="font-heading text-xl font-black text-[#312834]">{title}</h2>
+    <section className="space-y-2 border-t border-[#e8e3f0] pt-4">
+      <h2 className="font-heading text-xl font-black text-[#17213f]">{title}</h2>
       {children}
     </section>
   );
@@ -139,13 +139,13 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function BulletList({ items }: { items: string[] }) {
   if (!items.length) {
-    return <p className="rounded-xl border border-dashed border-[#e5c4d3] bg-[#fff3f7]/50 p-3 text-sm font-semibold text-[#857582]">Sem informacoes cadastradas.</p>;
+    return <p className="rounded-xl border border-dashed border-[#dcd3f7] bg-[#f3f0ff]/50 p-3 text-sm font-semibold text-[#6d6c82]">Sem informacoes cadastradas.</p>;
   }
 
   return (
-    <ul className="space-y-2 text-sm font-semibold leading-relaxed text-[#74616d]">
+    <ul className="space-y-2 text-sm font-semibold leading-relaxed text-[#6d6c82]">
       {items.map((item) => (
-        <li key={item} className="rounded-lg border border-[#f0e2e8] bg-white px-3 py-2">
+        <li key={item} className="rounded-lg border border-[#e8e3f0] bg-white px-3 py-2">
           {item}
         </li>
       ))}
@@ -174,24 +174,24 @@ export default async function ProjetoDetailPage({ params }: { params: Promise<{ 
   return (
     <div className="mx-auto max-w-5xl space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Link href="/dashboard/projetos" className="inline-flex items-center gap-2 text-sm font-black text-[#a65f7f] underline underline-offset-4">
+        <Link href="/dashboard/projetos" className="inline-flex items-center gap-2 text-sm font-black text-[#6757c8] underline underline-offset-4">
           <ArrowLeft className="size-4" /> Voltar
         </Link>
         <div className="flex flex-wrap gap-2">
-          <a href={`/api/projetos/${projeto.id}/export?format=pdf`} className="inline-flex h-10 items-center justify-center rounded-xl border-2 border-[#e5c4d3] bg-white px-4 text-sm font-black text-[#a65f7f] transition hover:bg-[#fff3f7]">
+          <a href={`/api/projetos/${projeto.id}/export?format=pdf`} className="inline-flex h-10 items-center justify-center rounded-xl border-2 border-[#dcd3f7] bg-white px-4 text-sm font-black text-[#6757c8] transition hover:bg-[#f3f0ff]">
             <Download className="mr-2 size-4" /> PDF
           </a>
-          <a href={`/api/projetos/${projeto.id}/export?format=docx`} className="inline-flex h-10 items-center justify-center rounded-xl border-2 border-[#e5c4d3] bg-white px-4 text-sm font-black text-[#a65f7f] transition hover:bg-[#fff3f7]">
+          <a href={`/api/projetos/${projeto.id}/export?format=docx`} className="inline-flex h-10 items-center justify-center rounded-xl border-2 border-[#dcd3f7] bg-white px-4 text-sm font-black text-[#6757c8] transition hover:bg-[#f3f0ff]">
             <FileText className="mr-2 size-4" /> Word
           </a>
-          <Link href={`/dashboard/planejamento?projetoId=${projeto.id}`} className="inline-flex h-10 items-center justify-center rounded-xl bg-[#a65f7f] px-4 text-sm font-black text-white transition hover:bg-[#8b4e6a]">
+          <Link href={`/dashboard/planejamento?projetoId=${projeto.id}`} className="inline-flex h-10 items-center justify-center rounded-xl bg-[#6757c8] px-4 text-sm font-black text-white transition hover:bg-[#5443ad]">
             <BookOpenText className="mr-2 size-4" /> Usar no planejamento
           </Link>
         </div>
       </div>
 
-      <Card className="border-[#f0e2e8] bg-white">
-        <div className="relative aspect-[16/7] min-h-[220px] overflow-hidden rounded-t-[inherit] bg-[#f4edf1] sm:min-h-0">
+      <Card className="border-[#e8e3f0] bg-white">
+        <div className="relative aspect-[16/7] min-h-[220px] overflow-hidden rounded-t-[inherit] bg-[#f4f1fb] sm:min-h-0">
           <Image
             src={getProjectCoverPath(projeto.coverKey)}
             alt={`Imagem do projeto ${projeto.titulo}`}
@@ -204,20 +204,20 @@ export default async function ProjetoDetailPage({ params }: { params: Promise<{ 
         </div>
         <CardHeader className="space-y-4 text-center">
           <div className="flex flex-wrap items-center justify-center gap-2">
-            <span className="pf-chip border-[#e5c4d3] bg-[#fff3f7] text-[#a65f7f]">{projeto.categoria}</span>
-            <span className="pf-chip border-[#e5c4d3] bg-[#fff3f7] text-[#a65f7f]">{projeto.faixaEtaria}</span>
-            <span className="pf-chip border-[#e5c4d3] bg-[#fff3f7] text-[#a65f7f]">{projeto.duracao}</span>
+            <span className="pf-chip border-[#dcd3f7] bg-[#f3f0ff] text-[#6757c8]">{projeto.categoria}</span>
+            <span className="pf-chip border-[#dcd3f7] bg-[#f3f0ff] text-[#6757c8]">{projeto.faixaEtaria}</span>
+            <span className="pf-chip border-[#dcd3f7] bg-[#f3f0ff] text-[#6757c8]">{projeto.duracao}</span>
           </div>
           <div>
             <p className="text-xs font-black uppercase tracking-[0.18em] text-[#6757c8]">Pequenos Passos</p>
-            <CardTitle className="mt-2 font-heading text-3xl font-black text-[#312834] md:text-4xl">
+            <CardTitle className="mt-2 font-heading text-3xl font-black text-[#17213f] md:text-4xl">
               Projeto: {projeto.titulo}
             </CardTitle>
           </div>
           <ProjectSaveButton projectId={projeto.id} initialSaved={projeto.salvo} disabled={!projeto.persisted} />
         </CardHeader>
-        <CardContent className="space-y-5 text-sm font-semibold leading-relaxed text-[#74616d]">
-          <p className="rounded-xl border border-[#f0e2e8] bg-[#fff3f7]/60 p-4 text-base">{projeto.descricao}</p>
+        <CardContent className="space-y-5 text-sm font-semibold leading-relaxed text-[#6d6c82]">
+          <p className="rounded-xl border border-[#e8e3f0] bg-[#f3f0ff]/60 p-4 text-base">{projeto.descricao}</p>
 
           <Section title="Problema">
             <p>
@@ -248,17 +248,17 @@ export default async function ProjetoDetailPage({ params }: { params: Promise<{ 
           <Section title="Atividades do projeto">
             <div className="space-y-3">
               {projeto.atividades.map((atividade, index) => (
-                <article key={atividade.id} className="rounded-xl border border-[#f0e2e8] bg-white p-4">
+                <article key={atividade.id} className="rounded-xl border border-[#e8e3f0] bg-white p-4">
                   <div className="flex flex-wrap items-start justify-between gap-2">
-                    <h3 className="font-heading text-xl font-black text-[#312834]">
+                    <h3 className="font-heading text-xl font-black text-[#17213f]">
                       {index + 1}. {atividade.titulo}
                     </h3>
-                    <span className="pf-chip border-[#e5c4d3] bg-[#fff3f7] text-[#a65f7f]">{atividade.duracao} min</span>
+                    <span className="pf-chip border-[#dcd3f7] bg-[#f3f0ff] text-[#6757c8]">{atividade.duracao} min</span>
                   </div>
                   <p className="mt-2">{atividade.descricao}</p>
-                  {atividade.objetivoTexto ? <p className="mt-2 rounded-lg bg-[#fff3f7] p-3 text-sm"><strong>Objetivo:</strong> {atividade.objetivoTexto}</p> : null}
+                  {atividade.objetivoTexto ? <p className="mt-2 rounded-lg bg-[#f3f0ff] p-3 text-sm"><strong>Objetivo:</strong> {atividade.objetivoTexto}</p> : null}
                   {atividade.materiais.length ? (
-                    <p className="mt-2 text-xs font-black uppercase tracking-[0.12em] text-[#857582]">
+                    <p className="mt-2 text-xs font-black uppercase tracking-[0.12em] text-[#6d6c82]">
                       Materiais: {atividade.materiais.join(", ")}
                     </p>
                   ) : null}
@@ -275,21 +275,21 @@ export default async function ProjetoDetailPage({ params }: { params: Promise<{ 
             <BulletList items={projeto.avaliacao} />
           </Section>
 
-          <div className="grid gap-3 border-t border-[#f0e2e8] pt-4 sm:grid-cols-3">
-            <div className="rounded-xl border border-[#f0e2e8] bg-[#fff3f7]/50 p-3">
-              <Target className="size-5 text-[#a65f7f]" />
-              <p className="mt-2 font-heading text-2xl text-[#312834]">{projeto.objetivosEspecificos.length}</p>
-              <p className="text-xs font-black uppercase tracking-[0.12em] text-[#857582]">objetivos</p>
+          <div className="grid gap-3 border-t border-[#e8e3f0] pt-4 sm:grid-cols-3">
+            <div className="rounded-xl border border-[#e8e3f0] bg-[#f3f0ff]/50 p-3">
+              <Target className="size-5 text-[#6757c8]" />
+              <p className="mt-2 font-heading text-2xl text-[#17213f]">{projeto.objetivosEspecificos.length}</p>
+              <p className="text-xs font-black uppercase tracking-[0.12em] text-[#6d6c82]">objetivos</p>
             </div>
-            <div className="rounded-xl border border-[#f0e2e8] bg-[#fff3f7]/50 p-3">
-              <Heart className="size-5 text-[#a65f7f]" />
-              <p className="mt-2 font-heading text-2xl text-[#312834]">{projeto.camposExperiencia.length}</p>
-              <p className="text-xs font-black uppercase tracking-[0.12em] text-[#857582]">campos</p>
+            <div className="rounded-xl border border-[#e8e3f0] bg-[#f3f0ff]/50 p-3">
+              <Heart className="size-5 text-[#6757c8]" />
+              <p className="mt-2 font-heading text-2xl text-[#17213f]">{projeto.camposExperiencia.length}</p>
+              <p className="text-xs font-black uppercase tracking-[0.12em] text-[#6d6c82]">campos</p>
             </div>
-            <div className="rounded-xl border border-[#f0e2e8] bg-[#fff3f7]/50 p-3">
-              <Printer className="size-5 text-[#a65f7f]" />
-              <p className="mt-2 font-heading text-2xl text-[#312834]">{projeto.atividades.length}</p>
-              <p className="text-xs font-black uppercase tracking-[0.12em] text-[#857582]">atividades</p>
+            <div className="rounded-xl border border-[#e8e3f0] bg-[#f3f0ff]/50 p-3">
+              <Printer className="size-5 text-[#6757c8]" />
+              <p className="mt-2 font-heading text-2xl text-[#17213f]">{projeto.atividades.length}</p>
+              <p className="text-xs font-black uppercase tracking-[0.12em] text-[#6d6c82]">atividades</p>
             </div>
           </div>
         </CardContent>

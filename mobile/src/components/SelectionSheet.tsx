@@ -1,9 +1,10 @@
 import { Check, Search, X } from "lucide-react-native";
 import { useMemo, useState } from "react";
-import { FlatList, Keyboard, Modal, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { FlatList, Keyboard, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { colors } from "../theme";
+import { AppBottomSheet } from "./AppBottomSheet";
 import { AppKeyboardToolbar } from "./AppKeyboardToolbar";
 import { AppTextInput } from "./AppTextInput";
 
@@ -41,10 +42,12 @@ export function SelectionSheet({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={close} statusBarTranslucent>
-      <View style={styles.overlay}>
-        <Pressable accessibilityLabel="Fechar seletor" onPress={close} style={styles.dismissArea} />
-        <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+    <AppBottomSheet
+      visible={visible}
+      onClose={close}
+      accessibilityLabel="Fechar seletor"
+      contentStyle={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 12) }]}
+    >
           <View style={styles.handle} />
           <View style={styles.header}>
             <Text accessibilityRole="header" style={styles.title}>{title}</Text>
@@ -94,17 +97,13 @@ export function SelectionSheet({
               );
             }}
           />
-        </View>
-        <AppKeyboardToolbar />
-      </View>
-    </Modal>
+      <AppKeyboardToolbar />
+    </AppBottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(23,33,63,0.42)" },
-  dismissArea: { flex: 1 },
-  sheet: { maxHeight: "82%", borderTopLeftRadius: 24, borderTopRightRadius: 24, backgroundColor: colors.surface },
+  sheet: { maxHeight: "82%", backgroundColor: colors.surface },
   handle: { width: 38, height: 4, alignSelf: "center", marginTop: 9, borderRadius: 2, backgroundColor: colors.borderStrong },
   header: { minHeight: 58, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 18 },
   title: { fontSize: 20, fontWeight: "900", color: colors.text },

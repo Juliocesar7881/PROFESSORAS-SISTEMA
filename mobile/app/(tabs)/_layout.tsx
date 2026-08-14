@@ -57,7 +57,8 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="novo"
         options={{
-          title: "Novo",
+          title: "",
+          tabBarAccessibilityLabel: "Novo registro",
           tabBarItemStyle: styles.newItem,
           tabBarLabel: () => null,
           tabBarIcon: () => (

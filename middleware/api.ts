@@ -51,6 +51,7 @@ function assertSameOriginMutation(request: Request) {
   }
 
   const requestOrigin = new URL(request.url).origin;
+  const requestPath = new URL(request.url).pathname;
   const configuredOrigin = new URL(env.NEXT_PUBLIC_APP_URL).origin;
   const origin = request.headers.get("origin");
   const referer = request.headers.get("referer");
@@ -65,7 +66,12 @@ function assertSameOriginMutation(request: Request) {
   }
 
   if (!sourceOrigin) {
-    return;
+    const bearer = request.headers.get("authorization") ?? "";
+    const isMobileSession = /^Bearer\s+pm_[A-Za-z0-9_-]+$/i.test(bearer);
+    const isMobileCodeExchange = requestPath === "/api/mobile/auth/exchange";
+
+    if (isMobileSession || isMobileCodeExchange) return;
+    throw new ForbiddenError("Origem da requisicao nao permitida");
   }
 
   if (sourceOrigin !== requestOrigin && sourceOrigin !== configuredOrigin) {

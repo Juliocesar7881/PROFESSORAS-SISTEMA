@@ -148,11 +148,11 @@ export function OnboardingWizard({ userName, userImage }: OnboardingWizardProps)
     .toUpperCase();
 
   return (
-    <main className="min-h-screen bg-[#f7fcff] px-4 py-8 text-[#312834] md:px-8">
+    <main className="min-h-screen bg-[#f7fcff] px-4 py-8 text-[#17213f] md:px-8">
       <form onSubmit={handleSubmit} className="mx-auto max-w-4xl space-y-4">
         <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm">
           <CardHeader className="pb-2">
-            <div className="mb-2 flex items-center gap-2 text-[#a65f7f]">
+            <div className="mb-2 flex items-center gap-2 text-[#6757c8]">
               <Sparkles className="size-4" />
               <p className="text-xs uppercase tracking-[0.2em]">Primeiros passos</p>
             </div>
@@ -163,10 +163,10 @@ export function OnboardingWizard({ userName, userImage }: OnboardingWizardProps)
                   alt={userName}
                   width={48}
                   height={48}
-                  className="size-12 rounded-full border-2 border-[#a65f7f]/30"
+                  className="size-12 rounded-full border-2 border-[#6757c8]/30"
                 />
               ) : (
-                <div className="inline-flex size-12 items-center justify-center rounded-full bg-gradient-to-br from-[#6a4562] to-[#f0b8c9] text-sm font-bold text-white">
+                <div className="inline-flex size-12 items-center justify-center rounded-full bg-gradient-to-br from-[#4f3ca6] to-[#b9a9f2] text-sm font-bold text-white">
                   {initials}
                 </div>
               )}
@@ -179,13 +179,13 @@ export function OnboardingWizard({ userName, userImage }: OnboardingWizardProps)
 
           <CardContent>
             <div className="mb-4 flex items-center justify-between gap-3 text-xs text-gray-400">
-              <span className={step >= 1 ? "font-semibold text-[#a65f7f]" : ""}>1. Boas-vindas</span>
-              <span className={step >= 2 ? "font-semibold text-[#a65f7f]" : ""}>2. Turma</span>
-              <span className={step >= 3 ? "font-semibold text-[#a65f7f]" : ""}>3. Alunos</span>
+              <span className={step >= 1 ? "font-semibold text-[#6757c8]" : ""}>1. Boas-vindas</span>
+              <span className={step >= 2 ? "font-semibold text-[#6757c8]" : ""}>2. Turma</span>
+              <span className={step >= 3 ? "font-semibold text-[#6757c8]" : ""}>3. Alunos</span>
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-gray-100">
               <motion.div
-                className="h-full rounded-full bg-gradient-to-r from-[#6a4562] via-[#c47797] to-[#f0b8c9]"
+                className="h-full rounded-full bg-gradient-to-r from-[#4f3ca6] via-[#8b78dc] to-[#b9a9f2]"
                 initial={false}
                 animate={{ width: `${(step / 3) * 100}%` }}
                 transition={{ duration: 0.4, ease: "easeOut" }}
@@ -212,7 +212,7 @@ export function OnboardingWizard({ userName, userImage }: OnboardingWizardProps)
                   <p className="text-gray-600">
                     O Pequenos Passos organiza planejamento, registros e desenvolvimento de cada criança. Simples, visual e feito para o dia a dia da sala de aula.
                   </p>
-                  <Button type="button" onClick={goToTurmaStep} className="h-11 w-full bg-[#a65f7f] text-white hover:bg-[#8b4e6a] md:w-auto">
+                  <Button type="button" onClick={goToTurmaStep} className="h-11 w-full bg-[#6757c8] text-white hover:bg-[#5443ad] md:w-auto">
                     Continuar
                     <ArrowRight className="ml-1 size-4" />
                   </Button>
@@ -253,7 +253,7 @@ export function OnboardingWizard({ userName, userImage }: OnboardingWizardProps)
                     <ArrowLeft className="mr-1 size-4" />
                     Voltar
                   </Button>
-                  <Button type="button" className="bg-[#a65f7f] text-white hover:bg-[#8b4e6a]" onClick={goToAlunosStep}>
+                  <Button type="button" className="bg-[#6757c8] text-white hover:bg-[#5443ad]" onClick={goToAlunosStep}>
                     Próximo
                     <ArrowRight className="ml-1 size-4" />
                   </Button>
@@ -279,7 +279,7 @@ export function OnboardingWizard({ userName, userImage }: OnboardingWizardProps)
                   <div>
                     <label className="mb-1 block text-xs font-semibold text-gray-500">
                       <Users className="mr-1 inline size-3.5" />
-                      Um aluno por linha: <code className="rounded bg-gray-100 px-1 text-[#a65f7f]">Nome;AAAA-MM-DD</code>
+                      Um aluno por linha: <code className="rounded bg-gray-100 px-1 text-[#6757c8]">Nome;AAAA-MM-DD</code>
                     </label>
                     <Textarea
                       placeholder={"Maria Silva;2020-03-15\nJoão Santos;2020-07-22"}
@@ -296,7 +296,7 @@ export function OnboardingWizard({ userName, userImage }: OnboardingWizardProps)
                   </div>
 
                   <label className="flex items-start gap-2 text-sm text-gray-600">
-                    <input type="checkbox" className="mt-0.5 accent-[#a65f7f]" {...form.register("consentimentoLGPD")} />
+                    <input type="checkbox" className="mt-0.5 accent-[#6757c8]" {...form.register("consentimentoLGPD")} />
                     Confirmo consentimento explícito para tratamento de dados pedagógicos de menores conforme LGPD.
                   </label>
                 </CardContent>
@@ -306,7 +306,7 @@ export function OnboardingWizard({ userName, userImage }: OnboardingWizardProps)
                     <ArrowLeft className="mr-1 size-4" />
                     Voltar
                   </Button>
-                  <Button type="submit" size="lg" className="h-11 bg-[#a65f7f] text-white hover:bg-[#8b4e6a]" disabled={saving}>
+                  <Button type="submit" size="lg" className="h-11 bg-[#6757c8] text-white hover:bg-[#5443ad]" disabled={saving}>
                     {saving ? "Finalizando..." : "Concluir onboarding"}
                   </Button>
                 </CardContent>

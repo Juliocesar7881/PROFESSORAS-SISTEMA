@@ -202,16 +202,16 @@ function SuggestionPanel({
   const Icon = objective ? Target : ClipboardList;
 
   return (
-    <section className="overflow-hidden rounded-lg border border-[#eadde5] bg-white shadow-[0_14px_36px_-32px_rgba(73,43,62,0.55)]">
-      <header className="flex items-center gap-2 border-b border-[#eee3e9] bg-[#fff8fb] px-3 py-3">
-        <span className="inline-flex size-8 items-center justify-center rounded-md bg-[#f8e8f0] text-[#95546f]">
+    <section className="overflow-hidden rounded-lg border border-[#e8e3f0] bg-white shadow-[0_14px_36px_-32px_rgba(73,43,62,0.55)]">
+      <header className="flex items-center gap-2 border-b border-[#e8e3f0] bg-[#f8f6ff] px-3 py-3">
+        <span className="inline-flex size-8 items-center justify-center rounded-md bg-[#f1edff] text-[#95546f]">
           <Icon className="size-4" />
         </span>
         <div className="min-w-0">
-          <h3 className="text-sm font-black text-[#312834]">
+          <h3 className="text-sm font-black text-[#17213f]">
             {objective ? "Objetivos do projeto" : "Atividades do projeto"}
           </h3>
-          <p className="text-[11px] font-bold text-[#978791]">{items.length} sugestao(oes)</p>
+          <p className="text-[11px] font-bold text-[#8c899b]">{items.length} sugestao(oes)</p>
         </div>
       </header>
 
@@ -228,7 +228,7 @@ function SuggestionPanel({
         ))}
 
         {!items.length ? (
-          <div className="rounded-md border border-dashed border-[#e2d2db] px-3 py-8 text-center text-xs font-bold text-[#9b8d96]">
+          <div className="rounded-md border border-dashed border-[#e2d2db] px-3 py-8 text-center text-xs font-bold text-[#8c899b]">
             Selecione um projeto base.
           </div>
         ) : null}
@@ -269,7 +269,7 @@ function SuggestionItem({
         }
       }}
       className={cn(
-        "group flex cursor-grab items-start gap-2 rounded-md border border-[#eee3e9] bg-white p-2.5 text-left transition hover:border-[#d9b7c7] hover:bg-[#fff9fc] active:cursor-grabbing",
+        "group flex cursor-grab items-start gap-2 rounded-md border border-[#e8e3f0] bg-white p-2.5 text-left transition hover:border-[#b9a9f2] hover:bg-[#faf9ff] active:cursor-grabbing",
         draggable.isDragging && "z-50 opacity-70 shadow-xl",
       )}
       {...draggable.attributes}
@@ -314,7 +314,7 @@ function PlanningCell({
         onChange={(event) => onUpdate(row.diaSemana, field, event.target.value)}
         placeholder={kind === "objective" ? "Escreva os objetivos do dia" : "Escreva as atividades do dia"}
         className={cn(
-          "h-full min-h-36 resize-y rounded-none border-0 bg-transparent px-4 py-3 text-sm font-semibold leading-6 text-[#4f424b] shadow-none focus-visible:ring-0",
+          "h-full min-h-36 resize-y rounded-none border-0 bg-transparent px-4 py-3 text-sm font-semibold leading-6 text-[#17213f] shadow-none focus-visible:ring-0",
           !compact && "lg:min-h-[168px]",
         )}
       />
@@ -571,7 +571,7 @@ export default function PlanejamentoPage() {
         </Button>
       </DashboardFilterBar>
 
-      <section className="rounded-lg border border-[#eadde5] bg-white p-4">
+      <section className="rounded-lg border border-[#e8e3f0] bg-white p-4">
         <div className="grid gap-3 lg:grid-cols-[minmax(220px,1.4fr)_auto_auto]">
           <select
             className="pf-select h-11"
@@ -604,11 +604,11 @@ export default function PlanejamentoPage() {
           />
         </div>
 
-        <details className="mt-3 rounded-md border border-[#eee3e9]">
+        <details className="mt-3 rounded-md border border-[#e8e3f0]">
           <summary className="cursor-pointer px-3 py-3 text-sm font-bold text-[#6b5864]">
             Cabecalho e campos pedagogicos
           </summary>
-          <div className="grid gap-3 border-t border-[#eee3e9] p-3 md:grid-cols-3">
+          <div className="grid gap-3 border-t border-[#e8e3f0] p-3 md:grid-cols-3">
             <label>
               <span className="pf-label">Grupo / turma</span>
               <input className="pf-input h-10" value={grupo} onChange={(event) => setGrupo(event.target.value)} />
@@ -635,50 +635,50 @@ export default function PlanejamentoPage() {
 
       <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragEnd={finishSuggestionDrag}>
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
-        <section className="min-w-0 overflow-hidden rounded-lg border border-[#dfd2da] bg-white shadow-[0_18px_48px_-42px_rgba(62,39,53,0.6)]">
-          <header className="border-b border-[#dfd2da] bg-[#fffafd] px-4 py-5 text-center">
+        <section className="min-w-0 overflow-hidden rounded-lg border border-[#dcd3f7] bg-white shadow-[0_18px_48px_-42px_rgba(62,39,53,0.6)]">
+          <header className="border-b border-[#dcd3f7] bg-[#fbfaf8] px-4 py-5 text-center">
             <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#6757c8]">Pequenos Passos</p>
             <h2 className="mt-1 font-heading text-xl text-[#302733]">Planejamento semanal</h2>
-            <p className="mt-1 text-xs font-bold text-[#857582]">
+            <p className="mt-1 text-xs font-bold text-[#6d6c82]">
               Semana de {dayDate(week, 1)} a {dayDate(week, 5)}{grupo ? ` | ${grupo}` : ""}
             </p>
           </header>
 
           {loading ? (
             <div className="grid min-h-[460px] place-items-center">
-              <Loader2 className="size-6 animate-spin text-[#a65f7f]" />
+              <Loader2 className="size-6 animate-spin text-[#6757c8]" />
             </div>
           ) : (
             <>
               <div className="hidden lg:block">
-                <div className="grid grid-cols-[150px_minmax(0,0.9fr)_minmax(0,1.15fr)] border-b border-[#dfd2da] bg-[#f8eef3] text-center text-xs font-black uppercase text-[#5c4b56]">
-                  <div className="border-r border-[#dfd2da] px-3 py-3">Semana</div>
-                  <div className="border-r border-[#dfd2da] px-3 py-3">Objetivos</div>
+                <div className="grid grid-cols-[150px_minmax(0,0.9fr)_minmax(0,1.15fr)] border-b border-[#dcd3f7] bg-[#f4f1fb] text-center text-xs font-black uppercase text-[#5c4b56]">
+                  <div className="border-r border-[#dcd3f7] px-3 py-3">Semana</div>
+                  <div className="border-r border-[#dcd3f7] px-3 py-3">Objetivos</div>
                   <div className="px-3 py-3">Atividades</div>
                 </div>
                 {rows.map((row) => {
                   const day = DAYS[row.diaSemana - 1];
                   return (
-                    <div key={row.diaSemana} className="grid grid-cols-[150px_minmax(0,0.9fr)_minmax(0,1.15fr)] border-b border-[#e8dde3] last:border-b-0">
+                    <div key={row.diaSemana} className="grid grid-cols-[150px_minmax(0,0.9fr)_minmax(0,1.15fr)] border-b border-[#e8e3f0] last:border-b-0">
                       <button
                         type="button"
                         onClick={() => setInsertDay(row.diaSemana)}
                         className={cn(
-                          "flex min-h-[168px] flex-col items-center justify-center border-r border-[#dfd2da] px-3 text-center transition",
-                          insertDay === row.diaSemana ? "bg-[#f8e8f0]" : "bg-[#fffafd] hover:bg-[#fcf4f8]",
+                          "flex min-h-[168px] flex-col items-center justify-center border-r border-[#dcd3f7] px-3 text-center transition",
+                          insertDay === row.diaSemana ? "bg-[#f1edff]" : "bg-[#fbfaf8] hover:bg-[#f8f6ff]",
                         )}
                       >
                         <span className="text-base font-black text-[#423640]">{dayDate(week, row.diaSemana)}</span>
-                        <span className="mt-1 text-xs font-black uppercase text-[#a65f7f]">{day.label}</span>
+                        <span className="mt-1 text-xs font-black uppercase text-[#6757c8]">{day.label}</span>
                       </button>
-                      <div className="border-r border-[#dfd2da]"><PlanningCell row={row} kind="objective" onUpdate={updateRow} onFocus={setInsertDay} /></div>
+                      <div className="border-r border-[#dcd3f7]"><PlanningCell row={row} kind="objective" onUpdate={updateRow} onFocus={setInsertDay} /></div>
                       <div><PlanningCell row={row} kind="activity" onUpdate={updateRow} onFocus={setInsertDay} /></div>
                     </div>
                   );
                 })}
               </div>
 
-              <div className="divide-y divide-[#e8dde3] lg:hidden">
+              <div className="divide-y divide-[#e8e3f0] lg:hidden">
                 {rows.map((row) => {
                   const day = DAYS[row.diaSemana - 1];
                   return (
@@ -688,19 +688,19 @@ export default function PlanejamentoPage() {
                         onClick={() => setInsertDay(row.diaSemana)}
                         className={cn(
                           "flex w-full items-center justify-between px-4 py-3 text-left",
-                          insertDay === row.diaSemana ? "bg-[#f8e8f0]" : "bg-[#fffafd]",
+                          insertDay === row.diaSemana ? "bg-[#f1edff]" : "bg-[#fbfaf8]",
                         )}
                       >
                         <span className="font-black text-[#423640]">{day.label}</span>
-                        <span className="text-xs font-black text-[#a65f7f]">{dayDate(week, row.diaSemana)}</span>
+                        <span className="text-xs font-black text-[#6757c8]">{dayDate(week, row.diaSemana)}</span>
                       </button>
-                      <div className="grid gap-px bg-[#e8dde3] sm:grid-cols-2">
+                      <div className="grid gap-px bg-[#e8e3f0] sm:grid-cols-2">
                         <div className="bg-white">
-                          <p className="border-b border-[#eee3e9] px-4 py-2 text-[10px] font-black uppercase text-[#8d7784]">Objetivos</p>
+                          <p className="border-b border-[#e8e3f0] px-4 py-2 text-[10px] font-black uppercase text-[#6d6c82]">Objetivos</p>
                           <PlanningCell row={row} kind="objective" compact onUpdate={updateRow} onFocus={setInsertDay} />
                         </div>
                         <div className="bg-white">
-                          <p className="border-b border-[#eee3e9] px-4 py-2 text-[10px] font-black uppercase text-[#8d7784]">Atividades</p>
+                          <p className="border-b border-[#e8e3f0] px-4 py-2 text-[10px] font-black uppercase text-[#6d6c82]">Atividades</p>
                           <PlanningCell row={row} kind="activity" compact onUpdate={updateRow} onFocus={setInsertDay} />
                         </div>
                       </div>
@@ -713,7 +713,7 @@ export default function PlanejamentoPage() {
         </section>
 
         <aside className="order-first space-y-3 xl:order-none xl:sticky xl:top-24">
-          <div className="grid grid-cols-5 gap-1 rounded-lg border border-[#eadde5] bg-white p-1">
+          <div className="grid grid-cols-5 gap-1 rounded-lg border border-[#e8e3f0] bg-white p-1">
             {DAYS.map((day) => (
               <button
                 key={day.value}
@@ -721,7 +721,7 @@ export default function PlanejamentoPage() {
                 onClick={() => setInsertDay(day.value)}
                 className={cn(
                   "h-9 rounded-md text-xs font-black transition",
-                  insertDay === day.value ? "bg-[#7d405d] text-white" : "text-[#74616d] hover:bg-[#f8eef3]",
+                  insertDay === day.value ? "bg-[#6757c8] text-white" : "text-[#6d6c82] hover:bg-[#f4f1fb]",
                 )}
                 title={`Inserir em ${day.label}`}
               >

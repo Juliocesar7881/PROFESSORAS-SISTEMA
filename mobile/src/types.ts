@@ -1,4 +1,4 @@
-export type User = { id: string; name?: string | null; email?: string | null };
+export type User = { id: string; name?: string | null; email?: string | null; image?: string | null };
 export type Turma = { id: string; nome: string; faixaEtaria?: string | null; turno?: string | null; instituicao?: string | null; ano?: number | null; _count?: { alunos: number } };
 export type Crianca = { id: string; nome: string; turmaId: string; dataNasc?: string | null; contexto?: string | null; turma: { id: string; nome: string } };
 export type Foto = { id: string; url?: string | null };

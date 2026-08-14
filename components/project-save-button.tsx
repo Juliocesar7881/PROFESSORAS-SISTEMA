@@ -47,8 +47,8 @@ export function ProjectSaveButton({ projectId, initialSaved, disabled = false }:
       className={cn(
         "inline-flex h-11 items-center justify-center gap-2 rounded-md border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60",
         saved
-          ? "border-[#e5c4d3] bg-[#fff3f7] text-[#a65f7f] hover:bg-[#f8dbe7]"
-          : "border-[#f1d6e2] bg-[#fff3f7] text-[#a65f7f] hover:bg-[#f8dbe7]",
+          ? "border-[#dcd3f7] bg-[#f3f0ff] text-[#6757c8] hover:bg-[#ebe6fb]"
+          : "border-[#e8e3f0] bg-[#f3f0ff] text-[#6757c8] hover:bg-[#ebe6fb]",
       )}
     >
       {loading ? <Loader2 className="size-4 animate-spin" /> : <Heart className={cn("size-4", saved && "fill-current")} />}

@@ -3,9 +3,9 @@ import {
   CheckCircle2,
   Cloud,
   CloudOff,
+  LogOut,
   RefreshCw,
   Trash2,
-  UserRound,
   X,
 } from "lucide-react-native";
 import { Image } from "expo-image";
@@ -14,7 +14,6 @@ import {
   ActivityIndicator,
   Alert,
   Keyboard,
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -25,6 +24,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useApp } from "../providers/AppProvider";
 import { colors } from "../theme";
+import { AppBottomSheet } from "./AppBottomSheet";
 
 function photoStatus(photo: ReturnType<typeof useApp>["pendingPhotos"][number]) {
   if (photo.lastError) return photo.lastError;
@@ -38,6 +38,7 @@ export function AppHeader() {
   const insets = useSafeAreaInsets();
   const [keyboardVisible, setKeyboardVisible] = useState(Keyboard.isVisible());
   const [panelVisible, setPanelVisible] = useState(false);
+  const [accountVisible, setAccountVisible] = useState(false);
   const {
     user,
     online,
@@ -82,44 +83,53 @@ export function AppHeader() {
     <>
       <View style={[styles.header, { paddingTop: insets.top, minHeight: 64 + insets.top }]}>
         <View style={styles.mark}>
-          <Image source={require("../../assets/icon.png")} style={styles.markImage} contentFit="cover" />
+          <Image source={require("../../assets/brand-mark.png")} style={styles.markImage} contentFit="cover" />
         </View>
         <View style={styles.identity}>
           <Text style={styles.brand}>Pequenos Passos</Text>
           <Text numberOfLines={1} style={styles.user}>{user?.name || user?.email || "Professora"}</Text>
         </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`${syncLabel}. Abrir detalhes da sincronizacao.`}
-          onPress={() => setPanelVisible(true)}
-          style={({ pressed }) => [styles.sync, pressed && styles.pressed]}
-        >
-          {syncing
-            ? <ActivityIndicator size="small" color={colors.primary} />
-            : online
-              ? pendingCount
-                ? <Cloud size={18} color={colors.warning} />
-                : <Cloud size={18} color={colors.success} />
-              : <CloudOff size={18} color={colors.warning} />}
-          <Text numberOfLines={1} style={styles.syncText}>{syncLabel}</Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Abrir opcoes da conta"
-          disabled={accountBusy}
-          hitSlop={4}
-          onPress={logout}
-          style={({ pressed }) => [styles.logout, pressed && styles.pressed, accountBusy && styles.disabled]}
-        >
-          {accountBusy
-            ? <ActivityIndicator size="small" color={colors.primary} />
-            : <UserRound size={19} color={colors.primary} />}
-        </Pressable>
+        <View style={styles.actions}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${syncLabel}. Abrir detalhes da sincronizacao.`}
+            onPress={() => setPanelVisible(true)}
+            style={({ pressed }) => [styles.sync, pressed && styles.pressed]}
+          >
+            {syncing
+              ? <ActivityIndicator size="small" color={colors.primary} />
+              : online
+                ? pendingCount
+                  ? <Cloud size={18} color={colors.warning} />
+                  : <Cloud size={18} color={colors.success} />
+                : <CloudOff size={18} color={colors.warning} />}
+            <Text numberOfLines={1} style={styles.syncText}>{syncLabel}</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Abrir opcoes da conta"
+            disabled={accountBusy}
+            hitSlop={4}
+            onPress={() => setAccountVisible(true)}
+            style={({ pressed }) => [styles.accountButton, pressed && styles.pressed, accountBusy && styles.disabled]}
+          >
+            {accountBusy ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : user?.image ? (
+              <Image source={user.image} style={styles.accountImage} contentFit="cover" transition={120} />
+            ) : (
+              <Text style={styles.accountInitial}>{(user?.name || user?.email || "P").slice(0, 1).toUpperCase()}</Text>
+            )}
+          </Pressable>
+        </View>
       </View>
 
-      <Modal visible={panelVisible} transparent animationType="slide" statusBarTranslucent onRequestClose={() => setPanelVisible(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setPanelVisible(false)} />
-        <View style={[styles.panel, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+      <AppBottomSheet
+        visible={panelVisible}
+        onClose={() => setPanelVisible(false)}
+        accessibilityLabel="Fechar sincronizacao"
+        contentStyle={[styles.panel, { paddingBottom: Math.max(insets.bottom, 16) }]}
+      >
           <View style={styles.panelHandle} />
           <View style={styles.panelHeader}>
             <View style={styles.panelTitleWrap}>
@@ -183,8 +193,48 @@ export function AppHeader() {
             {syncing ? <ActivityIndicator size="small" color="white" /> : <RefreshCw size={18} color="white" />}
             <Text style={styles.retryAllText}>{syncing ? "Sincronizando..." : "Tentar tudo agora"}</Text>
           </Pressable>
+      </AppBottomSheet>
+
+      <AppBottomSheet
+        visible={accountVisible}
+        onClose={() => setAccountVisible(false)}
+        accessibilityLabel="Fechar opcoes da conta"
+        contentStyle={[styles.accountPanel, { paddingBottom: Math.max(insets.bottom, 16) }]}
+      >
+        <View style={styles.panelHandle} />
+        <View style={styles.accountProfile}>
+          <View style={styles.accountAvatarLarge}>
+            {user?.image ? (
+              <Image source={user.image} style={styles.accountImageLarge} contentFit="cover" transition={120} />
+            ) : (
+              <Text style={styles.accountInitialLarge}>{(user?.name || user?.email || "P").slice(0, 1).toUpperCase()}</Text>
+            )}
+          </View>
+          <View style={styles.accountInfo}>
+            <Text numberOfLines={1} style={styles.accountName}>{user?.name || "Professora"}</Text>
+            <Text numberOfLines={1} style={styles.accountEmail}>{user?.email || "Conta Google conectada"}</Text>
+          </View>
+          <Pressable accessibilityLabel="Fechar" onPress={() => setAccountVisible(false)} style={styles.closeButton}>
+            <X size={20} color={colors.text} />
+          </Pressable>
         </View>
-      </Modal>
+        <View style={styles.accountPrivacy}>
+          <CheckCircle2 size={18} color={colors.success} />
+          <Text style={styles.accountPrivacyText}>Dados e envios separados com seguranca por conta.</Text>
+        </View>
+        <Pressable
+          accessibilityRole="button"
+          disabled={accountBusy}
+          onPress={() => {
+            setAccountVisible(false);
+            void logout();
+          }}
+          style={({ pressed }) => [styles.signOutButton, pressed && styles.pressed, accountBusy && styles.disabled]}
+        >
+          {accountBusy ? <ActivityIndicator size="small" color={colors.primary} /> : <LogOut size={19} color={colors.primary} />}
+          <Text style={styles.signOutText}>Sair e escolher outra conta</Text>
+        </Pressable>
+      </AppBottomSheet>
     </>
   );
 }
@@ -204,12 +254,14 @@ const styles = StyleSheet.create({
   identity: { flex: 1, minWidth: 0, marginLeft: 9 },
   brand: { fontSize: 15, fontWeight: "900", color: colors.text },
   user: { maxWidth: 160, marginTop: 1, fontSize: 11, color: colors.muted, fontWeight: "600" },
-  sync: { minWidth: 74, minHeight: 44, alignItems: "flex-end", justifyContent: "center", paddingHorizontal: 5 },
+  actions: { flexDirection: "row", alignItems: "center", gap: 12 },
+  sync: { width: 82, minHeight: 44, alignItems: "center", justifyContent: "center", paddingHorizontal: 3 },
   syncText: { maxWidth: 82, marginTop: 2, fontSize: 9, color: colors.muted, fontWeight: "800" },
-  logout: { width: 44, height: 44, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: colors.border, borderRadius: 14, backgroundColor: colors.surfaceSoft },
+  accountButton: { width: 44, height: 44, alignItems: "center", justifyContent: "center", overflow: "hidden", borderWidth: 1, borderColor: colors.border, borderRadius: 15, backgroundColor: colors.surfaceSoft },
+  accountImage: { width: "100%", height: "100%" },
+  accountInitial: { fontSize: 15, fontWeight: "900", color: colors.primary },
   pressed: { opacity: 0.65 },
-  backdrop: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(23,33,63,.42)" },
-  panel: { position: "absolute", right: 0, bottom: 0, left: 0, maxHeight: "82%", paddingHorizontal: 16, paddingTop: 9, borderTopLeftRadius: 24, borderTopRightRadius: 24, backgroundColor: colors.surface },
+  panel: { maxHeight: "82%", paddingHorizontal: 16, paddingTop: 9, backgroundColor: colors.surface },
   panelHandle: { alignSelf: "center", width: 42, height: 4, marginBottom: 13, borderRadius: 2, backgroundColor: colors.borderStrong },
   panelHeader: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
   panelTitleWrap: { flex: 1 },
@@ -233,5 +285,17 @@ const styles = StyleSheet.create({
   rowButton: { width: 42, height: 42, alignItems: "center", justifyContent: "center", borderRadius: 8, backgroundColor: colors.surfaceSoft },
   retryAll: { minHeight: 50, marginTop: 16, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 9, backgroundColor: colors.primary },
   retryAllText: { color: "white", fontSize: 14, fontWeight: "900" },
+  accountPanel: { paddingHorizontal: 16, paddingTop: 9, backgroundColor: colors.surface },
+  accountProfile: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 8 },
+  accountAvatarLarge: { width: 54, height: 54, alignItems: "center", justifyContent: "center", overflow: "hidden", borderRadius: 18, backgroundColor: colors.surfaceSoft },
+  accountImageLarge: { width: "100%", height: "100%" },
+  accountInitialLarge: { fontSize: 20, fontWeight: "900", color: colors.primary },
+  accountInfo: { flex: 1, minWidth: 0 },
+  accountName: { fontSize: 16, fontWeight: "900", color: colors.text },
+  accountEmail: { marginTop: 3, fontSize: 12, fontWeight: "600", color: colors.muted },
+  accountPrivacy: { marginTop: 10, flexDirection: "row", alignItems: "center", gap: 9, padding: 12, borderRadius: 14, backgroundColor: colors.tealSoft },
+  accountPrivacyText: { flex: 1, fontSize: 11, lineHeight: 16, fontWeight: "700", color: colors.text },
+  signOutButton: { minHeight: 52, marginTop: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9, borderWidth: 1, borderColor: colors.borderStrong, borderRadius: 15, backgroundColor: colors.surfaceSoft },
+  signOutText: { fontSize: 14, fontWeight: "900", color: colors.primary },
   disabled: { opacity: 0.46 },
 });

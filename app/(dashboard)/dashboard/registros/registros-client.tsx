@@ -614,11 +614,11 @@ export function RegistrosClient() {
 
   return (
     <div className="mx-auto max-w-[1500px] space-y-4">
-      <div className="grid grid-cols-3 rounded-lg border border-[#eadde5] bg-white p-1">
+      <div className="grid grid-cols-3 rounded-lg border border-[#e8e3f0] bg-white p-1">
         {tabs.map((item) => (
           <button key={item.id} type="button" onClick={() => setTab(item.id)} className={cn(
             "flex h-10 min-w-0 items-center justify-center gap-1 rounded-md px-1 text-xs font-bold transition sm:gap-2 sm:px-4 sm:text-sm",
-            tab === item.id ? "bg-[#7d405d] text-white shadow-sm" : "text-[#74616d] hover:bg-[#fff3f7]",
+            tab === item.id ? "bg-[#6757c8] text-white shadow-sm" : "text-[#6d6c82] hover:bg-[#f3f0ff]",
           )}>
             <item.icon className="size-4 shrink-0" /><span className="sm:hidden">{item.shortLabel}</span><span className="hidden sm:inline">{item.label}</span>
           </button>
@@ -628,16 +628,16 @@ export function RegistrosClient() {
       {uploadProgress ? (
         <div className="rounded-lg border border-[#d8c6d1] bg-white p-4" aria-live="polite">
           <div className="flex items-center gap-3">
-            <Loader2 className="size-5 animate-spin text-[#7d405d]" />
+            <Loader2 className="size-5 animate-spin text-[#6757c8]" />
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-black text-[#312834]">Enviando fotos</p>
-              <p className="mt-1 text-xs font-semibold text-[#857582]">
+              <p className="text-sm font-black text-[#17213f]">Enviando fotos</p>
+              <p className="mt-1 text-xs font-semibold text-[#6d6c82]">
                 {uploadProgress.completed} de {uploadProgress.total} concluidas{uploadProgress.failed ? `, ${uploadProgress.failed} com falha` : ""}
               </p>
             </div>
           </div>
-          <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#f2e7ec]">
-            <div className="h-full bg-[#7d405d] transition-[width]" style={{ width: `${uploadProgress.total ? (uploadProgress.completed / uploadProgress.total) * 100 : 0}%` }} />
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#e8e3f0]">
+            <div className="h-full bg-[#6757c8] transition-[width]" style={{ width: `${uploadProgress.total ? (uploadProgress.completed / uploadProgress.total) * 100 : 0}%` }} />
           </div>
         </div>
       ) : pendingPhotoRetry ? (
@@ -657,17 +657,17 @@ export function RegistrosClient() {
 
       {tab === "novo" && (
         <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="rounded-lg border border-[#eadde5] bg-white p-4 md:p-6">
+          <div className="rounded-lg border border-[#e8e3f0] bg-white p-4 md:p-6">
             <div className="mb-5 flex items-start justify-between gap-3">
-              <div><h2 className="font-heading text-xl text-[#312834]">Registro individual</h2><p className="mt-1 text-sm text-[#857582]">{shortDate(dataRegistro)}</p></div>
-              <span className="inline-flex size-10 items-center justify-center rounded-md bg-[#fff3f7] text-[#a65f7f]"><Pencil className="size-5" /></span>
+              <div><h2 className="font-heading text-xl text-[#17213f]">Registro individual</h2><p className="mt-1 text-sm text-[#6d6c82]">{shortDate(dataRegistro)}</p></div>
+              <span className="inline-flex size-10 items-center justify-center rounded-md bg-[#f3f0ff] text-[#6757c8]"><Pencil className="size-5" /></span>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <label><span className="pf-label">Turma</span><FilterSelect value={novoTurmaId} onChange={(event) => { setNovoTurmaId(event.target.value); setNovoAlunoId(""); }}><option value="">Todas as turmas</option>{turmas.map((item) => <option key={item.id} value={item.id}>{item.nome}</option>)}</FilterSelect></label>
               <label><span className="pf-label">Crianca</span><FilterSelect value={novoAlunoId} onChange={(event) => setNovoAlunoId(event.target.value)} disabled={!criancas.length}><option value="">Selecione a crianca</option>{newChildren.map((item) => <option key={item.id} value={item.id}>{item.nome}</option>)}</FilterSelect></label>
             </div>
             {!loadingBase && (!turmas.length || !criancas.length) ? (
-              <a href="/dashboard/turmas" className="mt-3 inline-flex h-10 items-center gap-2 rounded-md border border-[#e5c4d3] bg-[#fff8fb] px-3 text-sm font-bold text-[#7d405d]"><Plus className="size-4" /> Cadastrar turma e crianca</a>
+              <a href="/dashboard/turmas" className="mt-3 inline-flex h-10 items-center gap-2 rounded-md border border-[#dcd3f7] bg-[#f8f6ff] px-3 text-sm font-bold text-[#6757c8]"><Plus className="size-4" /> Cadastrar turma e crianca</a>
             ) : null}
             <label className="mt-4 block"><span className="pf-label">Data do registro</span><input type="date" className="pf-input h-11 max-w-[220px]" value={dataRegistro} onChange={(event) => setDataRegistro(event.target.value)} /></label>
             <label className="mt-4 block"><span className="pf-label">Anotacao pedagogica</span><Textarea value={texto} onChange={(event) => setTexto(event.target.value)} rows={10} className="min-h-[240px] text-[15px] leading-7" placeholder="Escreva o que aconteceu, como a crianca participou e quais estrategias utilizou..." /></label>
@@ -676,20 +676,20 @@ export function RegistrosClient() {
                 {transcribing ? <Loader2 className="size-4 animate-spin" /> : recording ? <Square className="size-4 fill-current" /> : <Mic className="size-4" />}
                 {transcribing ? "Transcrevendo" : recording ? `Parar ${Math.floor(recordingSeconds / 60)}:${String(recordingSeconds % 60).padStart(2, "0")}` : "Gravar audio"}
               </Button>
-              <label className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-md border border-[#e5c4d3] bg-white px-4 text-sm font-bold text-[#6a4562] hover:bg-[#fff8fb]">
+              <label className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-md border border-[#dcd3f7] bg-white px-4 text-sm font-bold text-[#4f3ca6] hover:bg-[#f8f6ff]">
                 <Camera className="size-4" /> Adicionar fotos
                 <input type="file" accept="image/jpeg,image/png,image/webp" multiple className="sr-only" onChange={(event) => setFotos(Array.from(event.target.files ?? []).slice(0, 6))} />
               </label>
-              {fotos.length ? <span className="inline-flex h-11 items-center gap-2 rounded-md bg-[#fff3f7] px-3 text-sm font-bold text-[#7d405d]"><Images className="size-4" /> {fotos.length}/6</span> : null}
+              {fotos.length ? <span className="inline-flex h-11 items-center gap-2 rounded-md bg-[#f3f0ff] px-3 text-sm font-bold text-[#6757c8]"><Images className="size-4" /> {fotos.length}/6</span> : null}
             </div>
-            <div className="mt-5 flex justify-end border-t border-[#f0e5eb] pt-4"><Button type="button" onClick={saveRecord} disabled={saving || transcribing || recording} className="pf-btn-success h-11 px-6">{saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />} Salvar registro</Button></div>
+            <div className="mt-5 flex justify-end border-t border-[#e8e3f0] pt-4"><Button type="button" onClick={saveRecord} disabled={saving || transcribing || recording} className="pf-btn-success h-11 px-6">{saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />} Salvar registro</Button></div>
           </div>
-          <aside className="rounded-lg border border-[#eadde5] bg-[#fff9fc] p-5 lg:self-start">
-            <h3 className="font-heading text-lg text-[#312834]">Resumo</h3>
-            <div className="mt-4 space-y-2 text-sm font-semibold text-[#74616d]">
-              <p className="flex items-center justify-between rounded-md bg-white px-3 py-3"><span>Data</span><strong className="text-[#312834]">{shortDate(dataRegistro)}</strong></p>
-              <p className="flex items-center justify-between rounded-md bg-white px-3 py-3"><span>Crianca</span><strong className="max-w-[150px] truncate text-[#312834]">{criancas.find((item) => item.id === novoAlunoId)?.nome || "-"}</strong></p>
-              <p className="flex items-center justify-between rounded-md bg-white px-3 py-3"><span>Fotos</span><strong className="text-[#312834]">{fotos.length}</strong></p>
+          <aside className="rounded-lg border border-[#e8e3f0] bg-[#faf9ff] p-5 lg:self-start">
+            <h3 className="font-heading text-lg text-[#17213f]">Resumo</h3>
+            <div className="mt-4 space-y-2 text-sm font-semibold text-[#6d6c82]">
+              <p className="flex items-center justify-between rounded-md bg-white px-3 py-3"><span>Data</span><strong className="text-[#17213f]">{shortDate(dataRegistro)}</strong></p>
+              <p className="flex items-center justify-between rounded-md bg-white px-3 py-3"><span>Crianca</span><strong className="max-w-[150px] truncate text-[#17213f]">{criancas.find((item) => item.id === novoAlunoId)?.nome || "-"}</strong></p>
+              <p className="flex items-center justify-between rounded-md bg-white px-3 py-3"><span>Fotos</span><strong className="text-[#17213f]">{fotos.length}</strong></p>
             </div>
           </aside>
         </section>
@@ -697,7 +697,7 @@ export function RegistrosClient() {
 
       {tab === "visualizar" && (
         <section className="space-y-4">
-          <div className="rounded-lg border border-[#eadde5] bg-white p-4">
+          <div className="rounded-lg border border-[#e8e3f0] bg-white p-4">
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[1fr_1fr_1.1fr_auto]">
               <FilterSelect aria-label="Filtrar turma" value={filterTurmaId} onChange={(event) => { setFilterTurmaId(event.target.value); setFilterAlunoId(""); }}><option value="">Todas as turmas</option>{turmas.map((item) => <option key={item.id} value={item.id}>{item.nome}</option>)}</FilterSelect>
               <FilterSelect aria-label="Filtrar crianca" value={filterAlunoId} onChange={(event) => setFilterAlunoId(event.target.value)}><option value="">Todas as criancas</option>{filterChildren.map((item) => <option key={item.id} value={item.id}>{item.nome}</option>)}</FilterSelect>
@@ -705,22 +705,22 @@ export function RegistrosClient() {
               <Button type="button" variant={lixeira ? "default" : "outline"} onClick={() => setLixeira((value) => !value)} className="h-11"><Trash2 className="size-4" /> {lixeira ? "Sair da lixeira" : "Lixeira"}</Button>
             </div>
             {datePreset === "personalizado" ? <div className="mt-3 grid max-w-xl gap-3 sm:grid-cols-2"><label><span className="pf-label">De</span><input type="date" className="pf-input h-11" value={dataInicio} onChange={(event) => setDataInicio(event.target.value)} /></label><label><span className="pf-label">Ate</span><input type="date" className="pf-input h-11" value={dataFim} onChange={(event) => setDataFim(event.target.value)} /></label></div> : null}
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[#f1e7ec] pt-3 text-sm text-[#857582]"><span><strong className="text-[#312834]">{total}</strong> registros</span><Button type="button" variant="outline" onClick={exportRecords} className="h-9"><FileText className="size-4" /> Baixar Word</Button></div>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[#f1e7ec] pt-3 text-sm text-[#6d6c82]"><span><strong className="text-[#17213f]">{total}</strong> registros</span><Button type="button" variant="outline" onClick={exportRecords} className="h-9"><FileText className="size-4" /> Baixar Word</Button></div>
           </div>
 
-          {loadingRecords && !registros.length ? <div className="flex min-h-48 items-center justify-center rounded-lg border border-[#eadde5] bg-white"><Loader2 className="size-6 animate-spin text-[#a65f7f]" /></div> : null}
-          {!loadingRecords && !registros.length ? <div className="rounded-lg border border-dashed border-[#dfccd7] bg-white py-16 text-center text-sm font-semibold text-[#857582]">Nenhum registro encontrado.</div> : null}
+          {loadingRecords && !registros.length ? <div className="flex min-h-48 items-center justify-center rounded-lg border border-[#e8e3f0] bg-white"><Loader2 className="size-6 animate-spin text-[#6757c8]" /></div> : null}
+          {!loadingRecords && !registros.length ? <div className="rounded-lg border border-dashed border-[#dfccd7] bg-white py-16 text-center text-sm font-semibold text-[#6d6c82]">Nenhum registro encontrado.</div> : null}
           {grouped.map(([date, items]) => (
             <div key={date} className="space-y-2">
-              <div className="sticky top-[72px] z-10 flex items-center gap-2 bg-[#fffafd]/95 py-2 backdrop-blur"><CalendarDays className="size-4 text-[#a65f7f]" /><h3 className="text-sm font-black capitalize text-[#4d3e48]">{formatDate(date)}</h3><span className="text-xs text-[#9b8d96]">{items.length}</span></div>
+              <div className="sticky top-[72px] z-10 flex items-center gap-2 bg-[#fbfaf8]/95 py-2 backdrop-blur"><CalendarDays className="size-4 text-[#6757c8]" /><h3 className="text-sm font-black capitalize text-[#17213f]">{formatDate(date)}</h3><span className="text-xs text-[#8c899b]">{items.length}</span></div>
               <div className="grid gap-3 lg:grid-cols-2">
                 {items.map((record) => {
                   const selected = selectedIds.includes(record.id);
                   const locked = Boolean(selectedChildId && selectedChildId !== record.alunoId);
-                  return <article key={record.id} className={cn("rounded-lg border bg-white p-4 transition", selected ? "border-[#a65f7f] ring-2 ring-[#f3dce6]" : "border-[#eadde5]", locked && "opacity-55")}>
+                  return <article key={record.id} className={cn("rounded-lg border bg-white p-4 transition", selected ? "border-[#6757c8] ring-2 ring-[#f3dce6]" : "border-[#e8e3f0]", locked && "opacity-55")}>
                     <div className="flex items-start gap-3">
-                      {!lixeira ? <button type="button" disabled={locked} onClick={() => toggleRecord(record)} className={cn("mt-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded border", selected ? "border-[#7d405d] bg-[#7d405d] text-white" : "border-[#d8c6d1] bg-white text-transparent", locked && "cursor-not-allowed")} aria-label={selected ? "Desmarcar registro" : "Selecionar registro"}><Check className="size-4" /></button> : null}
-                      <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><strong className="text-sm text-[#312834]">{record.aluno.nome}</strong><span className="rounded-full bg-[#fff3f7] px-2 py-0.5 text-[10px] font-bold text-[#8f5671]">{record.aluno.turma.nome}</span><span className="text-xs text-[#9b8d96]">{shortDate(record.dataRegistro)}</span></div><p className="mt-3 whitespace-pre-line text-sm leading-6 text-[#66545f]">{record.texto}</p></div>
+                      {!lixeira ? <button type="button" disabled={locked} onClick={() => toggleRecord(record)} className={cn("mt-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded border", selected ? "border-[#6757c8] bg-[#6757c8] text-white" : "border-[#d8c6d1] bg-white text-transparent", locked && "cursor-not-allowed")} aria-label={selected ? "Desmarcar registro" : "Selecionar registro"}><Check className="size-4" /></button> : null}
+                      <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><strong className="text-sm text-[#17213f]">{record.aluno.nome}</strong><span className="rounded-full bg-[#f3f0ff] px-2 py-0.5 text-[10px] font-bold text-[#6757c8]">{record.aluno.turma.nome}</span><span className="text-xs text-[#8c899b]">{shortDate(record.dataRegistro)}</span></div><p className="mt-3 whitespace-pre-line text-sm leading-6 text-[#6d6c82]">{record.texto}</p></div>
                     </div>
                     {record.fotos.length ? <div className="mt-3 grid grid-cols-3 gap-2">{record.fotos.map((foto) => foto.url ? <a key={foto.id} href={foto.url} target="_blank" rel="noreferrer" className="relative aspect-[4/3] overflow-hidden rounded-md bg-[#f5edf1]"><Image src={foto.url} alt="Foto do registro" fill unoptimized sizes="(max-width: 1024px) 33vw, 180px" className="object-cover" /></a> : null)}</div> : null}
                     <div className="mt-3 flex justify-end gap-2 border-t border-[#f4eaef] pt-3">{lixeira ? <Button type="button" variant="outline" className="h-9" onClick={() => restoreRecord(record.id)}><RotateCcw className="size-4" /> Restaurar</Button> : <><Button type="button" variant="ghost" className="h-9" onClick={() => startRecordEdit(record)}><Pencil className="size-4" /> Editar</Button><Button type="button" variant="ghost" className="h-9 text-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => removeRecord(record.id)}><Trash2 className="size-4" /></Button></>}</div>
@@ -735,27 +735,27 @@ export function RegistrosClient() {
 
       {tab === "relatorios" && (
         <section className="space-y-3">
-          {!relatorios.length ? <div className="rounded-lg border border-dashed border-[#dfccd7] bg-white py-16 text-center text-sm font-semibold text-[#857582]">Nenhuma avaliacao gerada.</div> : null}
+          {!relatorios.length ? <div className="rounded-lg border border-dashed border-[#dfccd7] bg-white py-16 text-center text-sm font-semibold text-[#6d6c82]">Nenhuma avaliacao gerada.</div> : null}
           {relatorios.map((report) => {
             const editing = editingReportId === report.id && reportDraft;
-            return <article key={report.id} className="rounded-lg border border-[#eadde5] bg-white p-4 md:p-5">
-              {editing ? <div className="space-y-3"><div className="grid gap-3 md:grid-cols-3"><label><span className="pf-label">Crianca</span><input className="pf-input h-10" value={reportDraft.nomeCrianca ?? ""} onChange={(event) => setReportDraft({ ...reportDraft, nomeCrianca: event.target.value })} /></label><label><span className="pf-label">Periodo</span><input className="pf-input h-10" value={reportDraft.periodo} onChange={(event) => setReportDraft({ ...reportDraft, periodo: event.target.value })} /></label><label><span className="pf-label">Contexto</span><input className="pf-input h-10" value={reportDraft.contexto ?? ""} onChange={(event) => setReportDraft({ ...reportDraft, contexto: event.target.value })} /></label></div><label><span className="pf-label">Avaliacao</span><Textarea className="min-h-[340px] text-[15px] leading-7" value={reportDraft.texto} onChange={(event) => setReportDraft({ ...reportDraft, texto: event.target.value })} /></label><div className="flex justify-end gap-2"><Button variant="outline" onClick={() => { setEditingReportId(null); setReportDraft(null); }}><X className="size-4" /> Cancelar</Button><Button onClick={saveReport}><Save className="size-4" /> Salvar revisao</Button></div></div> : <><div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><h3 className="font-heading text-lg text-[#312834]">{report.nomeCrianca || "Crianca"}</h3><span className="rounded-full bg-[#fff3f7] px-2 py-0.5 text-[10px] font-bold text-[#8f5671]">{modelLabel(report.modeloIa)}</span></div><p className="mt-1 text-xs text-[#92838c]">{[report.contexto, report.periodo, shortDate(report.createdAt)].filter(Boolean).join(" | ")}</p></div><Button type="button" variant="outline" className="h-9" onClick={() => { setEditingReportId(report.id); setReportDraft({ ...report }); }}><Pencil className="size-4" /> Editar</Button></div><p className="mt-4 whitespace-pre-line text-sm leading-7 text-[#66545f]">{report.texto}</p><div className="mt-4 flex flex-wrap gap-2 border-t border-[#f2e7ec] pt-3"><CopyTextButton text={report.texto} label="Copiar" /><a className="inline-flex h-9 items-center gap-2 rounded-md border border-[#e5c4d3] px-3 text-xs font-bold text-[#7d405d]" href={`/api/relatorios/${report.id}/export?format=docx`}><FileText className="size-4" /> Word</a><a className="inline-flex h-9 items-center gap-2 rounded-md border border-[#e5c4d3] px-3 text-xs font-bold text-[#7d405d]" href={`/api/relatorios/${report.id}/export?format=pdf`}><Download className="size-4" /> PDF</a></div></>}
+            return <article key={report.id} className="rounded-lg border border-[#e8e3f0] bg-white p-4 md:p-5">
+              {editing ? <div className="space-y-3"><div className="grid gap-3 md:grid-cols-3"><label><span className="pf-label">Crianca</span><input className="pf-input h-10" value={reportDraft.nomeCrianca ?? ""} onChange={(event) => setReportDraft({ ...reportDraft, nomeCrianca: event.target.value })} /></label><label><span className="pf-label">Periodo</span><input className="pf-input h-10" value={reportDraft.periodo} onChange={(event) => setReportDraft({ ...reportDraft, periodo: event.target.value })} /></label><label><span className="pf-label">Contexto</span><input className="pf-input h-10" value={reportDraft.contexto ?? ""} onChange={(event) => setReportDraft({ ...reportDraft, contexto: event.target.value })} /></label></div><label><span className="pf-label">Avaliacao</span><Textarea className="min-h-[340px] text-[15px] leading-7" value={reportDraft.texto} onChange={(event) => setReportDraft({ ...reportDraft, texto: event.target.value })} /></label><div className="flex justify-end gap-2"><Button variant="outline" onClick={() => { setEditingReportId(null); setReportDraft(null); }}><X className="size-4" /> Cancelar</Button><Button onClick={saveReport}><Save className="size-4" /> Salvar revisao</Button></div></div> : <><div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><h3 className="font-heading text-lg text-[#17213f]">{report.nomeCrianca || "Crianca"}</h3><span className="rounded-full bg-[#f3f0ff] px-2 py-0.5 text-[10px] font-bold text-[#6757c8]">{modelLabel(report.modeloIa)}</span></div><p className="mt-1 text-xs text-[#6d6c82]">{[report.contexto, report.periodo, shortDate(report.createdAt)].filter(Boolean).join(" | ")}</p></div><Button type="button" variant="outline" className="h-9" onClick={() => { setEditingReportId(report.id); setReportDraft({ ...report }); }}><Pencil className="size-4" /> Editar</Button></div><p className="mt-4 whitespace-pre-line text-sm leading-7 text-[#6d6c82]">{report.texto}</p><div className="mt-4 flex flex-wrap gap-2 border-t border-[#e8e3f0] pt-3"><CopyTextButton text={report.texto} label="Copiar" /><a className="inline-flex h-9 items-center gap-2 rounded-md border border-[#dcd3f7] px-3 text-xs font-bold text-[#6757c8]" href={`/api/relatorios/${report.id}/export?format=docx`}><FileText className="size-4" /> Word</a><a className="inline-flex h-9 items-center gap-2 rounded-md border border-[#dcd3f7] px-3 text-xs font-bold text-[#6757c8]" href={`/api/relatorios/${report.id}/export?format=pdf`}><Download className="size-4" /> PDF</a></div></>}
             </article>;
           })}
         </section>
       )}
 
       {selectedIds.length > 0 && tab === "visualizar" ? <div className="fixed bottom-[76px] left-3 right-3 z-30 mx-auto max-w-3xl rounded-lg border border-[#cfa9bb] bg-white p-3 shadow-[0_20px_60px_-20px_rgba(70,38,58,.45)] md:bottom-5 md:left-[316px]">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center"><div className="min-w-0 flex-1"><p className="text-sm font-black text-[#312834]">{selectedIds.length} registro(s) de {selectedChild?.nome}</p><input value={periodo} onChange={(event) => setPeriodo(event.target.value)} className="mt-1 h-8 w-full max-w-[260px] rounded-md border border-[#e5c4d3] px-2 text-xs" aria-label="Periodo da avaliacao" /></div><div className="flex flex-wrap gap-2"><Button type="button" onClick={generateReport} disabled={generating}>{generating ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />} Gerar avaliacao com IA</Button><Button type="button" variant="outline" onClick={exportRecords}><FileText className="size-4" /> Word</Button><Button type="button" variant="ghost" onClick={clearSelection}><X className="size-4" /> Limpar</Button></div></div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center"><div className="min-w-0 flex-1"><p className="text-sm font-black text-[#17213f]">{selectedIds.length} registro(s) de {selectedChild?.nome}</p><input value={periodo} onChange={(event) => setPeriodo(event.target.value)} className="mt-1 h-8 w-full max-w-[260px] rounded-md border border-[#dcd3f7] px-2 text-xs" aria-label="Periodo da avaliacao" /></div><div className="flex flex-wrap gap-2"><Button type="button" onClick={generateReport} disabled={generating}>{generating ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />} Gerar avaliacao com IA</Button><Button type="button" variant="outline" onClick={exportRecords}><FileText className="size-4" /> Word</Button><Button type="button" variant="ghost" onClick={clearSelection}><X className="size-4" /> Limpar</Button></div></div>
       </div> : null}
 
-      {editingRecord ? <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#402d3b]/45 p-0 backdrop-blur-sm sm:items-center sm:p-4"><div className="max-h-[94vh] w-full max-w-2xl overflow-y-auto rounded-t-lg bg-white p-5 shadow-xl sm:rounded-lg">
-        <div className="flex items-center justify-between"><h2 className="font-heading text-xl text-[#312834]">Editar registro</h2><button type="button" onClick={() => setEditingRecord(null)} className="inline-flex size-9 items-center justify-center rounded-md border border-[#eadde5]"><X className="size-4" /></button></div>
+      {editingRecord ? <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#17213f]/45 p-0 backdrop-blur-sm sm:items-center sm:p-4"><div className="max-h-[94vh] w-full max-w-2xl overflow-y-auto rounded-t-lg bg-white p-5 shadow-xl sm:rounded-lg">
+        <div className="flex items-center justify-between"><h2 className="font-heading text-xl text-[#17213f]">Editar registro</h2><button type="button" onClick={() => setEditingRecord(null)} className="inline-flex size-9 items-center justify-center rounded-md border border-[#e8e3f0]"><X className="size-4" /></button></div>
         <div className="mt-4 grid gap-3 sm:grid-cols-2"><label><span className="pf-label">Crianca</span><FilterSelect value={editingChild} onChange={(event) => setEditingChild(event.target.value)}>{criancas.map((item) => <option key={item.id} value={item.id}>{item.nome} - {item.turma.nome}</option>)}</FilterSelect></label><label><span className="pf-label">Data</span><input type="date" className="pf-input h-11" value={editingDate} onChange={(event) => setEditingDate(event.target.value)} /></label></div>
         <label className="mt-3 block"><span className="pf-label">Anotacao</span><Textarea className="min-h-[220px]" value={editingText} onChange={(event) => setEditingText(event.target.value)} /></label>
         {editingRecord.fotos.length ? <div className="mt-3 grid grid-cols-3 gap-2">{editingRecord.fotos.map((foto) => foto.url ? <button type="button" key={foto.id} onClick={() => setRemovedPhotoIds((current) => current.includes(foto.id) ? current.filter((id) => id !== foto.id) : [...current, foto.id])} className={cn("relative aspect-[4/3] overflow-hidden rounded-md", removedPhotoIds.includes(foto.id) && "opacity-35 ring-2 ring-red-500")}><Image src={foto.url} alt="Foto anexada" fill unoptimized sizes="(max-width: 640px) 33vw, 200px" className="object-cover" />{removedPhotoIds.includes(foto.id) ? <span className="absolute inset-0 z-10 grid place-items-center text-xs font-black text-red-700">Remover</span> : null}</button> : null)}</div> : null}
-        <label className="mt-3 inline-flex h-10 cursor-pointer items-center gap-2 rounded-md border border-[#e5c4d3] px-3 text-sm font-bold text-[#7d405d]"><Camera className="size-4" /> Novas fotos<input type="file" multiple accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(event) => setEditingFiles(Array.from(event.target.files ?? []))} /></label>
-        <div className="mt-5 flex justify-end gap-2 border-t border-[#f2e7ec] pt-4"><Button variant="outline" onClick={() => setEditingRecord(null)}>Cancelar</Button><Button onClick={saveRecordEdit}><Save className="size-4" /> Salvar</Button></div>
+        <label className="mt-3 inline-flex h-10 cursor-pointer items-center gap-2 rounded-md border border-[#dcd3f7] px-3 text-sm font-bold text-[#6757c8]"><Camera className="size-4" /> Novas fotos<input type="file" multiple accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(event) => setEditingFiles(Array.from(event.target.files ?? []))} /></label>
+        <div className="mt-5 flex justify-end gap-2 border-t border-[#e8e3f0] pt-4"><Button variant="outline" onClick={() => setEditingRecord(null)}>Cancelar</Button><Button onClick={saveRecordEdit}><Save className="size-4" /> Salvar</Button></div>
       </div></div> : null}
     </div>
   );
