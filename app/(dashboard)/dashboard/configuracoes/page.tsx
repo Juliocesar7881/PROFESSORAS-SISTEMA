@@ -113,8 +113,8 @@ export default function ConfiguracoesPage() {
               <CardDescription className="text-[13px] font-semibold text-[#6d6c82]">Aplicativo Android para registros individuais.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 p-5 pt-0">
-              {apkUrl ? <a href={apkUrl} download className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-[#6757c8] px-4 text-sm font-bold text-white"><Download className="size-4" /> Baixar APK 1.2.0</a> : <p className="rounded-lg border border-[#e8e3f0] bg-white p-3 text-sm font-semibold text-[#6d6c82]">O APK sera exibido aqui assim que a compilacao estiver publicada.</p>}
-              {apkUrl ? <p className="text-xs font-semibold leading-relaxed text-[#6d6c82]">Android 7 ou superior. Atualiza normalmente a versao 1.0.1 sem apagar os dados do aplicativo.</p> : null}
+              {apkUrl ? <a href={apkUrl} download className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-[#6757c8] px-4 text-sm font-bold text-white"><Download className="size-4" /> Baixar APK atualizado</a> : <p className="rounded-lg border border-[#e8e3f0] bg-white p-3 text-sm font-semibold text-[#6d6c82]">O APK sera exibido aqui assim que a compilacao estiver publicada.</p>}
+              {apkUrl ? <p className="text-xs font-semibold leading-relaxed text-[#6d6c82]">Android 7 ou superior. Atualiza versoes anteriores sem apagar os dados do aplicativo.</p> : null}
             </CardContent>
           </Card>
         </div>
