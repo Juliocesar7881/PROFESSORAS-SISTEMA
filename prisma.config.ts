@@ -13,7 +13,39 @@ if (existsSync(envLocalPath)) {
 }
 
 const fallbackDatabaseUrl = "postgresql://postgres:postgres@localhost:5432/postgres";
-const databaseUrl = process.env.DATABASE_URL?.trim() ? process.env.DATABASE_URL : fallbackDatabaseUrl;
+
+function getMigrationDatabaseUrl() {
+  const directUrl = process.env.DIRECT_URL?.trim();
+
+  if (directUrl && !directUrl.includes(".pooler.supabase.com")) {
+    return directUrl;
+  }
+
+  const databaseUrl = process.env.DATABASE_URL?.trim();
+
+  if (!databaseUrl) {
+    return directUrl || fallbackDatabaseUrl;
+  }
+
+  try {
+    const parsedDatabaseUrl = new URL(databaseUrl);
+    const supabaseUrl = process.env.SUPABASE_URL?.trim();
+
+    if (parsedDatabaseUrl.hostname.includes(".pooler.supabase.com") && supabaseUrl) {
+      const projectRef = new URL(supabaseUrl).hostname.replace(".supabase.co", "");
+      parsedDatabaseUrl.hostname = `db.${projectRef}.supabase.co`;
+      parsedDatabaseUrl.port = "5432";
+      parsedDatabaseUrl.username = parsedDatabaseUrl.username.split(".")[0];
+      return parsedDatabaseUrl.toString();
+    }
+  } catch {
+    return directUrl || databaseUrl;
+  }
+
+  return directUrl || databaseUrl;
+}
+
+const migrationDatabaseUrl = getMigrationDatabaseUrl();
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
@@ -21,6 +53,6 @@ export default defineConfig({
     seed: "tsx prisma/seed.ts",
   },
   datasource: {
-    url: databaseUrl,
+    url: migrationDatabaseUrl,
   },
 });

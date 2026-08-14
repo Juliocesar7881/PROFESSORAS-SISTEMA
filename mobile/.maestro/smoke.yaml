@@ -1,0 +1,16 @@
+appId: br.com.planejei.registros
+---
+- launchApp:
+    clearState: false
+- assertVisible:
+    text: "Planejei Registros"
+- runFlow:
+    when:
+      visible: "Novo registro"
+    commands:
+      - tapOn: "Registros"
+      - assertVisible: "Todas"
+      - tapOn: "Gestao"
+      - assertVisible: "Gestao"
+      - tapOn: "Novo registro"
+      - assertVisible: "Anotacao pedagogica"

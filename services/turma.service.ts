@@ -8,8 +8,8 @@ export class TurmaService {
     return this.turmaRepository.create(userId, payload);
   }
 
-  async list(userId: string) {
-    return this.turmaRepository.listByUser(userId);
+  async list(userId: string, lixeira = false) {
+    return this.turmaRepository.listByUser(userId, lixeira);
   }
 
   async update(userId: string, turmaId: string, payload: UpdateTurmaInput) {
@@ -18,5 +18,9 @@ export class TurmaService {
 
   async remove(userId: string, turmaId: string) {
     return this.turmaRepository.softDelete(userId, turmaId);
+  }
+
+  async restore(userId: string, turmaId: string) {
+    return this.turmaRepository.restore(userId, turmaId);
   }
 }

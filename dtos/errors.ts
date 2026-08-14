@@ -46,8 +46,8 @@ export class PlanLimitError extends DomainError {
 }
 
 export class ConflictError extends DomainError {
-  constructor(message = "Conflito de dados") {
-    super(message, 409, "CONFLICT");
+  constructor(message = "Conflito de dados", details?: unknown) {
+    super(message, 409, "CONFLICT", details);
   }
 }
 
@@ -60,5 +60,23 @@ export class RateLimitError extends DomainError {
 export class ServiceUnavailableError extends DomainError {
   constructor(message = "Serviço temporariamente indisponível", details?: unknown) {
     super(message, 503, "SERVICE_UNAVAILABLE", details);
+  }
+}
+
+export class PayloadTooLargeError extends DomainError {
+  constructor(message = "Arquivo grande demais", details?: unknown) {
+    super(message, 413, "FILE_TOO_LARGE", details);
+  }
+}
+
+export class UnsupportedMediaTypeError extends DomainError {
+  constructor(message = "Formato de arquivo nao suportado", details?: unknown) {
+    super(message, 415, "INVALID_IMAGE", details);
+  }
+}
+
+export class PhotoUploadNotReadyError extends DomainError {
+  constructor(message = "A foto ainda nao chegou ao armazenamento", details?: unknown) {
+    super(message, 409, "PHOTO_UPLOAD_NOT_READY", details);
   }
 }

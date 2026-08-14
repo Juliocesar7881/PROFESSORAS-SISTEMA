@@ -2,11 +2,15 @@ import { Ratelimit, type Duration } from "@upstash/ratelimit";
 import { Plano } from "@prisma/client";
 
 import { RateLimitError } from "@/dtos/errors";
-import { redis } from "@/lib/upstash";
+import { isUpstashConfigured, redis } from "@/lib/upstash";
 
 const limiterCache = new Map<string, Ratelimit>();
 
 function getLimiter(prefix: string, points: number, window: Duration): Ratelimit {
+  if (!redis) {
+    throw new Error("Rate limit backend is not configured");
+  }
+
   const cacheKey = `${prefix}:${points}:${window}`;
   const cached = limiterCache.get(cacheKey);
 
@@ -32,6 +36,15 @@ export interface LimitOptions {
 }
 
 export async function enforceRateLimit(options: LimitOptions) {
+  if (!isUpstashConfigured) {
+    return {
+      success: true,
+      limit: options.points,
+      remaining: options.points,
+      reset: Date.now(),
+    };
+  }
+
   const limiter = getLimiter(options.prefix, options.points, options.window);
   const result = await limiter.limit(options.key);
 
@@ -54,7 +67,7 @@ export async function enforcePlanAwareRateLimit(params: {
   proLimit: number;
   window: Duration;
 }) {
-  const points = params.plan === Plano.PRO ? params.proLimit : params.freeLimit;
+  const points = params.proLimit;
 
   return enforceRateLimit({
     key: params.key,

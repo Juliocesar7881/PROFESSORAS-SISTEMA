@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { createTurmaSchema, updateTurmaSchema } from "@/dtos/turma.dto";
+import { createTurmaSchema, turmaQuerySchema, updateTurmaSchema } from "@/dtos/turma.dto";
 import { fail, ok } from "@/lib/http";
 import type { RequestContext } from "@/middleware/api";
 import { TurmaService } from "@/services/turma.service";
@@ -12,9 +12,10 @@ const pathSchema = z.object({
 export class TurmaController {
   private readonly turmaService = new TurmaService();
 
-  list = async (_request: Request, context: RequestContext) => {
+  list = async (request: Request, context: RequestContext) => {
     try {
-      const turmas = await this.turmaService.list(context.userId!);
+      const query = turmaQuerySchema.parse(Object.fromEntries(new URL(request.url).searchParams));
+      const turmas = await this.turmaService.list(context.userId!, query.lixeira);
       return ok(turmas);
     } catch (error) {
       return fail(error);
@@ -46,6 +47,16 @@ export class TurmaController {
     try {
       const parsed = pathSchema.parse(params);
       const turma = await this.turmaService.remove(context.userId!, parsed.id);
+      return ok(turma);
+    } catch (error) {
+      return fail(error);
+    }
+  };
+
+  restore = async (_request: Request, context: RequestContext, params: { id: string }) => {
+    try {
+      const parsed = pathSchema.parse(params);
+      const turma = await this.turmaService.restore(context.userId!, parsed.id);
       return ok(turma);
     } catch (error) {
       return fail(error);

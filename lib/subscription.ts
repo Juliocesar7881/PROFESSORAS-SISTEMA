@@ -27,6 +27,7 @@ export function getTrialStatus(params: {
   const now = params.now ?? new Date();
   const trialStart = coerceDate(params.createdAt) ?? now;
   const trialEndsAt = new Date(trialStart.getTime() + FREE_TRIAL_DAYS * MS_PER_DAY);
+  const freeAccessEndsAt = new Date(Date.UTC(2099, 11, 31));
 
   if (isProPlan(params.plan)) {
     return {
@@ -37,13 +38,10 @@ export function getTrialStatus(params: {
     };
   }
 
-  const remainingMs = trialEndsAt.getTime() - now.getTime();
-  const trialExpired = remainingMs <= 0;
-
   return {
-    trialEndsAt: trialEndsAt.toISOString(),
-    trialDaysLeft: trialExpired ? 0 : Math.ceil(remainingMs / MS_PER_DAY),
-    trialExpired,
-    requiresUpgrade: trialExpired,
+    trialEndsAt: freeAccessEndsAt.toISOString(),
+    trialDaysLeft: 0,
+    trialExpired: false,
+    requiresUpgrade: false,
   };
 }

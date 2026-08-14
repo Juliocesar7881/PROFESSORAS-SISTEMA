@@ -1,7 +1,6 @@
 import type Stripe from "stripe";
 
 import { ValidationError } from "@/dtos/errors";
-import { createCheckoutSchema } from "@/dtos/stripe.dto";
 import { fail, ok } from "@/lib/http";
 import { stripe } from "@/lib/stripe";
 import { env } from "@/lib/env";
@@ -12,10 +11,11 @@ export class StripeController {
   private readonly stripeService = new StripeService();
 
   checkout = async (request: Request, context: RequestContext) => {
+    void request;
+    void context;
+
     try {
-      const payload = createCheckoutSchema.parse(await request.json());
-      const result = await this.stripeService.createCheckout(context.userId!, payload.ciclo);
-      return ok(result, 201);
+      return ok({ checkoutUrl: null, freeAccess: true, message: "Assinaturas desativadas. O Pequenos Passos está gratuito." });
     } catch (error) {
       return fail(error);
     }

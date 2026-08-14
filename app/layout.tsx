@@ -1,29 +1,37 @@
-import type { Metadata } from "next";
-import { Baloo_2, Nunito } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
 
 import { Providers } from "@/app/providers";
 import "./globals.css";
 
-const nunito = Nunito({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-nunito",
+  variable: "--font-inter",
   weight: ["400", "500", "600", "700", "800"],
-});
-
-const baloo = Baloo_2({
-  subsets: ["latin"],
-  variable: "--font-baloo",
-  weight: ["500", "600", "700", "800"],
+  style: "normal",
 });
 
 export const metadata: Metadata = {
   title: {
-    default: "Planejafácil",
-    template: "%s | Planejafácil",
+    default: "Pequenos Passos",
+    template: "%s | Pequenos Passos",
   },
-  description: "Planejamento pedagógico leve, visual e rápido para professoras brasileiras.",
-  applicationName: "Planejafácil",
+  description: "Projetos, planejamento e registros pedagógicos para professoras da Educação Infantil.",
+  applicationName: "Pequenos Passos",
   manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "Pequenos Passos",
+    statusBarStyle: "default",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: "cover",
+  themeColor: "#4f3ca6",
 };
 
 export default function RootLayout({
@@ -32,8 +40,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" suppressHydrationWarning>
-      <body className={`${nunito.variable} ${baloo.variable} theme antialiased`}>
+    <html lang="pt-BR" className={inter.variable} suppressHydrationWarning>
+      <body className="theme">
         <Providers>{children}</Providers>
       </body>
     </html>

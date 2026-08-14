@@ -22,21 +22,17 @@ export class DashboardService {
     const weekStart = startOfWeek(now, { weekStartsOn: 1 });
     const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
 
-    const [planejamentos, alunosSemObservacao, projetosSalvos, streak, totalAlunos, observacoesSemana, relatoriosMes, observacoesRecentes] = await Promise.all([
-      this.planejamentoRepository.listByUser(userId),
-      this.alunoRepository.listWithoutRecentObservation(userId, 14),
-      this.projetoRepository.list(userId, { salvos: true }),
+    const [planejamentosRecentes, planejamentosSemana, alunosSemObservacao, projetosSalvos, streak, totalAlunos, observacoesSemana, relatoriosMes, observacoesRecentes] = await Promise.all([
+      this.planejamentoRepository.listRecentByUser(userId, 6),
+      this.planejamentoRepository.countByUserBetween(userId, weekStart, weekEnd),
+      this.alunoRepository.listWithoutRecentObservation(userId, 14, 12),
+      this.projetoRepository.listSavedSummaries(userId, 6),
       this.planejamentoRepository.weeklyStreak(userId),
       this.alunoRepository.countByUser(userId),
       this.observacaoRepository.countByUserSince(userId, weekStart),
       this.relatorioRepository.countByUserCurrentMonth(userId),
       this.observacaoRepository.listRecentByUser(userId, 8),
     ]);
-
-    const planejamentosSemana = planejamentos.filter((planejamento) => {
-      const start = new Date(planejamento.semanaInicio).getTime();
-      return start >= weekStart.getTime() && start <= weekEnd.getTime();
-    }).length;
 
     return {
       weekStart,
@@ -45,7 +41,7 @@ export class DashboardService {
       observacoesSemana,
       planejamentosSemana,
       relatoriosMes,
-      planejamentos,
+      planejamentos: planejamentosRecentes,
       observacoesRecentes,
       alunosSemObservacao,
       projetosSalvos,

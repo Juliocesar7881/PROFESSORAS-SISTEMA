@@ -19,28 +19,28 @@ export function DashboardPageHero({
   badge,
   title,
   description,
-  gradient,
-  orbColor,
   actions,
   borderClassName,
 }: DashboardPageHeroProps) {
   return (
-    <section className={cn("relative overflow-hidden rounded-[1.4rem] border p-6 md:p-9", borderClassName)} style={{ background: gradient }}>
-      <div className="pointer-events-none absolute -top-12 right-[-5%] h-[200px] w-[200px] rounded-full opacity-25 blur-[60px]" style={{ background: orbColor }} />
-      <div className="pointer-events-none absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+    <section className={cn("relative overflow-hidden rounded-2xl border border-[#e8e3f0] bg-white p-4 shadow-[0_16px_40px_-30px_rgba(43,35,91,0.3)] md:p-5", borderClassName)}>
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#6757c8] via-[#9a86e6] to-[#ef6d98]" />
 
-      <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/12 px-3.5 py-1.5 text-xs font-bold text-white/90 backdrop-blur-sm">
-            <Icon className="size-3.5" />
-            {badge}
+      <div className="relative z-10 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="mt-0.5 inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-[#ded7f6] bg-[#f4f1ff] text-[#6757c8]">
+            <Icon className="size-5" />
+          </span>
+          <div className="min-w-0">
+            <div className="mb-1 inline-flex items-center gap-1.5 rounded-full border border-[#ded7f6] bg-[#f4f1ff] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#6757c8]">
+              {badge}
+            </div>
+            <h2 className="font-heading text-[1.45rem] font-bold leading-tight text-[#17213f] md:text-[1.8rem]">{title}</h2>
+            <p className="mt-1 max-w-2xl text-sm font-medium leading-relaxed text-[#6d6c82]">{description}</p>
           </div>
-          <h2 className="font-heading text-[1.5rem] tracking-tight text-white md:text-[1.75rem]">{title}</h2>
-          <p className="mt-1.5 max-w-lg text-[13px] leading-relaxed text-white/75">{description}</p>
         </div>
 
-        {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
+        {actions ? <div className="flex flex-wrap gap-2 lg:justify-end">{actions}</div> : null}
       </div>
     </section>
   );

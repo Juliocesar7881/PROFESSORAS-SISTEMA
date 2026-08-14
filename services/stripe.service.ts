@@ -37,7 +37,7 @@ export class StripeService {
 
     const unitAmount = ciclo === "anual" ? YEARLY_PRICE_CENTS : MONTHLY_PRICE_CENTS;
     const recurringInterval: "month" | "year" = ciclo === "anual" ? "year" : "month";
-    const productName = ciclo === "anual" ? "Planejei Pro - Anual" : "Planejei Pro - Mensal";
+    const productName = ciclo === "anual" ? "Pequenos Passos Pro - Anual" : "Pequenos Passos Pro - Mensal";
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
@@ -55,7 +55,7 @@ export class StripeService {
             unit_amount: unitAmount,
             product_data: {
               name: productName,
-              description: "Acesso completo ao Planejei para gestão pedagógica.",
+              description: "Acesso completo ao Pequenos Passos para gestão pedagógica.",
             },
           },
           quantity: 1,

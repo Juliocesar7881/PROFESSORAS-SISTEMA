@@ -2,13 +2,13 @@ import { ShieldCheck } from "lucide-react";
 
 export function PrefeituraNote() {
   return (
-    <div className="rounded-2xl border border-[#DCECF8] bg-[#F8FBFF] p-4 text-sm text-[#4E4770] backdrop-blur-sm">
-      <div className="mb-2 flex items-center gap-2 font-semibold text-[#0BB8A8]">
+    <div className="break-words rounded-2xl border border-[#ddd4f7] bg-[#f7f4ff] p-4 text-sm font-medium leading-relaxed text-[#6d6c82]">
+      <div className="mb-2 flex items-center gap-2 font-bold text-[#6757c8]">
         <ShieldCheck className="size-4" />
-        Posicionamento oficial do Planejei
+        Sobre o Pequenos Passos
       </div>
       <p>
-        O Planejei <strong>não substitui</strong> o sistema da prefeitura (Betha, Sige e similares). Ele faz o que o sistema da prefeitura nunca fez: planejamento vivo, observações de aprendizagem e rotina da turma.
+        O Pequenos Passos <strong>complementa</strong> os sistemas oficiais da escola ou prefeitura. Ele organiza projetos, planejamento e registros pedagógicos para apoiar a rotina da professora.
       </p>
     </div>
   );

@@ -1,11 +1,12 @@
-import { inferEtapaTurma, type EtapaTurma } from "@/lib/etapa";
+import type { EtapaTurma } from "@/lib/etapa";
+import { getShowcaseProjectById } from "@/lib/project-showcase";
+import { PedagogicalDocumentExportService, type ExportFormat } from "@/services/pedagogical-document-export.service";
 import { ProjetoRepository } from "@/repositories/projeto.repository";
-import { TurmaRepository } from "@/repositories/turma.repository";
 
 export class ProjetoService {
   private readonly projetoRepository = new ProjetoRepository();
 
-  private readonly turmaRepository = new TurmaRepository();
+  private readonly exportService = new PedagogicalDocumentExportService();
 
   async list(
     userId: string,
@@ -13,27 +14,22 @@ export class ProjetoService {
       categoria?: string;
       faixaEtaria?: string;
       etapa?: EtapaTurma;
-      turmaId?: string;
       duracao?: string;
       busca?: string;
       salvos?: boolean;
+      origem?: "CATALOGO" | "IMPORTADO";
+      includeAtividades?: boolean;
+      cursor?: string;
+      limit?: number;
     },
   ) {
-    let etapa = filters.etapa;
-
-    if (!etapa && filters.turmaId) {
-      const turma = await this.turmaRepository.findOwnedById(userId, filters.turmaId);
-      etapa = inferEtapaTurma(turma.faixaEtaria) ?? undefined;
-    }
-
-    return this.projetoRepository.list(userId, {
+    return this.projetoRepository.listPaginated(userId, {
       ...filters,
-      etapa,
     });
   }
 
   async detail(userId: string, id: string) {
-    const projeto = await this.projetoRepository.findById(id);
+    const projeto = await this.projetoRepository.findById(userId, id);
 
     const saved = await this.projetoRepository.isSaved(userId, id);
 
@@ -51,5 +47,16 @@ export class ProjetoService {
 
   async unsave(userId: string, projetoId: string) {
     return this.projetoRepository.unsave(userId, projetoId);
+  }
+
+  async exportDocument(userId: string, id: string, format: ExportFormat) {
+    const localProject = getShowcaseProjectById(id);
+
+    if (localProject) {
+      return this.exportService.exportProject(localProject, format);
+    }
+
+    const projeto = await this.detail(userId, id);
+    return this.exportService.exportProject(projeto, format);
   }
 }

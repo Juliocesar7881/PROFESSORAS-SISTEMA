@@ -9,12 +9,12 @@ export const GET = route(controller.list, [withAuth]);
 export const POST = route(controller.generate, [
   withAuth,
   withRateLimit({
-    keyPrefix: "gemini:relatorio",
+    keyPrefix: "ai:relatorio",
     by: "user",
     failOpen: true,
     planAware: {
-      freeLimit: FREE_PLAN_LIMITS.GEMINI_CALLS_PER_HOUR,
-      proLimit: PRO_PLAN_LIMITS.GEMINI_CALLS_PER_HOUR,
+      freeLimit: FREE_PLAN_LIMITS.AI_CALLS_PER_HOUR,
+      proLimit: PRO_PLAN_LIMITS.AI_CALLS_PER_HOUR,
       window: "1 h",
     },
   }),

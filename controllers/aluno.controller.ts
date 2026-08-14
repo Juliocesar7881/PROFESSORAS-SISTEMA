@@ -15,7 +15,7 @@ export class AlunoController {
   list = async (request: Request, context: RequestContext) => {
     try {
       const query = alunoQuerySchema.parse(Object.fromEntries(new URL(request.url).searchParams));
-      const alunos = await this.alunoService.list(context.userId!, query.turmaId);
+      const alunos = await this.alunoService.list(context.userId!, query);
       return ok(alunos);
     } catch (error) {
       return fail(error);
@@ -57,6 +57,16 @@ export class AlunoController {
     try {
       const parsed = pathSchema.parse(params);
       const aluno = await this.alunoService.remove(context.userId!, parsed.id);
+      return ok(aluno);
+    } catch (error) {
+      return fail(error);
+    }
+  };
+
+  restore = async (_request: Request, context: RequestContext, params: { id: string }) => {
+    try {
+      const parsed = pathSchema.parse(params);
+      const aluno = await this.alunoService.restore(context.userId!, parsed.id);
       return ok(aluno);
     } catch (error) {
       return fail(error);

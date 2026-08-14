@@ -1,19 +1,161 @@
+import Image from "next/image";
 import Link from "next/link";
-import {
-  BookOpenText,
-  ClipboardList,
-  Leaf,
-  Package,
-  Target,
-  Timer,
-} from "lucide-react";
+import { ArrowLeft, BookOpenText, Download, FileText, Heart, Printer, Target } from "lucide-react";
 
+import { auth } from "@/auth";
+import { ProjectSaveButton } from "@/components/project-save-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getProjectCoverPath, resolveProjectCoverKey, type ProjectCoverKey } from "@/lib/project-cover";
 import { getShowcaseProjectById } from "@/lib/project-showcase";
+import { ProjetoService } from "@/services/projeto.service";
+
+type DetailProject = {
+  id: string;
+  titulo: string;
+  descricao: string;
+  categoria: string;
+  faixaEtaria: string;
+  duracao: string;
+  coverKey: ProjectCoverKey;
+  bnccObjetivos: string[];
+  problema: string;
+  justificativa: string;
+  objetivoGeral: string;
+  objetivosEspecificos: string[];
+  camposExperiencia: string[];
+  metodologia: string[];
+  cronograma: string;
+  avaliacao: string[];
+  salvo: boolean;
+  persisted: boolean;
+  atividades: Array<{
+    id: string;
+    titulo: string;
+    descricao: string;
+    categoria: string;
+    duracao: number;
+    materiais: string[];
+    bnccCodigos: string[];
+    objetivoTexto?: string | null;
+  }>;
+};
+
+function normalizeProject(project: Partial<DetailProject> & Pick<DetailProject, "id" | "titulo" | "descricao" | "categoria" | "faixaEtaria" | "duracao" | "bnccObjetivos" | "atividades">): DetailProject {
+  const metodologia = project.metodologia?.length
+    ? project.metodologia
+    : project.atividades.map((atividade) => `${atividade.titulo}: ${atividade.descricao}`);
+
+  return {
+    ...project,
+    problema: project.problema ?? `Que descobertas as criancas podem construir a partir do tema ${project.titulo}?`,
+    justificativa: project.justificativa ?? project.descricao,
+    objetivoGeral: project.objetivoGeral ?? `Proporcionar experiencias integradas sobre ${project.titulo}.`,
+    objetivosEspecificos: project.objetivosEspecificos?.length ? project.objetivosEspecificos : project.bnccObjetivos,
+    camposExperiencia: project.camposExperiencia?.length ? project.camposExperiencia : project.bnccObjetivos,
+    metodologia,
+    cronograma: project.cronograma ?? project.duracao,
+    coverKey: project.coverKey ?? resolveProjectCoverKey(project.titulo, project.categoria),
+    avaliacao: project.avaliacao?.length
+      ? project.avaliacao
+      : [
+          "Participa das propostas com interesse e envolvimento progressivo.",
+          "Explora materiais, imagens, sons, movimentos e registros relacionados ao tema.",
+          "Interage com colegas e adultos, respeitando combinados da rotina.",
+          "Comunica descobertas por fala, gesto, desenho, movimento ou brincadeira.",
+        ],
+    salvo: project.salvo ?? false,
+    persisted: project.persisted ?? false,
+  };
+}
+
+async function getProjectForPage(id: string): Promise<DetailProject | null> {
+  const localProject = getShowcaseProjectById(id);
+
+  if (localProject) {
+    return normalizeProject({
+      ...localProject,
+      salvo: false,
+      persisted: false,
+    });
+  }
+
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    return null;
+  }
+
+  try {
+    const apiProject = await new ProjetoService().detail(session.user.id, id);
+
+    return normalizeProject({
+      id: apiProject.id,
+      titulo: apiProject.titulo,
+      descricao: apiProject.descricao,
+      categoria: apiProject.categoria,
+      faixaEtaria: apiProject.faixaEtaria,
+      duracao: apiProject.duracao,
+      coverKey: resolveProjectCoverKey(
+        apiProject.titulo,
+        apiProject.categoria,
+        apiProject.thumbnailKey,
+        apiProject.origem === "IMPORTADO",
+      ),
+      bnccObjetivos: apiProject.bnccObjetivos,
+      problema: apiProject.problema ?? undefined,
+      justificativa: apiProject.justificativa ?? undefined,
+      objetivoGeral: apiProject.objetivoGeral ?? undefined,
+      objetivosEspecificos: apiProject.objetivosEspecificos,
+      camposExperiencia: apiProject.camposExperiencia,
+      metodologia: apiProject.metodologia,
+      cronograma: apiProject.cronograma ?? undefined,
+      avaliacao: apiProject.avaliacao,
+      salvo: Boolean(apiProject.salvo),
+      persisted: true,
+      atividades: apiProject.atividades.map((atividade) => ({
+        id: atividade.id,
+        titulo: atividade.titulo,
+        descricao: atividade.descricao,
+        categoria: atividade.categoria,
+        duracao: atividade.duracao,
+        materiais: atividade.materiais,
+        bnccCodigos: atividade.bnccCodigos,
+        objetivoTexto: atividade.objetivoTexto,
+      })),
+    });
+  } catch {
+    return null;
+  }
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="space-y-2 border-t border-[#f0e2e8] pt-4">
+      <h2 className="font-heading text-xl font-black text-[#312834]">{title}</h2>
+      {children}
+    </section>
+  );
+}
+
+function BulletList({ items }: { items: string[] }) {
+  if (!items.length) {
+    return <p className="rounded-xl border border-dashed border-[#e5c4d3] bg-[#fff3f7]/50 p-3 text-sm font-semibold text-[#857582]">Sem informacoes cadastradas.</p>;
+  }
+
+  return (
+    <ul className="space-y-2 text-sm font-semibold leading-relaxed text-[#74616d]">
+      {items.map((item) => (
+        <li key={item} className="rounded-lg border border-[#f0e2e8] bg-white px-3 py-2">
+          {item}
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export default async function ProjetoDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const projeto = getShowcaseProjectById(id);
+  const projeto = await getProjectForPage(id);
 
   if (!projeto) {
     return (
@@ -29,171 +171,129 @@ export default async function ProjetoDetailPage({ params }: { params: Promise<{ 
     );
   }
 
-  const materiaisUnicos = Array.from(
-    new Set(
-      projeto.atividades
-        .flatMap((atividade) => atividade.materiais)
-        .map((material) => material.trim())
-        .filter(Boolean),
-    ),
-  );
-
-  const codigosBncc = Array.from(
-    new Set(
-      projeto.atividades
-        .flatMap((atividade) => atividade.bnccCodigos)
-        .concat(projeto.bnccObjetivos)
-        .map((item) => item.trim())
-        .filter(Boolean),
-    ),
-  );
-
   return (
     <div className="mx-auto max-w-5xl space-y-5">
-      <Card className="pf-card rounded-3xl border-sky-100/80 bg-white">
-        <CardHeader>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="pf-chip border-sky-200 bg-sky-50 text-sky-700">{projeto.categoria}</span>
-            <span className="pf-chip border-teal-200 bg-teal-50 text-teal-700">{projeto.faixaEtaria}</span>
-            <span className="pf-chip border-amber-200 bg-amber-50 text-amber-700">
-              <Timer className="size-3.5" />
-              {projeto.duracao}
-            </span>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link href="/dashboard/projetos" className="inline-flex items-center gap-2 text-sm font-black text-[#a65f7f] underline underline-offset-4">
+          <ArrowLeft className="size-4" /> Voltar
+        </Link>
+        <div className="flex flex-wrap gap-2">
+          <a href={`/api/projetos/${projeto.id}/export?format=pdf`} className="inline-flex h-10 items-center justify-center rounded-xl border-2 border-[#e5c4d3] bg-white px-4 text-sm font-black text-[#a65f7f] transition hover:bg-[#fff3f7]">
+            <Download className="mr-2 size-4" /> PDF
+          </a>
+          <a href={`/api/projetos/${projeto.id}/export?format=docx`} className="inline-flex h-10 items-center justify-center rounded-xl border-2 border-[#e5c4d3] bg-white px-4 text-sm font-black text-[#a65f7f] transition hover:bg-[#fff3f7]">
+            <FileText className="mr-2 size-4" /> Word
+          </a>
+          <Link href={`/dashboard/planejamento?projetoId=${projeto.id}`} className="inline-flex h-10 items-center justify-center rounded-xl bg-[#a65f7f] px-4 text-sm font-black text-white transition hover:bg-[#8b4e6a]">
+            <BookOpenText className="mr-2 size-4" /> Usar no planejamento
+          </Link>
+        </div>
+      </div>
+
+      <Card className="border-[#f0e2e8] bg-white">
+        <div className="relative aspect-[16/7] min-h-[220px] overflow-hidden rounded-t-[inherit] bg-[#f4edf1] sm:min-h-0">
+          <Image
+            src={getProjectCoverPath(projeto.coverKey)}
+            alt={`Imagem do projeto ${projeto.titulo}`}
+            fill
+            priority
+            sizes="(max-width: 1024px) 100vw, 960px"
+            className="object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#2f2330]/30 via-transparent to-transparent" />
+        </div>
+        <CardHeader className="space-y-4 text-center">
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <span className="pf-chip border-[#e5c4d3] bg-[#fff3f7] text-[#a65f7f]">{projeto.categoria}</span>
+            <span className="pf-chip border-[#e5c4d3] bg-[#fff3f7] text-[#a65f7f]">{projeto.faixaEtaria}</span>
+            <span className="pf-chip border-[#e5c4d3] bg-[#fff3f7] text-[#a65f7f]">{projeto.duracao}</span>
           </div>
-          <CardTitle className="font-heading text-4xl text-[#223246]">{projeto.titulo}</CardTitle>
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#6757c8]">Pequenos Passos</p>
+            <CardTitle className="mt-2 font-heading text-3xl font-black text-[#312834] md:text-4xl">
+              Projeto: {projeto.titulo}
+            </CardTitle>
+          </div>
+          <ProjectSaveButton projectId={projeto.id} initialSaved={projeto.salvo} disabled={!projeto.persisted} />
         </CardHeader>
+        <CardContent className="space-y-5 text-sm font-semibold leading-relaxed text-[#74616d]">
+          <p className="rounded-xl border border-[#f0e2e8] bg-[#fff3f7]/60 p-4 text-base">{projeto.descricao}</p>
 
-        <CardContent className="space-y-3 text-sm font-semibold text-[#4d6780]">
-          <p>{projeto.descricao}</p>
+          <Section title="Problema">
+            <p>
+              <strong>Problema:</strong> {projeto.problema}
+            </p>
+          </Section>
 
-          <div className="grid gap-3 md:grid-cols-3">
-            <div className="rounded-2xl border border-sky-100 bg-sky-50/60 p-3">
-              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#6f88a2]">Objetivos</p>
-              <p className="mt-1 font-heading text-3xl text-[#223246]">{projeto.bnccObjetivos.length}</p>
+          <Section title="Justificativa">
+            <p>{projeto.justificativa}</p>
+          </Section>
+
+          <Section title="Objetivo geral">
+            <p>{projeto.objetivoGeral}</p>
+          </Section>
+
+          <Section title="Objetivos especificos">
+            <BulletList items={projeto.objetivosEspecificos} />
+          </Section>
+
+          <Section title="Campos de experiencia">
+            <BulletList items={projeto.camposExperiencia} />
+          </Section>
+
+          <Section title="Metodologia">
+            <BulletList items={projeto.metodologia} />
+          </Section>
+
+          <Section title="Atividades do projeto">
+            <div className="space-y-3">
+              {projeto.atividades.map((atividade, index) => (
+                <article key={atividade.id} className="rounded-xl border border-[#f0e2e8] bg-white p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <h3 className="font-heading text-xl font-black text-[#312834]">
+                      {index + 1}. {atividade.titulo}
+                    </h3>
+                    <span className="pf-chip border-[#e5c4d3] bg-[#fff3f7] text-[#a65f7f]">{atividade.duracao} min</span>
+                  </div>
+                  <p className="mt-2">{atividade.descricao}</p>
+                  {atividade.objetivoTexto ? <p className="mt-2 rounded-lg bg-[#fff3f7] p-3 text-sm"><strong>Objetivo:</strong> {atividade.objetivoTexto}</p> : null}
+                  {atividade.materiais.length ? (
+                    <p className="mt-2 text-xs font-black uppercase tracking-[0.12em] text-[#857582]">
+                      Materiais: {atividade.materiais.join(", ")}
+                    </p>
+                  ) : null}
+                </article>
+              ))}
             </div>
-            <div className="rounded-2xl border border-teal-100 bg-teal-50/60 p-3">
-              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#6f88a2]">Materiais</p>
-              <p className="mt-1 font-heading text-3xl text-[#223246]">{materiaisUnicos.length}</p>
+          </Section>
+
+          <Section title="Cronograma">
+            <p>{projeto.cronograma}</p>
+          </Section>
+
+          <Section title="Avaliacao">
+            <BulletList items={projeto.avaliacao} />
+          </Section>
+
+          <div className="grid gap-3 border-t border-[#f0e2e8] pt-4 sm:grid-cols-3">
+            <div className="rounded-xl border border-[#f0e2e8] bg-[#fff3f7]/50 p-3">
+              <Target className="size-5 text-[#a65f7f]" />
+              <p className="mt-2 font-heading text-2xl text-[#312834]">{projeto.objetivosEspecificos.length}</p>
+              <p className="text-xs font-black uppercase tracking-[0.12em] text-[#857582]">objetivos</p>
             </div>
-            <div className="rounded-2xl border border-rose-100 bg-rose-50/60 p-3">
-              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#6f88a2]">Passos</p>
-              <p className="mt-1 font-heading text-3xl text-[#223246]">{projeto.atividades.length}</p>
+            <div className="rounded-xl border border-[#f0e2e8] bg-[#fff3f7]/50 p-3">
+              <Heart className="size-5 text-[#a65f7f]" />
+              <p className="mt-2 font-heading text-2xl text-[#312834]">{projeto.camposExperiencia.length}</p>
+              <p className="text-xs font-black uppercase tracking-[0.12em] text-[#857582]">campos</p>
+            </div>
+            <div className="rounded-xl border border-[#f0e2e8] bg-[#fff3f7]/50 p-3">
+              <Printer className="size-5 text-[#a65f7f]" />
+              <p className="mt-2 font-heading text-2xl text-[#312834]">{projeto.atividades.length}</p>
+              <p className="text-xs font-black uppercase tracking-[0.12em] text-[#857582]">atividades</p>
             </div>
           </div>
         </CardContent>
       </Card>
-
-      <section className="space-y-3">
-        <details open className="overflow-hidden rounded-2xl border border-sky-100 bg-white">
-          <summary className="cursor-pointer list-none px-4 py-3">
-            <p className="font-heading text-2xl leading-none text-[#223246]">Objetivos</p>
-            <p className="mt-1 text-xs font-bold uppercase tracking-[0.14em] text-[#86a0b8]">O que a crianca deve desenvolver</p>
-          </summary>
-          <div className="border-t border-sky-100 px-4 py-4">
-            <ul className="space-y-2 text-sm font-semibold text-[#4d6780]">
-              {projeto.bnccObjetivos.length ? (
-                projeto.bnccObjetivos.map((objetivo) => (
-                  <li key={objetivo} className="rounded-xl border border-sky-100 bg-sky-50/60 p-3">
-                    <span className="inline-flex items-center gap-2 text-[#2e516f]">
-                      <Target className="size-4 text-sky-600" />
-                      {objetivo}
-                    </span>
-                  </li>
-                ))
-              ) : (
-                <li className="rounded-xl border border-dashed border-sky-200 bg-sky-50/40 p-3">Sem objetivos cadastrados.</li>
-              )}
-            </ul>
-          </div>
-        </details>
-
-        <details className="overflow-hidden rounded-2xl border border-sky-100 bg-white">
-          <summary className="cursor-pointer list-none px-4 py-3">
-            <p className="font-heading text-2xl leading-none text-[#223246]">Materiais</p>
-            <p className="mt-1 text-xs font-bold uppercase tracking-[0.14em] text-[#86a0b8]">Tudo que precisa para executar</p>
-          </summary>
-          <div className="border-t border-sky-100 px-4 py-4">
-            <ul className="grid gap-2 sm:grid-cols-2">
-              {materiaisUnicos.length ? (
-                materiaisUnicos.map((material) => (
-                  <li key={material} className="rounded-xl border border-teal-100 bg-teal-50/60 p-3 text-sm font-semibold text-[#386b63]">
-                    <span className="inline-flex items-center gap-2">
-                      <Package className="size-4 text-teal-600" />
-                      {material}
-                    </span>
-                  </li>
-                ))
-              ) : (
-                <li className="rounded-xl border border-dashed border-teal-200 bg-teal-50/40 p-3 text-sm font-semibold text-[#6f88a2]">Sem materiais listados.</li>
-              )}
-            </ul>
-          </div>
-        </details>
-
-        <details className="overflow-hidden rounded-2xl border border-sky-100 bg-white">
-          <summary className="cursor-pointer list-none px-4 py-3">
-            <p className="font-heading text-2xl leading-none text-[#223246]">Campos de Experiencia (BNCC)</p>
-            <p className="mt-1 text-xs font-bold uppercase tracking-[0.14em] text-[#86a0b8]">Referencias curriculares do projeto</p>
-          </summary>
-          <div className="border-t border-sky-100 px-4 py-4">
-            <div className="flex flex-wrap gap-2">
-              {codigosBncc.length ? (
-                codigosBncc.map((codigo) => (
-                  <span key={codigo} className="pf-chip border-rose-200 bg-rose-50 text-rose-700">
-                    <Leaf className="size-3.5" />
-                    {codigo}
-                  </span>
-                ))
-              ) : (
-                <p className="rounded-xl border border-dashed border-rose-200 bg-rose-50/40 p-3 text-sm font-semibold text-[#6f88a2]">Sem codigos informados.</p>
-              )}
-            </div>
-          </div>
-        </details>
-
-        <details open className="overflow-hidden rounded-2xl border border-sky-100 bg-white">
-          <summary className="cursor-pointer list-none px-4 py-3">
-            <p className="font-heading text-2xl leading-none text-[#223246]">Passo a Passo</p>
-            <p className="mt-1 text-xs font-bold uppercase tracking-[0.14em] text-[#86a0b8]">Sequencia de atividades da proposta</p>
-          </summary>
-          <div className="border-t border-sky-100 px-4 py-4">
-            <div className="space-y-2">
-              {projeto.atividades.length ? (
-                projeto.atividades.map((atividade, index) => (
-                  <article key={atividade.id} className="rounded-2xl border border-sky-100 bg-sky-50/50 p-3">
-                    <div className="mb-1 flex items-center justify-between gap-2">
-                      <p className="font-heading text-xl text-[#223246]">
-                        {index + 1}. {atividade.titulo}
-                      </p>
-                      <span className="pf-chip border-amber-200 bg-amber-50 text-amber-700">
-                        <Timer className="size-3.5" />
-                        {atividade.duracao} min
-                      </span>
-                    </div>
-                    <p className="text-sm font-semibold text-[#4d6780]">{atividade.descricao}</p>
-                    <p className="mt-1 text-xs font-bold uppercase tracking-[0.12em] text-[#6f88a2]">{atividade.categoria}</p>
-                  </article>
-                ))
-              ) : (
-                <p className="rounded-xl border border-dashed border-sky-200 bg-sky-50/40 p-3 text-sm font-semibold text-[#6f88a2]">Projeto sem atividades cadastradas.</p>
-              )}
-            </div>
-          </div>
-        </details>
-      </section>
-
-      <Link
-        href="/dashboard/planejamento"
-        className="inline-flex h-11 items-center justify-center rounded-xl bg-gradient-to-r from-sky-500 to-teal-500 px-6 text-sm font-black text-white transition hover:from-sky-600 hover:to-teal-600"
-      >
-        <BookOpenText className="mr-2 size-4" />
-        Usar no planejamento da semana
-      </Link>
-
-      <p className="inline-flex items-center gap-2 rounded-xl border border-sky-100 bg-sky-50/50 px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] text-[#6f88a2]">
-        <ClipboardList className="size-3.5" />
-        Dica: abra apenas a secao necessaria para manter a tela limpa.
-      </p>
     </div>
   );
 }

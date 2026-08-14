@@ -57,6 +57,7 @@ export interface ApiFailure {
     message: string;
     details?: unknown;
     upgradeUrl?: string;
+    requestId?: string;
   };
 }
 

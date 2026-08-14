@@ -23,6 +23,57 @@ async function main() {
     });
 
     if (existing) {
+      await prisma.projeto.update({
+        where: {
+          id: existing.id,
+        },
+        data: {
+          descricao: projeto.descricao,
+          categoria: projeto.categoria,
+          faixaEtaria: projeto.faixaEtaria,
+          duracao: projeto.duracao,
+          thumbnailKey: projeto.coverKey,
+          bnccObjetivos: projeto.bnccObjetivos,
+          problema: projeto.problema,
+          justificativa: projeto.justificativa,
+          objetivoGeral: projeto.objetivoGeral,
+          objetivosEspecificos: projeto.objetivosEspecificos,
+          camposExperiencia: projeto.camposExperiencia,
+          metodologia: projeto.metodologia,
+          cronograma: projeto.cronograma,
+          avaliacao: projeto.avaliacao,
+          premium: false,
+        },
+      });
+
+      for (const atividade of projeto.atividades) {
+        const existingActivity = await prisma.atividade.findFirst({
+          where: {
+            projetoId: existing.id,
+            titulo: atividade.titulo,
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        if (existingActivity) {
+          await prisma.atividade.update({
+            where: {
+              id: existingActivity.id,
+            },
+            data: atividade,
+          });
+        } else {
+          await prisma.atividade.create({
+            data: {
+              ...atividade,
+              projetoId: existing.id,
+            },
+          });
+        }
+      }
+
       continue;
     }
 
@@ -33,7 +84,16 @@ async function main() {
         categoria: projeto.categoria,
         faixaEtaria: projeto.faixaEtaria,
         duracao: projeto.duracao,
+        thumbnailKey: projeto.coverKey,
         bnccObjetivos: projeto.bnccObjetivos,
+        problema: projeto.problema,
+        justificativa: projeto.justificativa,
+        objetivoGeral: projeto.objetivoGeral,
+        objetivosEspecificos: projeto.objetivosEspecificos,
+        camposExperiencia: projeto.camposExperiencia,
+        metodologia: projeto.metodologia,
+        cronograma: projeto.cronograma,
+        avaliacao: projeto.avaliacao,
         premium: false,
         atividades: {
           create: projeto.atividades,

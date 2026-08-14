@@ -15,6 +15,7 @@
 
 # production
 /build
+/tmp/
 /public/sw.js
 /public/sw.js.map
 /public/workbox-*.js
@@ -46,3 +47,4 @@ next-env.d.ts
 
 .vercel
 .env*.local
+.env*

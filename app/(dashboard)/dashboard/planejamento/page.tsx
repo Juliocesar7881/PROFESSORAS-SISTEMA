@@ -1,600 +1,739 @@
 "use client";
+/* eslint-disable react-hooks/refs */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import {
+  DndContext,
+  KeyboardSensor,
+  MouseSensor,
+  TouchSensor,
+  pointerWithin,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
+import {
+  ClipboardList,
+  Download,
+  FileText,
+  GripVertical,
+  Loader2,
+  Save,
+  Sparkles,
+  Target,
+} from "lucide-react";
 import { toast } from "sonner";
-import { CalendarClock, Clock3, Copy, GripVertical, Lightbulb, Loader2, Plus, Search, Sparkles, Trash2 } from "lucide-react";
 
-import { DashboardPageHero } from "@/components/dashboard-page-hero";
+import { DashboardFilterBar } from "@/components/dashboard-filter-bar";
+import { ProjectImportDialog } from "@/components/project-import-dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getEtapaLabel, inferEtapaTurma } from "@/lib/etapa";
+import { Textarea } from "@/components/ui/textarea";
+import { getPayloadItems } from "@/lib/api-payload";
 import { SHOWCASE_PROJECTS } from "@/lib/project-showcase";
+import { cn } from "@/lib/utils";
 
-type Turma = { id: string; nome: string; faixaEtaria: string };
-type Atividade = { id: string; titulo: string; categoria: string; duracao: number; bnccCodigos: string[] };
-type PlanejamentoAtividadeApi = {
+type ProjectActivity = {
   id: string;
+  titulo: string;
+  descricao: string;
+  objetivoTexto?: string | null;
+  materiais: string[];
+  bnccCodigos: string[];
+};
+
+type Project = {
+  id: string;
+  titulo: string;
+  descricao: string;
+  persisted: boolean;
+  origem?: string;
+  salvo?: boolean;
+  createdAt?: string;
+  objetivosEspecificos: string[];
+  bnccObjetivos: string[];
+  camposExperiencia: string[];
+  atividades: ProjectActivity[];
+};
+
+type PlanApi = {
+  id: string;
+  grupoNome?: string | null;
+  projetoBaseId?: string | null;
+  camposExperiencia: string[];
+  direitosAprendizagem: string[];
+  nomeInstituicao?: string | null;
+  nomeProfessora?: string | null;
+  atividades: Array<{
+    id: string;
+    diaSemana: number;
+    ordem: number;
+    horario?: string | null;
+    objetivosTexto?: string | null;
+    atividadeTexto?: string | null;
+    atividade?: ProjectActivity | null;
+  }>;
+};
+
+type WeekRow = {
   diaSemana: number;
-  horario: string;
-  atividadeId: string;
-  atividade: Atividade;
-};
-type PlanejamentoApi = {
-  id: string;
-  atividades: PlanejamentoAtividadeApi[];
-};
-type PlanejamentoResponse = {
-  planejamentos: PlanejamentoApi[];
-  streak: number;
+  objetivosTexto: string;
+  atividadeTexto: string;
 };
 
-type Slot = {
-  id: string;
-  atividadeId: string;
-  horario: string;
-};
+type SuggestionKind = "objective" | "activity";
 
-type DragSlot = {
-  fromDay: number;
-  slotId: string;
-};
-
-const weekdays = [
-  { label: "Seg", value: 1 },
-  { label: "Ter", value: 2 },
-  { label: "Qua", value: 3 },
-  { label: "Qui", value: 4 },
-  { label: "Sex", value: 5 },
+const DAYS = [
+  { value: 1, label: "Segunda-feira", short: "Seg" },
+  { value: 2, label: "Terca-feira", short: "Ter" },
+  { value: 3, label: "Quarta-feira", short: "Qua" },
+  { value: 4, label: "Quinta-feira", short: "Qui" },
+  { value: 5, label: "Sexta-feira", short: "Sex" },
 ];
 
-const createEmptySlots = (): Record<number, Slot[]> => ({ 1: [], 2: [], 3: [], 4: [], 5: [] });
+const DEFAULT_DIREITOS = [
+  "Conviver",
+  "Brincar",
+  "Participar",
+  "Explorar",
+  "Expressar",
+  "Conhecer-se",
+];
 
-function generateSlotId() {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+function localDate(value: Date) {
+  const copy = new Date(value.getTime() - value.getTimezoneOffset() * 60000);
+  return copy.toISOString().slice(0, 10);
 }
 
-function toDateInput(value: Date) {
-  const timezoneOffsetMs = value.getTimezoneOffset() * 60000;
-  return new Date(value.getTime() - timezoneOffsetMs).toISOString().slice(0, 10);
-}
-
-function getMonday(baseDate: Date) {
-  const date = new Date(baseDate);
-  const dayOfWeek = (date.getDay() + 6) % 7;
-  date.setDate(date.getDate() - dayOfWeek);
+function monday(value = new Date()) {
+  const date = new Date(value);
+  const day = (date.getDay() + 6) % 7;
+  date.setDate(date.getDate() - day);
   date.setHours(0, 0, 0, 0);
   return date;
 }
 
-function computeWeekEnd(weekStart: string) {
-  if (!weekStart) return "";
-  const endDate = new Date(`${weekStart}T00:00:00`);
-  endDate.setDate(endDate.getDate() + 4);
-  return toDateInput(endDate);
+function weekEnd(start: string) {
+  const date = new Date(`${start}T12:00:00`);
+  date.setDate(date.getDate() + 4);
+  return localDate(date);
 }
 
-function getNextSlotTime(daySlots: Slot[]) {
-  if (!daySlots.length) return "08:00";
-  const sorted = [...daySlots].sort((a, b) => a.horario.localeCompare(b.horario));
-  const last = sorted[sorted.length - 1];
-  const [hour, minute] = last.horario.split(":").map(Number);
-  if (Number.isNaN(hour) || Number.isNaN(minute)) return "08:00";
-  const nextMinutes = Math.min(hour * 60 + minute + 60, 17 * 60 + 30);
-  const nextHour = `${Math.floor(nextMinutes / 60)}`.padStart(2, "0");
-  const nextMinute = `${nextMinutes % 60}`.padStart(2, "0");
-  return `${nextHour}:${nextMinute}`;
+function dayDate(start: string, day: number) {
+  const date = new Date(`${start}T12:00:00`);
+  date.setDate(date.getDate() + day - 1);
+  return new Intl.DateTimeFormat("pt-BR").format(date);
 }
 
-function getCategoryBadgeClass(category: string) {
-  const n = category.trim().toLowerCase();
-  if (n.includes("natureza")) return "cat-natureza";
-  if (n.includes("corpo") || n.includes("movimento")) return "cat-corpo";
-  if (n.includes("arte") || n.includes("musica")) return "cat-arte";
-  if (n.includes("mat") || n.includes("numero")) return "cat-matematica";
-  if (n.includes("lingu") || n.includes("leitura")) return "cat-linguagem";
-  if (n.includes("sociedade") || n.includes("conviv")) return "cat-sociedade";
-  if (n.includes("data") || n.includes("comemor")) return "cat-datas";
-  return "bg-gray-100 text-gray-600";
+function list(value: string) {
+  return value
+    .split(/[;\n]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
-function stringScore(value: string) {
-  return value.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+function unique(values: Array<string | null | undefined>) {
+  return Array.from(new Set(values.map((value) => value?.trim()).filter((value): value is string => Boolean(value))));
 }
 
-const lightInput = "h-10 w-full rounded-xl border border-gray-200 bg-white px-3.5 text-sm font-medium text-gray-800 placeholder:text-gray-300 transition-all focus:border-violet-300 focus:outline-none focus:ring-2 focus:ring-violet-100 hover:border-gray-300";
-const lightSelect = "h-10 w-full rounded-xl border border-gray-200 bg-white px-3.5 text-sm font-medium text-gray-800 focus:border-violet-300 focus:outline-none transition appearance-none hover:border-gray-300";
+function emptyRows(): WeekRow[] {
+  return DAYS.map((day) => ({
+    diaSemana: day.value,
+    objetivosTexto: "",
+    atividadeTexto: "",
+  }));
+}
 
-export default function PlanejamentoPage() {
-  const defaultWeekStart = useMemo(() => toDateInput(getMonday(new Date())), []);
-  const [turmas, setTurmas] = useState<Turma[]>([]);
-  const [atividades, setAtividades] = useState<Atividade[]>([]);
-  const [search, setSearch] = useState("");
-  const [categoria, setCategoria] = useState("TODAS");
-  const [selectedDay, setSelectedDay] = useState<number>(1);
-  const [selectedTurma, setSelectedTurma] = useState<string>("");
-  const [weekStart, setWeekStart] = useState(defaultWeekStart);
-  const [weekEnd, setWeekEnd] = useState(computeWeekEnd(defaultWeekStart));
-  const [slots, setSlots] = useState<Record<number, Slot[]>>(createEmptySlots());
-  const [saving, setSaving] = useState(false);
-  const [cloning, setCloning] = useState(false);
-  const [loadingActivities, setLoadingActivities] = useState(true);
-  const [loadingWeek, setLoadingWeek] = useState(false);
-  const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
-  const [streak, setStreak] = useState(0);
-  const [suggestionSeed, setSuggestionSeed] = useState(0);
-  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
-  const [dragSlot, setDragSlot] = useState<DragSlot | null>(null);
-  const [dropDay, setDropDay] = useState<number | null>(null);
-  const [draggingSlotId, setDraggingSlotId] = useState<string | null>(null);
+function appendText(current: string, next: string) {
+  const clean = next.trim();
+  if (!clean) return current;
+  if (!current.trim()) return clean;
+  if (current.includes(clean)) return current;
+  return `${current.trim()}\n- ${clean.replace(/^[-*]\s*/, "")}`;
+}
 
-  const loadTurmas = useCallback(async () => {
-    const response = await fetch("/api/turmas");
-    const json = await response.json();
-    if (!response.ok) throw new Error(json.error?.message ?? "Falha ao carregar turmas");
-    const loadedTurmas = (json.data ?? []) as Turma[];
-    setTurmas(loadedTurmas);
-    if (loadedTurmas.length && !selectedTurma) setSelectedTurma(loadedTurmas[0].id);
-  }, [selectedTurma]);
+function mapLocalProjects(): Project[] {
+  return SHOWCASE_PROJECTS.map((project) => ({
+    id: project.id,
+    titulo: project.titulo,
+    descricao: project.descricao,
+    persisted: false,
+    salvo: false,
+    objetivosEspecificos: project.objetivosEspecificos,
+    bnccObjetivos: project.bnccObjetivos,
+    camposExperiencia: project.camposExperiencia,
+    atividades: project.atividades.map((item) => ({
+      ...item,
+      objetivoTexto: project.objetivosEspecificos.slice(0, 2).join("; "),
+    })),
+  }));
+}
 
-  const loadAtividadesByTurma = useCallback(async (turmaId: string) => {
-    setLoadingActivities(true);
-    try {
-      const params = new URLSearchParams({ turmaId });
-      const response = await fetch(`/api/projetos?${params.toString()}`);
-      const json = await response.json();
-      if (!response.ok) throw new Error(json.error?.message ?? "Falha ao carregar atividades");
+function mapApiProjects(value: unknown): Project[] {
+  return getPayloadItems<Record<string, unknown>>(value).map((raw) => {
+    const project = raw as unknown as Omit<Project, "persisted">;
+    return {
+      ...project,
+      persisted: true,
+      salvo: Boolean(project.salvo),
+      atividades: project.atividades ?? [],
+      objetivosEspecificos: project.objetivosEspecificos ?? [],
+      bnccObjetivos: project.bnccObjetivos ?? [],
+      camposExperiencia: project.camposExperiencia ?? [],
+    };
+  });
+}
 
-      const turmaSelecionada = turmas.find((item) => item.id === turmaId);
-      const etapaSelecionada = inferEtapaTurma(turmaSelecionada?.faixaEtaria);
+function SuggestionPanel({
+  kind,
+  items,
+  selectedDay,
+  onInsert,
+}: {
+  kind: SuggestionKind;
+  items: string[];
+  selectedDay: number;
+  onInsert: (kind: SuggestionKind, text: string, day: number) => void;
+}) {
+  const objective = kind === "objective";
+  const Icon = objective ? Target : ClipboardList;
 
-      const byId = new Map<string, Atividade>();
+  return (
+    <section className="overflow-hidden rounded-lg border border-[#eadde5] bg-white shadow-[0_14px_36px_-32px_rgba(73,43,62,0.55)]">
+      <header className="flex items-center gap-2 border-b border-[#eee3e9] bg-[#fff8fb] px-3 py-3">
+        <span className="inline-flex size-8 items-center justify-center rounded-md bg-[#f8e8f0] text-[#95546f]">
+          <Icon className="size-4" />
+        </span>
+        <div className="min-w-0">
+          <h3 className="text-sm font-black text-[#312834]">
+            {objective ? "Objetivos do projeto" : "Atividades do projeto"}
+          </h3>
+          <p className="text-[11px] font-bold text-[#978791]">{items.length} sugestao(oes)</p>
+        </div>
+      </header>
 
-      for (const projeto of (json.data ?? []) as Array<{ atividades?: Atividade[] }>) {
-        for (const atividade of projeto.atividades ?? []) {
-          byId.set(atividade.id, {
-            id: atividade.id,
-            titulo: atividade.titulo,
-            categoria: atividade.categoria,
-            duracao: atividade.duracao,
-            bnccCodigos: atividade.bnccCodigos,
-          });
-        }
-      }
+      <div className="max-h-[330px] space-y-2 overflow-y-auto p-2 scrollbar-hide">
+        {items.map((item, index) => (
+          <SuggestionItem
+            key={`${kind}-${index}-${item.slice(0, 24)}`}
+            id={`suggestion-${kind}-${index}`}
+            kind={kind}
+            text={item}
+            selectedDay={selectedDay}
+            onInsert={onInsert}
+          />
+        ))}
 
-      for (const projeto of SHOWCASE_PROJECTS) {
-        if (etapaSelecionada && !projeto.etapas.includes(etapaSelecionada)) {
-          continue;
-        }
+        {!items.length ? (
+          <div className="rounded-md border border-dashed border-[#e2d2db] px-3 py-8 text-center text-xs font-bold text-[#9b8d96]">
+            Selecione um projeto base.
+          </div>
+        ) : null}
+      </div>
+    </section>
+  );
+}
 
-        for (const atividade of projeto.atividades) {
-          byId.set(atividade.id, {
-            id: atividade.id,
-            titulo: atividade.titulo,
-            categoria: atividade.categoria,
-            duracao: atividade.duracao,
-            bnccCodigos: atividade.bnccCodigos,
-          });
-        }
-      }
-
-      setAtividades(Array.from(byId.values()).sort((a, b) => a.titulo.localeCompare(b.titulo)));
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Falha ao carregar atividades");
-      setAtividades([]);
-    } finally {
-      setLoadingActivities(false);
-    }
-  }, [turmas]);
-
-  const loadWeekPlan = useCallback(async (turmaId: string, semanaInicio: string) => {
-    setLoadingWeek(true);
-    try {
-      const params = new URLSearchParams({ turmaId, semanaInicio });
-      const response = await fetch(`/api/planejamento?${params.toString()}`);
-      const json = await response.json();
-      if (!response.ok) throw new Error(json.error?.message ?? "Falha ao carregar planejamento da semana");
-      const payload = (json.data ?? {}) as PlanejamentoResponse;
-      setStreak(payload.streak ?? 0);
-      const currentPlan = payload.planejamentos?.[0];
-      if (!currentPlan) { setCurrentPlanId(null); setSlots(createEmptySlots()); return; }
-      const nextSlots = createEmptySlots();
-      for (const item of currentPlan.atividades ?? []) {
-        if (!nextSlots[item.diaSemana]) continue;
-        nextSlots[item.diaSemana].push({ id: item.id ?? generateSlotId(), atividadeId: item.atividadeId, horario: item.horario });
-      }
-      for (const day of weekdays) {
-        nextSlots[day.value] = nextSlots[day.value].sort((a, b) => a.horario.localeCompare(b.horario));
-      }
-      setCurrentPlanId(currentPlan.id);
-      setSlots(nextSlots);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Falha ao carregar planejamento da semana");
-      setCurrentPlanId(null);
-      setSlots(createEmptySlots());
-    } finally {
-      setLoadingWeek(false);
-    }
-  }, []);
-
-  useEffect(() => { void loadTurmas(); }, [loadTurmas]);
-  useEffect(() => { const e = computeWeekEnd(weekStart); if (e !== weekEnd) setWeekEnd(e); }, [weekStart, weekEnd]);
-  useEffect(() => { if (!selectedTurma) return; void loadAtividadesByTurma(selectedTurma); }, [selectedTurma, loadAtividadesByTurma]);
-  useEffect(() => { if (!selectedTurma || !weekStart) return; void loadWeekPlan(selectedTurma, weekStart); }, [selectedTurma, weekStart, loadWeekPlan]);
-
-  const activityMap = useMemo(() => new Map(atividades.map((item) => [item.id, item])), [atividades]);
-  const categoriaOptions = useMemo(() => ["TODAS", ...Array.from(new Set(atividades.map((a) => a.categoria)))], [atividades]);
-  const atividadesFiltradas = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return atividades.filter((a) => {
-      if (categoria !== "TODAS" && a.categoria !== categoria) return false;
-      if (!q) return true;
-      return `${a.titulo} ${a.categoria} ${(a.bnccCodigos ?? []).join(" ")}`.toLowerCase().includes(q);
-    });
-  }, [atividades, categoria, search]);
-  const totalSlots = useMemo(() => weekdays.reduce((acc, day) => acc + slots[day.value].length, 0), [slots]);
-  const selectedTurmaData = useMemo(() => turmas.find((t) => t.id === selectedTurma) ?? null, [turmas, selectedTurma]);
-  const turmaEtapa = useMemo(() => { const e = inferEtapaTurma(selectedTurmaData?.faixaEtaria); return e ? getEtapaLabel(e) : "Não identificada"; }, [selectedTurmaData]);
-  const sugestoesIa = useMemo(() => {
-    if (!atividades.length) return [] as Atividade[];
-    const rank = (a: Atividade) => stringScore(`${a.id}-${selectedDay}-${suggestionSeed}`);
-    return [...atividades].sort((a, b) => rank(a) - rank(b)).slice(0, 6);
-  }, [atividades, selectedDay, suggestionSeed]);
-
-  const onAddActivity = (day: number, activityId: string) => {
-    setSlots((prev) => ({ ...prev, [day]: [...prev[day], { id: generateSlotId(), atividadeId: activityId, horario: getNextSlotTime(prev[day]) }] }));
-  };
-  const updateSlot = (day: number, slotId: string, horario: string) => {
-    setSlots((prev) => ({ ...prev, [day]: prev[day].map((s) => (s.id === slotId ? { ...s, horario } : s)) }));
-  };
-  const removeSlot = (day: number, slotId: string) => {
-    setSlots((prev) => ({ ...prev, [day]: prev[day].filter((s) => s.id !== slotId) }));
-  };
-  const clearWeek = () => {
-    if (!totalSlots) { toast.info("A semana já está vazia"); return; }
-    setSlots(createEmptySlots());
-    toast.success("Grade da semana limpa");
-  };
-  const refreshSuggestions = () => {
-    setLoadingSuggestions(true);
-    window.setTimeout(() => { setSuggestionSeed((p) => p + 1); setLoadingSuggestions(false); toast.success("Sugestões atualizadas"); }, 420);
-  };
-  const addSuggestionToDay = (atividade: Atividade) => {
-    onAddActivity(selectedDay, atividade.id);
-    toast.success(`Sugestão aplicada em ${weekdays.find((d) => d.value === selectedDay)?.label}`);
-  };
-  const moveSlotToDay = (fromDay: number, toDay: number, slotId: string) => {
-    if (fromDay === toDay) return;
-    setSlots((prev) => {
-      const moving = prev[fromDay].find((s) => s.id === slotId);
-      if (!moving) return prev;
-      return { ...prev, [fromDay]: prev[fromDay].filter((s) => s.id !== slotId), [toDay]: [...prev[toDay], { ...moving }].sort((a, b) => a.horario.localeCompare(b.horario)) };
-    });
-    toast.success(`Atividade movida para ${weekdays.find((d) => d.value === toDay)?.label}`);
-  };
-  const handleSave = async () => {
-    if (!selectedTurma || !weekStart || !weekEnd) { toast.error("Preencha turma e período da semana"); return; }
-    const atividadesPayload = weekdays.flatMap((day) => slots[day.value].map((slot) => ({ diaSemana: day.value, horario: slot.horario, atividadeId: slot.atividadeId })));
-    if (!atividadesPayload.length) { toast.error("Adicione ao menos uma atividade na grade semanal"); return; }
-    setSaving(true);
-    const response = await fetch("/api/planejamento", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ turmaId: selectedTurma, semanaInicio: weekStart, semanaFim: weekEnd, atividades: atividadesPayload }) });
-    setSaving(false);
-    if (!response.ok) { const json = await response.json(); toast.error(json.error?.message ?? "Falha ao salvar planejamento"); return; }
-    toast.success(currentPlanId ? "Planejamento atualizado" : "Planejamento salvo");
-    await loadWeekPlan(selectedTurma, weekStart);
-  };
-
-  const cloneToNextWeek = async () => {
-    if (!selectedTurma || !weekStart) {
-      toast.error("Selecione turma e semana para clonar");
-      return;
-    }
-
-    const atividadesPayload = weekdays.flatMap((day) =>
-      slots[day.value].map((slot) => ({
-        diaSemana: day.value,
-        horario: slot.horario,
-        atividadeId: slot.atividadeId,
-      }))
-    );
-
-    if (!atividadesPayload.length) {
-      toast.error("A semana atual está vazia. Adicione atividades antes de clonar.");
-      return;
-    }
-
-    const nextStartDate = new Date(`${weekStart}T00:00:00`);
-    nextStartDate.setDate(nextStartDate.getDate() + 7);
-    const nextWeekStart = toDateInput(nextStartDate);
-    const nextWeekEnd = computeWeekEnd(nextWeekStart);
-
-    setCloning(true);
-    const response = await fetch("/api/planejamento", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        turmaId: selectedTurma,
-        semanaInicio: nextWeekStart,
-        semanaFim: nextWeekEnd,
-        atividades: atividadesPayload,
-      }),
-    });
-    setCloning(false);
-
-    if (!response.ok) {
-      const json = await response.json();
-      toast.error(json.error?.message ?? "Falha ao clonar semana");
-      return;
-    }
-
-    toast.success(`Semana clonada para ${nextWeekStart}`);
-    setWeekStart(nextWeekStart);
+function SuggestionItem({
+  id,
+  kind,
+  text,
+  selectedDay,
+  onInsert,
+}: {
+  id: string;
+  kind: SuggestionKind;
+  text: string;
+  selectedDay: number;
+  onInsert: (kind: SuggestionKind, text: string, day: number) => void;
+}) {
+  const draggable = useDraggable({ id, data: { kind, text } });
+  const style = {
+    transform: CSS.Translate.toString(draggable.transform),
+    touchAction: "none" as const,
   };
 
   return (
-    <div className="space-y-6">
-      <DashboardPageHero
-        icon={CalendarClock}
-        badge="Planejamento Semanal"
-        title="Monte sua grade em 3 passos"
-        description="Escolha turma e semana, monte a grade e salve."
-        gradient="linear-gradient(135deg, #4ca4ed 0%, #5bbcf0 50%, #5bc9b6 100%)"
-        orbColor="rgba(186, 226, 255, 0.8)"
-        borderClassName="border-sky-200/60"
-        actions={
-          <>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-300/40 bg-sky-400/20 px-3 py-1.5 text-xs font-bold text-sky-100">
-              1. Turma + semana
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/40 bg-emerald-400/20 px-3 py-1.5 text-xs font-bold text-emerald-100">
-              2. Adicionar atividades
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/40 bg-amber-400/20 px-3 py-1.5 text-xs font-bold text-amber-100">
-              3. Salvar
-            </span>
-            {streak > 0 && (
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-bold text-white">
-                🔥 Streak: {streak} semana{streak > 1 ? "s" : ""}
-              </span>
-            )}
-          </>
+    <div
+      ref={draggable.setNodeRef}
+      style={style}
+      title={`Arrastar ou adicionar em ${DAYS[selectedDay - 1]?.label}`}
+      onClick={() => onInsert(kind, text, selectedDay)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onInsert(kind, text, selectedDay);
         }
-      />
-
-      <div className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)_300px]">
-        {/* ─── Biblioteca ─── */}
-        <Card className="pf-card rounded-[1.4rem] border-sky-100/80 bg-white">
-          <CardHeader className="p-5 pb-3">
-            <CardTitle className="font-heading text-lg text-[#223246]">Biblioteca de atividades</CardTitle>
-            <CardDescription className="text-[13px] font-semibold text-[#6f88a2]">Selecione um dia e toque em Adicionar.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3 p-5 pt-0">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3.5 top-3 size-4 text-[#8aa2b9]" />
-              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar atividade…" className="pf-input pl-10" />
-            </div>
-            <select className="pf-select" value={categoria} onChange={(e) => setCategoria(e.target.value)}>
-              {categoriaOptions.map((item) => (<option key={item} value={item}>{item}</option>))}
-            </select>
-
-            <div>
-              <p className="pf-label">Dia selecionado</p>
-              <div className="grid grid-cols-5 gap-1.5">
-                {weekdays.map((day) => (
-                  <button key={day.value} type="button" onClick={() => setSelectedDay(day.value)}
-                    className={`rounded-xl py-2.5 text-xs font-bold transition-all ${selectedDay === day.value ? "bg-sky-500 text-white shadow-[0_4px_12px_-4px_rgba(76,164,237,0.5)]" : "border border-sky-100 bg-sky-50/50 text-[#6f88a2] hover:bg-sky-100 hover:text-sky-700"}`}>
-                    {day.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="max-h-[520px] space-y-2.5 overflow-y-auto pr-1 scrollbar-hide">
-              {loadingActivities && (
-                <div className="flex items-center gap-2.5 rounded-2xl border border-sky-100 bg-sky-50/50 p-3.5 text-sm font-semibold text-[#6f88a2]">
-                  <Loader2 className="size-4 animate-spin text-sky-500" /> Carregando atividades…
-                </div>
-              )}
-              {!loadingActivities && atividadesFiltradas.map((atividade) => (
-                <article key={atividade.id} className="rounded-2xl border border-sky-100 bg-sky-50/30 p-3.5 transition hover:border-sky-200 hover:shadow-sm">
-                  <p className="text-sm font-bold text-[#223246]">{atividade.titulo}</p>
-                  <p className="mt-0.5 text-xs font-medium text-[#8aa2b9]">{atividade.categoria} · {atividade.duracao} min</p>
-                  <p className="mt-1 line-clamp-1 text-[11px] text-[#8aa2b9]">BNCC: {(atividade.bnccCodigos ?? []).join(", ") || "Não informado"}</p>
-                  <Button type="button" onClick={() => { onAddActivity(selectedDay, atividade.id); toast.success(`Adicionado em ${weekdays.find((d) => d.value === selectedDay)?.label}`); }}
-                    className="mt-2.5 h-9 w-full rounded-xl bg-emerald-50 text-xs font-bold text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 border border-emerald-200">
-                    <Plus className="mr-1.5 size-3.5" /> Adicionar no dia
-                  </Button>
-                </article>
-              ))}
-              {!loadingActivities && !atividadesFiltradas.length && (
-                <div className="pf-empty py-6">Nenhuma atividade encontrada.</div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Grade semanal */}
-        <Card className="pf-card rounded-[1.4rem] border-sky-100/80 bg-white">
-          <CardHeader className="p-5 pb-3">
-            <CardTitle className="font-heading text-lg text-[#223246]">Grade semanal</CardTitle>
-            <CardDescription className="text-[13px] font-semibold text-[#6f88a2]">Planejamento visual da semana.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 p-5 pt-0">
-            <div className="grid gap-3 md:grid-cols-4">
-              <select value={selectedTurma} onChange={(e) => setSelectedTurma(e.target.value)} className="pf-select">
-                {!turmas.length && <option value="">Sem turmas cadastradas</option>}
-                {turmas.map((t) => (<option key={t.id} value={t.id}>{t.nome}</option>))}
-              </select>
-              <input type="date" value={weekStart} onChange={(e) => setWeekStart(e.target.value)} className="pf-input" />
-              <input type="date" value={weekEnd} readOnly className="pf-input opacity-50 cursor-not-allowed" />
-              <div className="flex items-center rounded-xl border border-sky-100 bg-sky-50/50 px-3.5 py-2 text-xs font-semibold text-[#6f88a2]">
-                Etapa: <span className="ml-1 font-bold text-[#223246]">{turmaEtapa}</span>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <span className="pf-chip border-sky-200 bg-sky-50 text-sky-700">{totalSlots} atividades</span>
-              <span className="pf-chip border-emerald-200 bg-emerald-50 text-emerald-700">🔥 Streak: {streak} sem.</span>
-              {currentPlanId && <span className="pf-chip border-amber-200 bg-amber-50 text-amber-700">✏️ Editando semana salva</span>}
-            </div>
-
-            {loadingWeek && (
-              <div className="flex items-center gap-2.5 rounded-2xl border border-sky-100 bg-sky-50/50 p-3.5 text-sm font-semibold text-[#6f88a2]">
-                <Loader2 className="size-4 animate-spin text-sky-500" /> Carregando semana…
-              </div>
-            )}
-
-            <div className="overflow-x-auto pb-2">
-              <div className="grid min-w-[980px] grid-cols-5 gap-3">
-              {weekdays.map((day) => (
-                <div key={day.value}
-                  onDragOver={(e) => { e.preventDefault(); if (dragSlot) setDropDay(day.value); }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    if (!dragSlot) return;
-                    moveSlotToDay(dragSlot.fromDay, day.value, dragSlot.slotId);
-                    setDragSlot(null);
-                    setDropDay(null);
-                    setDraggingSlotId(null);
-                  }}
-                  onDragLeave={() => { if (dropDay === day.value) setDropDay(null); }}
-                  className={`min-h-[420px] rounded-2xl border p-3 transition-all ${selectedDay === day.value ? "border-sky-300/60 bg-sky-50/70" : "border-sky-100 bg-sky-50/20"} ${dropDay === day.value ? "ring-2 ring-emerald-400/40" : ""}`}
-                >
-                  <div className="mb-3 flex items-center justify-between">
-                    <button type="button" onClick={() => setSelectedDay(day.value)}
-                      className={`text-xs font-bold transition ${selectedDay === day.value ? "text-sky-600" : "text-[#8aa2b9] hover:text-sky-600"}`}>
-                      {day.label}
-                    </button>
-                    <span className="rounded-full border border-sky-100 bg-white px-2 py-0.5 text-[10px] font-bold text-[#8aa2b9]">{slots[day.value].length}</span>
-                  </div>
-                  <div className="max-h-[520px] space-y-2 overflow-y-auto pr-1">
-                    {[...slots[day.value]].sort((a, b) => a.horario.localeCompare(b.horario)).map((slot) => {
-                      const atividade = activityMap.get(slot.atividadeId);
-                      const cat = getCategoryBadgeClass(atividade?.categoria ?? "");
-                      return (
-                        <div
-                          key={slot.id}
-                          className={`rounded-xl border border-sky-100 bg-white p-2.5 shadow-sm ${draggingSlotId === slot.id ? "border-sky-300 ring-2 ring-sky-200" : ""}`}
-                        >
-                          <div className="flex items-start justify-between gap-1">
-                            <p className="line-clamp-2 text-xs font-bold text-[#223246]">{atividade?.titulo ?? "Atividade"}</p>
-                            <button
-                              type="button"
-                              draggable
-                              onDragStart={(event) => {
-                                event.stopPropagation();
-                                event.dataTransfer.effectAllowed = "move";
-                                setDragSlot({ fromDay: day.value, slotId: slot.id });
-                                setDraggingSlotId(slot.id);
-                              }}
-                              onDragEnd={() => {
-                                setDragSlot(null);
-                                setDropDay(null);
-                                setDraggingSlotId(null);
-                              }}
-                              className="cursor-grab rounded-lg border border-sky-100 bg-sky-50/50 p-1 text-[#8aa2b9] transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-500 active:cursor-grabbing"
-                              aria-label="Arrastar atividade"
-                            >
-                              <GripVertical className="size-3.5 shrink-0" />
-                            </button>
-                          </div>
-                          <div className="mt-1.5 flex items-center gap-1.5">
-                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${cat}`}>{atividade?.categoria ?? "—"}</span>
-                            <span className="text-[10px] text-[#8aa2b9]">{atividade?.duracao ?? 0} min</span>
-                          </div>
-                          <input type="time" value={slot.horario} onChange={(e) => updateSlot(day.value, slot.id, e.target.value)}
-                            className="mt-2 h-8 w-full rounded-lg border border-sky-100 bg-sky-50/40 px-2.5 text-xs font-medium text-[#3d5771] focus:outline-none focus:border-sky-300" />
-                          <button onClick={() => removeSlot(day.value, slot.id)} type="button"
-                            className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-red-400 transition hover:text-red-500">
-                            <Trash2 className="size-3" /> Remover
-                          </button>
-                        </div>
-                      );
-                    })}
-                    {!slots[day.value].length && (
-                      <div className="pf-empty py-8 text-xs">Vazio</div>
-                    )}
-                  </div>
-                </div>
-              ))}
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2.5">
-              <Button onClick={clearWeek} type="button" variant="outline"
-                className="rounded-xl border-sky-100 bg-white text-[#6f88a2] hover:bg-red-50 hover:text-red-500 hover:border-red-200">
-                <Trash2 className="mr-2 size-4" /> Limpar semana
-              </Button>
-              <button onClick={handleSave} disabled={saving || loadingWeek} type="button"
-                className="pf-btn-success px-6">
-                {saving ? <Loader2 className="size-4 animate-spin" /> : <CalendarClock className="size-4" />}
-                {saving ? "Salvando…" : "Salvar semana"}
-              </button>
-              <Button
-                onClick={cloneToNextWeek}
-                disabled={cloning || saving || loadingWeek}
-                type="button"
-                className="rounded-xl border border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100"
-                variant="outline"
-              >
-                {cloning ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Copy className="mr-2 size-4" />}
-                {cloning ? "Clonando…" : "Clonar para próxima semana"}
-              </Button>
-              <span className="pf-chip border-sky-100 bg-sky-50/50 text-[#6f88a2]">
-                <Clock3 className="size-3.5" /> {weekStart} até {weekEnd}
-              </span>
-              <span className="pf-chip border-sky-100 bg-sky-50/50 text-[#6f88a2]">
-                <Sparkles className="size-3.5 text-sky-500" /> {currentPlanId ? "Modo edição" : "Semana nova"}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Sugestões IA */}
-        <Card className="pf-card rounded-[1.4rem] border-sky-100/80 bg-white">
-          <CardHeader className="p-5 pb-3">
-            <CardTitle className="font-heading text-lg text-[#223246]">Sugestões com IA</CardTitle>
-            <CardDescription className="text-[13px] font-semibold text-[#6f88a2]">
-              Para {weekdays.find((d) => d.value === selectedDay)?.label}, com base na turma.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3 p-5 pt-0">
-            <Button type="button" variant="outline" onClick={refreshSuggestions} disabled={loadingSuggestions || !atividades.length}
-              className="w-full rounded-xl border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100 hover:text-amber-700">
-              {loadingSuggestions ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Lightbulb className="mr-2 size-4" />}
-              {loadingSuggestions ? "Atualizando…" : "✨ Gerar novas sugestões"}
-            </Button>
-
-            <div className="rounded-2xl border border-sky-100 bg-sky-50/40 p-3.5 text-xs text-[#6f88a2]">
-              <p className="font-bold text-[#3d5771]">Etapa da turma</p>
-              <p className="mt-0.5">{turmaEtapa}</p>
-            </div>
-
-            <div className="space-y-2.5">
-              {sugestoesIa.map((atividade) => (
-                <article key={atividade.id} className="rounded-2xl border border-sky-100 bg-sky-50/30 p-3.5 transition hover:border-sky-200 hover:shadow-sm">
-                  <div className="mb-1.5 flex items-center gap-2">
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${getCategoryBadgeClass(atividade.categoria)}`}>{atividade.categoria}</span>
-                    <span className="text-[10px] text-[#8aa2b9]">{atividade.duracao} min</span>
-                  </div>
-                  <p className="line-clamp-2 text-sm font-bold text-[#223246]">{atividade.titulo}</p>
-                  <p className="mt-0.5 line-clamp-1 text-[11px] text-[#8aa2b9]">BNCC: {(atividade.bnccCodigos ?? []).join(", ") || "—"}</p>
-                  <Button type="button" onClick={() => addSuggestionToDay(atividade)}
-                    className="mt-2.5 h-9 w-full rounded-xl border border-sky-200 bg-sky-50 text-xs font-bold text-sky-700 hover:bg-sky-100">
-                    Adicionar na grade
-                  </Button>
-                </article>
-              ))}
-              {!sugestoesIa.length && (
-                <div className="pf-empty py-6">Ainda não há sugestões.</div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      }}
+      className={cn(
+        "group flex cursor-grab items-start gap-2 rounded-md border border-[#eee3e9] bg-white p-2.5 text-left transition hover:border-[#d9b7c7] hover:bg-[#fff9fc] active:cursor-grabbing",
+        draggable.isDragging && "z-50 opacity-70 shadow-xl",
+      )}
+      {...draggable.attributes}
+      {...draggable.listeners}
+    >
+      <GripVertical className="mt-0.5 size-4 shrink-0 text-[#b69ca9] group-hover:text-[#95546f]" />
+      <span className="line-clamp-4 text-xs font-semibold leading-5 text-[#655761]">{text}</span>
     </div>
   );
 }
 
+function PlanningCell({
+  row,
+  kind,
+  compact = false,
+  onUpdate,
+  onFocus,
+}: {
+  row: WeekRow;
+  kind: SuggestionKind;
+  compact?: boolean;
+  onUpdate: (day: number, field: "objetivosTexto" | "atividadeTexto", value: string) => void;
+  onFocus: (day: number) => void;
+}) {
+  const field = kind === "objective" ? "objetivosTexto" : "atividadeTexto";
+  const droppable = useDroppable({
+    id: `drop-${kind}-${row.diaSemana}-${compact ? "mobile" : "desktop"}`,
+    data: { kind, day: row.diaSemana },
+  });
+
+  return (
+    <div
+      ref={droppable.setNodeRef}
+      className={cn(
+        "relative h-full transition",
+        droppable.isOver && "bg-[#fff0f6] ring-2 ring-inset ring-[#c97f9f]",
+      )}
+    >
+      <Textarea
+        value={row[field]}
+        onFocus={() => onFocus(row.diaSemana)}
+        onChange={(event) => onUpdate(row.diaSemana, field, event.target.value)}
+        placeholder={kind === "objective" ? "Escreva os objetivos do dia" : "Escreva as atividades do dia"}
+        className={cn(
+          "h-full min-h-36 resize-y rounded-none border-0 bg-transparent px-4 py-3 text-sm font-semibold leading-6 text-[#4f424b] shadow-none focus-visible:ring-0",
+          !compact && "lg:min-h-[168px]",
+        )}
+      />
+    </div>
+  );
+}
+
+export default function PlanejamentoPage() {
+  const params = useSearchParams();
+  const requestedProjectId = params.get("projetoId") ?? "";
+  const initialWeek = useMemo(() => localDate(monday()), []);
+  const [week, setWeek] = useState(initialWeek);
+  const [rows, setRows] = useState<WeekRow[]>(emptyRows);
+  const [projects, setProjects] = useState<Project[]>(mapLocalProjects);
+  const [projectId, setProjectId] = useState(requestedProjectId);
+  const [planId, setPlanId] = useState<string | null>(null);
+  const [grupo, setGrupo] = useState("");
+  const [instituicao, setInstituicao] = useState("");
+  const [professora, setProfessora] = useState("");
+  const [campos, setCampos] = useState("");
+  const [direitos, setDireitos] = useState(DEFAULT_DIREITOS.join("; "));
+  const [insertDay, setInsertDay] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [streak, setStreak] = useState(0);
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 8 } }),
+    useSensor(KeyboardSensor),
+  );
+
+  const selectedProject = projects.find((item) => item.id === projectId) ?? null;
+  const objectiveSuggestions = useMemo(() => {
+    if (!selectedProject) return [];
+    return unique([
+      ...selectedProject.objetivosEspecificos,
+      ...selectedProject.atividades.map((item) => item.objetivoTexto),
+      ...selectedProject.bnccObjetivos,
+    ]).slice(0, 30);
+  }, [selectedProject]);
+  const activitySuggestions = useMemo(() => {
+    if (!selectedProject) return [];
+    return selectedProject.atividades.map((item) => {
+      const materials = item.materiais?.length ? `\nMateriais: ${item.materiais.join(", ")}` : "";
+      return `${item.titulo}: ${item.descricao}${materials}`;
+    });
+  }, [selectedProject]);
+
+  const importedProjects = useMemo(
+    () => projects.filter((project) => project.origem === "IMPORTADO"),
+    [projects],
+  );
+  const savedProjects = useMemo(
+    () => projects.filter((project) => project.origem !== "IMPORTADO" && project.salvo),
+    [projects],
+  );
+  const libraryProjects = useMemo(
+    () => projects.filter((project) => project.origem !== "IMPORTADO" && !project.salvo),
+    [projects],
+  );
+
+  const loadProjects = useCallback(async (selectProjectId?: string) => {
+    try {
+      const urls = [
+        "/api/projetos?includeAtividades=true&origem=IMPORTADO&limit=80",
+        "/api/projetos?includeAtividades=true&salvos=true&limit=80",
+        "/api/projetos?includeAtividades=true&limit=80",
+      ];
+      const responses = await Promise.all(urls.map((url) => fetch(url, { cache: "no-store" })));
+      const payloads = await Promise.all(responses.map((response) => response.json()));
+      const apiById = new Map<string, Project>();
+
+      responses.forEach((response, index) => {
+        if (!response.ok) return;
+        mapApiProjects(payloads[index].data).forEach((project) => {
+          if (!apiById.has(project.id)) apiById.set(project.id, project);
+        });
+      });
+
+      const api = [...apiById.values()];
+      const titles = new Set(api.map((item) => item.titulo.toLowerCase()));
+      const merged = [...api, ...mapLocalProjects().filter((item) => !titles.has(item.titulo.toLowerCase()))];
+      setProjects(merged);
+      const desiredProjectId = selectProjectId || requestedProjectId;
+      if (desiredProjectId && merged.some((item) => item.id === desiredProjectId)) {
+        setProjectId(desiredProjectId);
+      }
+    } catch {
+      // O catalogo local continua disponivel quando a API estiver temporariamente indisponivel.
+    }
+  }, [requestedProjectId]);
+
+  const loadPlan = useCallback(async (weekValue: string) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/planejamento?semanaInicio=${weekValue}`, { cache: "no-store" });
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error?.message ?? "Falha ao carregar planejamento");
+      const plan = (json.data?.planejamentos?.[0] ?? null) as PlanApi | null;
+      setStreak(json.data?.streak ?? 0);
+
+      if (!plan) {
+        setPlanId(null);
+        setRows(emptyRows());
+        setGrupo("");
+        setInstituicao("");
+        setProfessora("");
+        setCampos("");
+        setDireitos(DEFAULT_DIREITOS.join("; "));
+        return;
+      }
+
+      setPlanId(plan.id);
+      setGrupo(plan.grupoNome ?? "");
+      setInstituicao(plan.nomeInstituicao ?? "");
+      setProfessora(plan.nomeProfessora ?? "");
+      setCampos(plan.camposExperiencia.join("; "));
+      setDireitos((plan.direitosAprendizagem.length ? plan.direitosAprendizagem : DEFAULT_DIREITOS).join("; "));
+      setProjectId(plan.projetoBaseId ?? "");
+      setRows(DAYS.map((day) => {
+        const dayItems = plan.atividades
+          .filter((item) => item.diaSemana === day.value)
+          .sort((a, b) => a.ordem - b.ordem);
+        return {
+          diaSemana: day.value,
+          objetivosTexto: unique(dayItems.map((item) => (
+            item.objetivosTexto
+            || item.atividade?.objetivoTexto
+            || item.atividade?.bnccCodigos?.join(", ")
+          ))).join("\n"),
+          atividadeTexto: dayItems.map((item) => {
+            const text = item.atividadeTexto
+              || [item.atividade?.titulo, item.atividade?.descricao].filter(Boolean).join(": ");
+            return [item.horario, text].filter(Boolean).join(" - ");
+          }).filter(Boolean).join("\n\n"),
+        };
+      }));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Falha ao carregar planejamento");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { void loadProjects(); }, [loadProjects]);
+  useEffect(() => { void loadPlan(week); }, [loadPlan, week]);
+
+  const updateRow = (day: number, field: "objetivosTexto" | "atividadeTexto", value: string) => {
+    setRows((current) => current.map((row) => (
+      row.diaSemana === day ? { ...row, [field]: value } : row
+    )));
+  };
+
+  const insertSuggestion = (kind: SuggestionKind, text: string, day: number) => {
+    const field = kind === "objective" ? "objetivosTexto" : "atividadeTexto";
+    setInsertDay(day);
+    setRows((current) => current.map((row) => (
+      row.diaSemana === day ? { ...row, [field]: appendText(row[field], text) } : row
+    )));
+  };
+
+  const finishSuggestionDrag = ({ active, over }: DragEndEvent) => {
+    const source = active.data.current as { kind?: SuggestionKind; text?: string } | undefined;
+    const target = over?.data.current as { kind?: SuggestionKind; day?: number } | undefined;
+    if (!source?.kind || !source.text || source.kind !== target?.kind || !target.day) return;
+    insertSuggestion(source.kind, source.text, target.day);
+  };
+
+  const applyProject = () => {
+    if (!selectedProject) return toast.error("Selecione um projeto.");
+    const next = emptyRows();
+    selectedProject.atividades.forEach((activity, index) => {
+      const day = (index % 5) + 1;
+      const row = next[day - 1];
+      const objective = activity.objetivoTexto
+        || selectedProject.objetivosEspecificos[index % Math.max(selectedProject.objetivosEspecificos.length, 1)]
+        || activity.bnccCodigos?.join(", ")
+        || "";
+      const materials = activity.materiais?.length ? `\nMateriais: ${activity.materiais.join(", ")}` : "";
+      row.objetivosTexto = appendText(row.objetivosTexto, objective);
+      row.atividadeTexto = appendText(row.atividadeTexto, `${activity.titulo}: ${activity.descricao}${materials}`);
+    });
+    setRows(next);
+    setCampos(selectedProject.camposExperiencia.join("; "));
+    toast.success("Projeto distribuido na semana.");
+  };
+
+  const save = async () => {
+    const activities = rows
+      .filter((row) => row.objetivosTexto.trim() || row.atividadeTexto.trim())
+      .map((row) => ({
+        diaSemana: row.diaSemana,
+        ordem: 0,
+        horario: "",
+        objetivosTexto: row.objetivosTexto,
+        atividadeTexto: row.atividadeTexto,
+      }));
+    if (!activities.length) return toast.error("Preencha ao menos um dia da semana.");
+
+    setSaving(true);
+    try {
+      const response = await fetch("/api/planejamento", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          grupoNome: grupo,
+          semanaInicio: week,
+          semanaFim: weekEnd(week),
+          projetoBaseId: selectedProject?.persisted ? selectedProject.id : undefined,
+          camposExperiencia: list(campos),
+          direitosAprendizagem: list(direitos),
+          nomeInstituicao: instituicao,
+          nomeProfessora: professora,
+          atividades: activities,
+        }),
+      });
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error?.message ?? "Falha ao salvar");
+      toast.success(planId ? "Planejamento atualizado" : "Planejamento salvo");
+      await loadPlan(week);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Falha ao salvar");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const download = (format: "pdf" | "docx") => {
+    if (!planId) return toast.info("Salve o planejamento antes de baixar.");
+    window.location.assign(`/api/planejamento/export?planejamentoId=${planId}&format=${format}`);
+  };
+
+  return (
+    <div className="mx-auto max-w-[1580px] space-y-4">
+      <DashboardFilterBar
+        title="Planejamento semanal"
+        summary={<span>{streak ? `${streak} semana(s) em sequencia` : "Documento semanal editavel"}</span>}
+      >
+        <input
+          type="date"
+          className="pf-input h-11 lg:w-[155px]"
+          value={week}
+          onChange={(event) => setWeek(event.target.value)}
+        />
+        <Button onClick={save} disabled={saving} className="pf-btn-success h-11">
+          {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+          Salvar
+        </Button>
+        <Button variant="outline" onClick={() => download("pdf")} className="h-11">
+          <Download className="size-4" /> PDF
+        </Button>
+        <Button variant="outline" onClick={() => download("docx")} className="h-11">
+          <FileText className="size-4" /> Word
+        </Button>
+      </DashboardFilterBar>
+
+      <section className="rounded-lg border border-[#eadde5] bg-white p-4">
+        <div className="grid gap-3 lg:grid-cols-[minmax(220px,1.4fr)_auto_auto]">
+          <select
+            className="pf-select h-11"
+            value={projectId}
+            onChange={(event) => setProjectId(event.target.value)}
+          >
+            <option value="">Sem projeto base</option>
+            {savedProjects.length ? (
+              <optgroup label={`Projetos salvos (${savedProjects.length})`}>
+                {savedProjects.map((project) => <option key={project.id} value={project.id}>{project.titulo}</option>)}
+              </optgroup>
+            ) : null}
+            {importedProjects.length ? (
+              <optgroup label={`Projetos importados (${importedProjects.length})`}>
+                {importedProjects.map((project) => <option key={project.id} value={project.id}>{project.titulo}</option>)}
+              </optgroup>
+            ) : null}
+            {libraryProjects.length ? (
+              <optgroup label="Biblioteca de projetos">
+                {libraryProjects.map((project) => <option key={project.id} value={project.id}>{project.titulo}</option>)}
+              </optgroup>
+            ) : null}
+          </select>
+          <Button type="button" onClick={applyProject} disabled={!selectedProject} className="h-11">
+            <Sparkles className="size-4" /> Aplicar projeto
+          </Button>
+          <ProjectImportDialog
+            compact
+            onCreated={(id) => { void loadProjects(id); }}
+          />
+        </div>
+
+        <details className="mt-3 rounded-md border border-[#eee3e9]">
+          <summary className="cursor-pointer px-3 py-3 text-sm font-bold text-[#6b5864]">
+            Cabecalho e campos pedagogicos
+          </summary>
+          <div className="grid gap-3 border-t border-[#eee3e9] p-3 md:grid-cols-3">
+            <label>
+              <span className="pf-label">Grupo / turma</span>
+              <input className="pf-input h-10" value={grupo} onChange={(event) => setGrupo(event.target.value)} />
+            </label>
+            <label>
+              <span className="pf-label">Instituicao</span>
+              <input className="pf-input h-10" value={instituicao} onChange={(event) => setInstituicao(event.target.value)} />
+            </label>
+            <label>
+              <span className="pf-label">Professora</span>
+              <input className="pf-input h-10" value={professora} onChange={(event) => setProfessora(event.target.value)} />
+            </label>
+            <label className="md:col-span-2">
+              <span className="pf-label">Campos de experiencia</span>
+              <Textarea rows={3} value={campos} onChange={(event) => setCampos(event.target.value)} />
+            </label>
+            <label>
+              <span className="pf-label">Direitos de aprendizagem</span>
+              <Textarea rows={3} value={direitos} onChange={(event) => setDireitos(event.target.value)} />
+            </label>
+          </div>
+        </details>
+      </section>
+
+      <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragEnd={finishSuggestionDrag}>
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
+        <section className="min-w-0 overflow-hidden rounded-lg border border-[#dfd2da] bg-white shadow-[0_18px_48px_-42px_rgba(62,39,53,0.6)]">
+          <header className="border-b border-[#dfd2da] bg-[#fffafd] px-4 py-5 text-center">
+            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#6757c8]">Pequenos Passos</p>
+            <h2 className="mt-1 font-heading text-xl text-[#302733]">Planejamento semanal</h2>
+            <p className="mt-1 text-xs font-bold text-[#857582]">
+              Semana de {dayDate(week, 1)} a {dayDate(week, 5)}{grupo ? ` | ${grupo}` : ""}
+            </p>
+          </header>
+
+          {loading ? (
+            <div className="grid min-h-[460px] place-items-center">
+              <Loader2 className="size-6 animate-spin text-[#a65f7f]" />
+            </div>
+          ) : (
+            <>
+              <div className="hidden lg:block">
+                <div className="grid grid-cols-[150px_minmax(0,0.9fr)_minmax(0,1.15fr)] border-b border-[#dfd2da] bg-[#f8eef3] text-center text-xs font-black uppercase text-[#5c4b56]">
+                  <div className="border-r border-[#dfd2da] px-3 py-3">Semana</div>
+                  <div className="border-r border-[#dfd2da] px-3 py-3">Objetivos</div>
+                  <div className="px-3 py-3">Atividades</div>
+                </div>
+                {rows.map((row) => {
+                  const day = DAYS[row.diaSemana - 1];
+                  return (
+                    <div key={row.diaSemana} className="grid grid-cols-[150px_minmax(0,0.9fr)_minmax(0,1.15fr)] border-b border-[#e8dde3] last:border-b-0">
+                      <button
+                        type="button"
+                        onClick={() => setInsertDay(row.diaSemana)}
+                        className={cn(
+                          "flex min-h-[168px] flex-col items-center justify-center border-r border-[#dfd2da] px-3 text-center transition",
+                          insertDay === row.diaSemana ? "bg-[#f8e8f0]" : "bg-[#fffafd] hover:bg-[#fcf4f8]",
+                        )}
+                      >
+                        <span className="text-base font-black text-[#423640]">{dayDate(week, row.diaSemana)}</span>
+                        <span className="mt-1 text-xs font-black uppercase text-[#a65f7f]">{day.label}</span>
+                      </button>
+                      <div className="border-r border-[#dfd2da]"><PlanningCell row={row} kind="objective" onUpdate={updateRow} onFocus={setInsertDay} /></div>
+                      <div><PlanningCell row={row} kind="activity" onUpdate={updateRow} onFocus={setInsertDay} /></div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="divide-y divide-[#e8dde3] lg:hidden">
+                {rows.map((row) => {
+                  const day = DAYS[row.diaSemana - 1];
+                  return (
+                    <section key={row.diaSemana}>
+                      <button
+                        type="button"
+                        onClick={() => setInsertDay(row.diaSemana)}
+                        className={cn(
+                          "flex w-full items-center justify-between px-4 py-3 text-left",
+                          insertDay === row.diaSemana ? "bg-[#f8e8f0]" : "bg-[#fffafd]",
+                        )}
+                      >
+                        <span className="font-black text-[#423640]">{day.label}</span>
+                        <span className="text-xs font-black text-[#a65f7f]">{dayDate(week, row.diaSemana)}</span>
+                      </button>
+                      <div className="grid gap-px bg-[#e8dde3] sm:grid-cols-2">
+                        <div className="bg-white">
+                          <p className="border-b border-[#eee3e9] px-4 py-2 text-[10px] font-black uppercase text-[#8d7784]">Objetivos</p>
+                          <PlanningCell row={row} kind="objective" compact onUpdate={updateRow} onFocus={setInsertDay} />
+                        </div>
+                        <div className="bg-white">
+                          <p className="border-b border-[#eee3e9] px-4 py-2 text-[10px] font-black uppercase text-[#8d7784]">Atividades</p>
+                          <PlanningCell row={row} kind="activity" compact onUpdate={updateRow} onFocus={setInsertDay} />
+                        </div>
+                      </div>
+                    </section>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </section>
+
+        <aside className="order-first space-y-3 xl:order-none xl:sticky xl:top-24">
+          <div className="grid grid-cols-5 gap-1 rounded-lg border border-[#eadde5] bg-white p-1">
+            {DAYS.map((day) => (
+              <button
+                key={day.value}
+                type="button"
+                onClick={() => setInsertDay(day.value)}
+                className={cn(
+                  "h-9 rounded-md text-xs font-black transition",
+                  insertDay === day.value ? "bg-[#7d405d] text-white" : "text-[#74616d] hover:bg-[#f8eef3]",
+                )}
+                title={`Inserir em ${day.label}`}
+              >
+                {day.short}
+              </button>
+            ))}
+          </div>
+          <SuggestionPanel kind="objective" items={objectiveSuggestions} selectedDay={insertDay} onInsert={insertSuggestion} />
+          <SuggestionPanel kind="activity" items={activitySuggestions} selectedDay={insertDay} onInsert={insertSuggestion} />
+        </aside>
+      </div>
+      </DndContext>
+    </div>
+  );
+}

@@ -16,7 +16,7 @@ export class ObservacaoController {
   list = async (request: Request, context: RequestContext) => {
     try {
       const query = observacaoQuerySchema.parse(Object.fromEntries(new URL(request.url).searchParams));
-      const observacoes = await this.observacaoService.list(context.userId!, query.alunoId, query.categoria);
+      const observacoes = await this.observacaoService.list(context.userId!, query);
       return ok(observacoes);
     } catch (error) {
       return fail(error);
@@ -26,9 +26,10 @@ export class ObservacaoController {
   create = async (request: Request, context: RequestContext) => {
     try {
       const formData = await request.formData();
+      const rawCategoria = formData.get("categoria");
       const payload = createObservacaoSchema.parse({
         texto: String(formData.get("texto") ?? ""),
-        categoria: String(formData.get("categoria") ?? "") as CategoriaObservacao,
+        categoria: rawCategoria ? (String(rawCategoria) as CategoriaObservacao) : undefined,
         alunoId: String(formData.get("alunoId") ?? ""),
       });
 

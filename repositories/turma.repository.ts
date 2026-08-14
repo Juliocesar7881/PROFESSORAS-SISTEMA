@@ -8,20 +8,29 @@ export class TurmaRepository extends BaseRepository {
       data: {
         userId,
         nome: data.nome,
-        faixaEtaria: data.faixaEtaria,
-        ano: data.ano,
+        faixaEtaria: data.faixaEtaria || null,
+        turno: data.turno || null,
+        instituicao: data.instituicao || null,
+        ano: data.ano ?? null,
       },
     });
   }
 
-  async listByUser(userId: string) {
+  async listByUser(userId: string, lixeira = false) {
     return prisma.turma.findMany({
       where: {
         userId,
-        deletedAt: null,
+        deletedAt: lixeira ? { not: null } : null,
       },
-      orderBy: {
-        createdAt: "desc",
+      orderBy: [{ nome: "asc" }, { createdAt: "desc" }],
+      include: {
+        _count: {
+          select: {
+            alunos: {
+              where: { deletedAt: null },
+            },
+          },
+        },
       },
     });
   }
@@ -54,6 +63,15 @@ export class TurmaRepository extends BaseRepository {
       data: {
         deletedAt: new Date(),
       },
+    });
+  }
+
+  async restore(userId: string, turmaId: string) {
+    const turma = await this.findOwnedById(userId, turmaId);
+
+    return prisma.turma.update({
+      where: { id: turma.id },
+      data: { deletedAt: null },
     });
   }
 

@@ -1,0 +1,42 @@
+<svg width="1060" height="720" viewBox="0 0 1060 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="steps-bg" x1="112" y1="32" x2="920" y2="672" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffffff"/>
+      <stop offset=".55" stop-color="#fff7fa"/>
+      <stop offset="1" stop-color="#fff7ef"/>
+    </linearGradient>
+    <linearGradient id="steps-header" x1="74" y1="62" x2="986" y2="150" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6a4562"/>
+      <stop offset=".58" stop-color="#a65f7f"/>
+      <stop offset="1" stop-color="#7d405d"/>
+    </linearGradient>
+  </defs>
+  <rect width="1060" height="720" rx="28" fill="url(#steps-bg)"/>
+  <rect x="70" y="62" width="920" height="596" rx="22" fill="white" stroke="#eadde5"/>
+  <rect x="70" y="62" width="920" height="86" rx="22" fill="url(#steps-header)"/>
+  <text x="112" y="116" fill="white" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="26" font-weight="800">Configuracao guiada</text>
+  <circle cx="904" cy="105" r="24" fill="#a65f7f"/>
+  <rect x="112" y="198" width="236" height="102" rx="16" fill="#fff3f7" stroke="#f1d6e2"/>
+  <text x="142" y="235" fill="#a65f7f" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16" font-weight="800">1. Turma</text>
+  <rect x="142" y="258" width="144" height="12" rx="6" fill="#a65f7f" fill-opacity=".65"/>
+  <rect x="142" y="278" width="92" height="12" rx="6" fill="#a65f7f" fill-opacity=".28"/>
+  <rect x="412" y="198" width="236" height="102" rx="16" fill="#fff3f7" stroke="#f1d6e2"/>
+  <text x="442" y="235" fill="#a65f7f" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16" font-weight="800">2. Alunos</text>
+  <rect x="442" y="258" width="148" height="12" rx="6" fill="#f0b8c9" fill-opacity=".62"/>
+  <rect x="442" y="278" width="112" height="12" rx="6" fill="#f0b8c9" fill-opacity=".28"/>
+  <rect x="712" y="198" width="236" height="102" rx="16" fill="#fffdfd" stroke="#eadde5"/>
+  <text x="742" y="235" fill="#857582" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16" font-weight="800">3. Painel</text>
+  <rect x="742" y="258" width="146" height="12" rx="6" fill="#a99ba5" fill-opacity=".62"/>
+  <rect x="742" y="278" width="90" height="12" rx="6" fill="#a99ba5" fill-opacity=".28"/>
+  <rect x="112" y="360" width="394" height="210" rx="16" fill="#fffdfd" stroke="#eadde5"/>
+  <text x="144" y="402" fill="#312834" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="22" font-weight="800">Dados essenciais</text>
+  <rect x="144" y="436" width="292" height="42" rx="8" fill="white" stroke="#eadde5"/>
+  <rect x="144" y="500" width="210" height="42" rx="8" fill="white" stroke="#eadde5"/>
+  <rect x="560" y="360" width="388" height="210" rx="16" fill="#fffdfd" stroke="#eadde5"/>
+  <text x="592" y="402" fill="#312834" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="22" font-weight="800">Pronto para usar</text>
+  <circle cx="630" cy="458" r="22" fill="#a65f7f"/>
+  <circle cx="694" cy="458" r="22" fill="#f0b8c9"/>
+  <circle cx="758" cy="458" r="22" fill="#a99ba5"/>
+  <rect x="592" y="506" width="250" height="16" rx="8" fill="#312834" fill-opacity=".18"/>
+  <rect x="592" y="536" width="188" height="16" rx="8" fill="#312834" fill-opacity=".12"/>
+</svg>

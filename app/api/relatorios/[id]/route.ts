@@ -12,3 +12,11 @@ export async function DELETE(request: Request, { params }: RouteContext) {
     withAudit({ action: "RELATORIO_DELETE", resource: "avaliacao" }),
   ])(request);
 }
+
+export async function PATCH(request: Request, { params }: RouteContext) {
+  const resolvedParams = await params;
+  return route((req, ctx) => controller.update(req, ctx, resolvedParams), [
+    withAuth,
+    withAudit({ action: "RELATORIO_UPDATE", resource: "avaliacao" }),
+  ])(request);
+}

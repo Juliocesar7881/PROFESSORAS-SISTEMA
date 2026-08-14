@@ -1,8 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { startOfWeek } from "date-fns";
 
-import type { CreateObservacaoInput } from "@/dtos/observacao.dto";
+import type { CreateObservacaoInput, ObservacaoQueryInput } from "@/dtos/observacao.dto";
 import { env } from "@/lib/env";
+import { logServerError } from "@/lib/http";
 import { validateAndSanitizeImage } from "@/lib/security";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { ObservacaoRepository } from "@/repositories/observacao.repository";
@@ -48,7 +49,8 @@ export class ObservacaoService {
       try {
         await this.uploadPhotoForObservation(userId, observacao.id, imageFile);
         uploadedCount += 1;
-      } catch {
+      } catch (error) {
+        logServerError("[observacao] photo upload failed", error, { userId, observacaoId: observacao.id });
         failedCount += 1;
       }
     }
@@ -88,8 +90,11 @@ export class ObservacaoService {
     };
   }
 
-  async list(userId: string, alunoId: string, categoria?: CreateObservacaoInput["categoria"]) {
-    return this.observacaoRepository.listByAluno(userId, alunoId, categoria);
+  async list(userId: string, query: ObservacaoQueryInput) {
+    return this.observacaoRepository.listByAluno(userId, query.alunoId, query.categoria, {
+      cursor: query.cursor,
+      limit: query.limit,
+    });
   }
 
   async remove(userId: string, observacaoId: string) {
@@ -102,7 +107,11 @@ export class ObservacaoService {
         .remove(storageKeys);
 
       if (deleted.error) {
-        console.error("[observacao] falha ao remover fotos do storage", deleted.error);
+        logServerError("[observacao] failed to remove photos from storage", deleted.error, {
+          userId,
+          observacaoId: observacao.id,
+          files: storageKeys.length,
+        });
       }
     }
 

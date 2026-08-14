@@ -19,6 +19,24 @@ export class PlanejamentoRepository extends BaseRepository {
     this.assertFound(turma, "Turma nao encontrada");
   }
 
+  private async assertProjetoBase(userId: string, projetoBaseId?: string | null) {
+    if (!projetoBaseId) {
+      return;
+    }
+
+    const projeto = await prisma.projeto.findFirst({
+      where: {
+        id: projetoBaseId,
+        OR: [{ ownerId: null, origem: "CATALOGO" }, { ownerId: userId, origem: "IMPORTADO" }],
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    this.assertFound(projeto, "Projeto base nao encontrado");
+  }
+
   async countByUser(userId: string) {
     return prisma.planejamento.count({
       where: {
@@ -27,14 +45,44 @@ export class PlanejamentoRepository extends BaseRepository {
     });
   }
 
-  async existsByUserTurmaAndWeek(userId: string, turmaId: string, semanaInicio: Date) {
-    const existing = await prisma.planejamento.findUnique({
+  async countByUserBetween(userId: string, start: Date, end: Date) {
+    return prisma.planejamento.count({
       where: {
-        userId_turmaId_semanaInicio: {
-          userId,
-          turmaId,
-          semanaInicio: startOfDay(semanaInicio),
+        userId,
+        semanaInicio: {
+          gte: startOfDay(start),
+          lte: startOfDay(end),
         },
+      },
+    });
+  }
+
+  async listRecentByUser(userId: string, take = 6) {
+    return prisma.planejamento.findMany({
+      where: {
+        userId,
+      },
+      orderBy: {
+        semanaInicio: "desc",
+      },
+      take,
+      include: {
+        turma: {
+          select: {
+            id: true,
+            nome: true,
+          },
+        },
+      },
+    });
+  }
+
+  async existsByUserTurmaAndWeek(userId: string, turmaId: string | undefined, semanaInicio: Date) {
+    const existing = await prisma.planejamento.findFirst({
+      where: {
+        userId,
+        turmaId: turmaId ?? null,
+        semanaInicio: startOfDay(semanaInicio),
       },
       select: {
         id: true,
@@ -45,19 +93,29 @@ export class PlanejamentoRepository extends BaseRepository {
   }
 
   async create(userId: string, data: CreatePlanejamentoInput) {
-    await this.assertTurmaOwnership(userId, data.turmaId);
+    if (data.turmaId) {
+      await this.assertTurmaOwnership(userId, data.turmaId);
+    }
+    await this.assertProjetoBase(userId, data.projetoBaseId);
 
     const weekStart = startOfDay(data.semanaInicio);
     const weekEnd = startOfDay(data.semanaFim);
+    const planejamentoData = {
+      semanaFim: weekEnd,
+      projetoBaseId: data.projetoBaseId ?? null,
+      camposExperiencia: data.camposExperiencia,
+      direitosAprendizagem: data.direitosAprendizagem,
+      grupoNome: data.grupoNome || null,
+      nomeInstituicao: data.nomeInstituicao || null,
+      nomeProfessora: data.nomeProfessora || null,
+    };
 
     return prisma.$transaction(async (tx) => {
-      const existing = await tx.planejamento.findUnique({
+      const existing = await tx.planejamento.findFirst({
         where: {
-          userId_turmaId_semanaInicio: {
-            userId,
-            turmaId: data.turmaId,
-            semanaInicio: weekStart,
-          },
+          userId,
+          turmaId: data.turmaId ?? null,
+          semanaInicio: weekStart,
         },
         select: {
           id: true,
@@ -71,7 +129,7 @@ export class PlanejamentoRepository extends BaseRepository {
                 id: existing.id,
               },
               data: {
-                semanaFim: weekEnd,
+                ...planejamentoData,
               },
               select: {
                 id: true,
@@ -82,9 +140,9 @@ export class PlanejamentoRepository extends BaseRepository {
             await tx.planejamento.create({
               data: {
                 userId,
-                turmaId: data.turmaId,
+                turmaId: data.turmaId ?? null,
                 semanaInicio: weekStart,
-                semanaFim: weekEnd,
+                ...planejamentoData,
               },
               select: {
                 id: true,
@@ -101,9 +159,12 @@ export class PlanejamentoRepository extends BaseRepository {
       await tx.planejamentoAtividade.createMany({
         data: data.atividades.map((item) => ({
           planejamentoId,
-          atividadeId: item.atividadeId,
+          atividadeId: item.atividadeId ?? null,
           diaSemana: item.diaSemana,
-          horario: item.horario,
+          horario: item.horario || null,
+          ordem: item.ordem,
+          objetivosTexto: item.objetivosTexto || null,
+          atividadeTexto: item.atividadeTexto || null,
         })),
       });
 
@@ -116,6 +177,7 @@ export class PlanejamentoRepository extends BaseRepository {
             },
           },
           turma: true,
+          projetoBase: true,
         },
       });
     });
@@ -133,14 +195,49 @@ export class PlanejamentoRepository extends BaseRepository {
       },
       include: {
         turma: true,
+        projetoBase: true,
         atividades: {
           include: {
             atividade: true,
           },
-          orderBy: [{ diaSemana: "asc" }, { horario: "asc" }],
+          orderBy: [{ diaSemana: "asc" }, { ordem: "asc" }, { horario: "asc" }],
         },
       },
     });
+  }
+
+  async findOwnedById(userId: string, planejamentoId: string) {
+    const planejamento = await prisma.planejamento.findFirst({
+      where: {
+        id: planejamentoId,
+        userId,
+      },
+      include: {
+        turma: true,
+        user: {
+          select: {
+            name: true,
+          },
+        },
+        projetoBase: {
+          include: {
+            atividades: {
+              orderBy: {
+                createdAt: "asc",
+              },
+            },
+          },
+        },
+        atividades: {
+          include: {
+            atividade: true,
+          },
+          orderBy: [{ diaSemana: "asc" }, { ordem: "asc" }, { horario: "asc" }],
+        },
+      },
+    });
+
+    return this.assertFound(planejamento, "Planejamento nao encontrado");
   }
 
   async weeklyStreak(userId: string) {
@@ -152,17 +249,27 @@ export class PlanejamentoRepository extends BaseRepository {
       orderBy: {
         semanaInicio: "desc",
       },
+      take: 80,
     });
 
     if (!planejamentos.length) {
       return 0;
     }
 
-    let streak = 1;
-    let current = startOfDay(planejamentos[0].semanaInicio);
+    const uniqueWeeks = Array.from(
+      new Map(
+        planejamentos.map((planejamento) => {
+          const start = startOfDay(planejamento.semanaInicio);
+          return [start.toISOString(), start] as const;
+        }),
+      ).values(),
+    );
 
-    for (let i = 1; i < planejamentos.length; i += 1) {
-      const next = startOfDay(planejamentos[i].semanaInicio);
+    let streak = 1;
+    let current = uniqueWeeks[0];
+
+    for (let i = 1; i < uniqueWeeks.length; i += 1) {
+      const next = uniqueWeeks[i];
       const expected = addDays(current, -7);
 
       if (next.getTime() === expected.getTime()) {

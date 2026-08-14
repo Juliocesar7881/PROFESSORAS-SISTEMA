@@ -29,9 +29,11 @@ export class ObservacaoRepository extends BaseRepository {
 
     return prisma.observacao.create({
       data: {
+        userId,
         texto: data.texto,
         categoria: data.categoria,
         alunoId: data.alunoId,
+        dataRegistro: new Date(),
       },
     });
   }
@@ -61,40 +63,61 @@ export class ObservacaoRepository extends BaseRepository {
     });
   }
 
-  async listByAluno(userId: string, alunoId: string, categoria?: CategoriaObservacao) {
-    await this.assertAlunoOwnership(userId, alunoId);
+  private async signedPhoto(storageKey: string) {
+    const signed = await supabaseAdmin.storage
+      .from(env.SUPABASE_STORAGE_BUCKET)
+      .createSignedUrl(storageKey, SIGNED_URL_TTL_SECONDS);
 
+    return signed.data?.signedUrl ?? null;
+  }
+
+  async listByAluno(userId: string, alunoId: string, categoria?: CategoriaObservacao, pagination: { cursor?: string; limit?: number } = {}) {
+    await this.assertAlunoOwnership(userId, alunoId);
+    const limit = Math.min(Math.max(pagination.limit ?? 20, 1), 30);
+    const where = {
+      alunoId,
+      ...(categoria ? { categoria } : {}),
+    };
+
+    const total = await prisma.observacao.count({ where });
     const observacoes = await prisma.observacao.findMany({
-      where: {
-        alunoId,
-        ...(categoria ? { categoria } : {}),
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
+      where,
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: limit + 1,
+      ...(pagination.cursor
+        ? {
+            cursor: {
+              id: pagination.cursor,
+            },
+            skip: 1,
+          }
+        : {}),
       include: {
         fotos: true,
       },
     });
 
-    return Promise.all(
-      observacoes.map(async (observacao) => ({
+    const hasNext = observacoes.length > limit;
+    const visibleObservacoes = observacoes.slice(0, limit);
+
+    return {
+      items: await Promise.all(
+        visibleObservacoes.map(async (observacao) => ({
         ...observacao,
         fotos: await Promise.all(
           observacao.fotos.map(async (foto) => {
-            const signed = await supabaseAdmin.storage
-              .from(env.SUPABASE_STORAGE_BUCKET)
-              .createSignedUrl(foto.storageKey, SIGNED_URL_TTL_SECONDS);
-
             return {
               id: foto.id,
               storageKey: foto.storageKey,
-              url: signed.data?.signedUrl ?? null,
+              url: await this.signedPhoto(foto.storageKey),
             };
           }),
         ),
       })),
-    );
+      ),
+      nextCursor: hasNext ? visibleObservacoes.at(-1)?.id ?? null : null,
+      total,
+    };
   }
 
   async countByAluno(userId: string, alunoId: string) {

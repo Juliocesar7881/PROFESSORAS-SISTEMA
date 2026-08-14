@@ -1,28 +1,46 @@
 import { fileTypeFromBuffer } from "file-type";
 import sharp from "sharp";
 
-import { MAX_PHOTO_SIZE_BYTES } from "@/lib/constants";
 import { ValidationError } from "@/dtos/errors";
+import { MAX_PHOTO_SIZE_BYTES } from "@/lib/constants";
 
-export async function validateAndSanitizeImage(file: File): Promise<Buffer> {
-  if (file.size > MAX_PHOTO_SIZE_BYTES) {
-    throw new ValidationError("Foto excede o limite de 10MB");
+const SUPPORTED_IMAGE_MIMES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const MAX_IMAGE_PIXELS = 40_000_000;
+
+export async function validateAndSanitizeImageBuffer(
+  sourceBuffer: Buffer,
+  maxInputBytes = MAX_PHOTO_SIZE_BYTES,
+): Promise<Buffer> {
+  if (sourceBuffer.length > maxInputBytes) {
+    throw new ValidationError("Foto excede o limite permitido.");
   }
 
-  const arrayBuffer = await file.arrayBuffer();
-  const sourceBuffer = Buffer.from(arrayBuffer);
   const detectedType = await fileTypeFromBuffer(sourceBuffer);
-
-  if (!detectedType || !detectedType.mime.startsWith("image/")) {
-    throw new ValidationError("Formato de imagem não suportado");
+  if (!detectedType || !SUPPORTED_IMAGE_MIMES.has(detectedType.mime)) {
+    throw new ValidationError("Formato de imagem nao suportado. Tente JPG, PNG ou WEBP.");
   }
 
   try {
-    // Re-encode strips EXIF metadata by default.
-    return await sharp(sourceBuffer).rotate().jpeg({ quality: 86 }).toBuffer();
-  } catch {
+    const image = sharp(sourceBuffer, { limitInputPixels: MAX_IMAGE_PIXELS });
+    const metadata = await image.metadata();
+    if (!metadata.width || !metadata.height || metadata.width * metadata.height > MAX_IMAGE_PIXELS) {
+      throw new ValidationError("A foto possui dimensoes grandes demais.");
+    }
+
+    // Re-encoding strips EXIF and caps dimensions for predictable storage costs.
+    return await image
+      .rotate()
+      .resize({ width: 1440, height: 1440, fit: "inside", withoutEnlargement: true })
+      .jpeg({ quality: 82, mozjpeg: true })
+      .toBuffer();
+  } catch (error) {
+    if (error instanceof ValidationError) throw error;
     throw new ValidationError("Nao foi possivel processar a imagem. Tente JPG, PNG ou WEBP.");
   }
+}
+
+export async function validateAndSanitizeImage(file: File): Promise<Buffer> {
+  return validateAndSanitizeImageBuffer(Buffer.from(await file.arrayBuffer()));
 }
 
 export function sanitizeSentryText(value: string): string {

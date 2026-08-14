@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Papa from "papaparse";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -9,7 +8,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ArrowRight, CheckCircle2, Sparkles, Upload, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Sparkles, Users } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,7 +39,7 @@ export function OnboardingWizard({ userName, userImage }: OnboardingWizardProps)
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
-  const [parsedCsvAlunos, setParsedCsvAlunos] = useState<Array<{ nome: string; dataNasc: string }>>([]);
+
 
   const form = useForm<OnboardingFormInput>({
     resolver: zodResolver(onboardingFormSchema),
@@ -70,7 +69,7 @@ export function OnboardingWizard({ userName, userImage }: OnboardingWizardProps)
       .filter(Boolean) as Array<{ nome: string; dataNasc: string }>;
   }, [alunosTexto]);
 
-  const alunosFinal = parsedCsvAlunos.length ? parsedCsvAlunos : alunosManuais;
+  const alunosFinal = alunosManuais;
 
   const goToTurmaStep = () => setStep(2);
 
@@ -85,27 +84,9 @@ export function OnboardingWizard({ userName, userImage }: OnboardingWizardProps)
     setStep(3);
   };
 
-  const handleCsvImport = (file?: File | null) => {
-    if (!file) return;
-
-    Papa.parse<{ nome: string; dataNasc: string }>(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (result) => {
-        const parsed = result.data
-          .map((row) => alunoSchema.safeParse({ nome: row.nome, dataNasc: row.dataNasc }))
-          .filter((r) => r.success)
-          .map((r) => r.data);
-
-        setParsedCsvAlunos(parsed);
-        toast.success(`${parsed.length} alunos importados via CSV`);
-      },
-    });
-  };
-
   const handleSubmit = form.handleSubmit(async (values) => {
     if (!alunosFinal.length) {
-      toast.error("Adicione ao menos um aluno manualmente ou por CSV");
+      toast.error("Adicione ao menos um aluno manualmente");
       return;
     }
 
@@ -152,7 +133,7 @@ export function OnboardingWizard({ userName, userImage }: OnboardingWizardProps)
       return;
     }
 
-    toast.success("Onboarding concluído com sucesso! 🎉");
+    toast.success("Onboarding concluído com sucesso");
     router.push("/dashboard");
     router.refresh();
   });
@@ -167,11 +148,11 @@ export function OnboardingWizard({ userName, userImage }: OnboardingWizardProps)
     .toUpperCase();
 
   return (
-    <main className="min-h-screen bg-[#FAFBFE] px-4 py-8 md:px-8">
+    <main className="min-h-screen bg-[#f7fcff] px-4 py-8 text-[#312834] md:px-8">
       <form onSubmit={handleSubmit} className="mx-auto max-w-4xl space-y-4">
         <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm">
           <CardHeader className="pb-2">
-            <div className="mb-2 flex items-center gap-2 text-[#6C5CE7]">
+            <div className="mb-2 flex items-center gap-2 text-[#a65f7f]">
               <Sparkles className="size-4" />
               <p className="text-xs uppercase tracking-[0.2em]">Primeiros passos</p>
             </div>
@@ -182,29 +163,29 @@ export function OnboardingWizard({ userName, userImage }: OnboardingWizardProps)
                   alt={userName}
                   width={48}
                   height={48}
-                  className="size-12 rounded-full border-2 border-[#6C5CE7]/30"
+                  className="size-12 rounded-full border-2 border-[#a65f7f]/30"
                 />
               ) : (
-                <div className="inline-flex size-12 items-center justify-center rounded-full bg-gradient-to-br from-[#6C5CE7] to-[#a78bfa] text-sm font-bold text-white">
+                <div className="inline-flex size-12 items-center justify-center rounded-full bg-gradient-to-br from-[#6a4562] to-[#f0b8c9] text-sm font-bold text-white">
                   {initials}
                 </div>
               )}
               <div>
-                <CardTitle className="font-heading text-3xl text-gray-900">Bem-vinda, {userName}! 👋</CardTitle>
-                <CardDescription className="text-gray-500">Configure seu Planejei em 3 passos rápidos.</CardDescription>
+                <CardTitle className="font-heading text-3xl text-gray-900">Bem-vinda, {userName}</CardTitle>
+                <CardDescription className="text-gray-500">Configure seu Pequenos Passos em 3 passos rápidos.</CardDescription>
               </div>
             </div>
           </CardHeader>
 
           <CardContent>
             <div className="mb-4 flex items-center justify-between gap-3 text-xs text-gray-400">
-              <span className={step >= 1 ? "font-semibold text-[#6C5CE7]" : ""}>1. Boas-vindas</span>
-              <span className={step >= 2 ? "font-semibold text-[#6C5CE7]" : ""}>2. Turma</span>
-              <span className={step >= 3 ? "font-semibold text-[#6C5CE7]" : ""}>3. Alunos</span>
+              <span className={step >= 1 ? "font-semibold text-[#a65f7f]" : ""}>1. Boas-vindas</span>
+              <span className={step >= 2 ? "font-semibold text-[#a65f7f]" : ""}>2. Turma</span>
+              <span className={step >= 3 ? "font-semibold text-[#a65f7f]" : ""}>3. Alunos</span>
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-gray-100">
               <motion.div
-                className="h-full rounded-full bg-gradient-to-r from-[#6C5CE7] to-[#a78bfa]"
+                className="h-full rounded-full bg-gradient-to-r from-[#6a4562] via-[#c47797] to-[#f0b8c9]"
                 initial={false}
                 animate={{ width: `${(step / 3) * 100}%` }}
                 transition={{ duration: 0.4, ease: "easeOut" }}
@@ -229,9 +210,9 @@ export function OnboardingWizard({ userName, userImage }: OnboardingWizardProps)
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-gray-600">
-                    O Planejei é seu assistente pedagógico para organizar planejamento, observações e desenvolvimento de cada criança. Simples, visual e feito para o dia a dia da sala de aula.
+                    O Pequenos Passos organiza planejamento, registros e desenvolvimento de cada criança. Simples, visual e feito para o dia a dia da sala de aula.
                   </p>
-                  <Button type="button" onClick={goToTurmaStep} className="h-11 w-full bg-[#6C5CE7] text-white hover:bg-[#5a4bd6] md:w-auto">
+                  <Button type="button" onClick={goToTurmaStep} className="h-11 w-full bg-[#a65f7f] text-white hover:bg-[#8b4e6a] md:w-auto">
                     Continuar
                     <ArrowRight className="ml-1 size-4" />
                   </Button>
@@ -272,7 +253,7 @@ export function OnboardingWizard({ userName, userImage }: OnboardingWizardProps)
                     <ArrowLeft className="mr-1 size-4" />
                     Voltar
                   </Button>
-                  <Button type="button" className="bg-[#6C5CE7] text-white hover:bg-[#5a4bd6]" onClick={goToAlunosStep}>
+                  <Button type="button" className="bg-[#a65f7f] text-white hover:bg-[#8b4e6a]" onClick={goToAlunosStep}>
                     Próximo
                     <ArrowRight className="ml-1 size-4" />
                   </Button>
@@ -292,13 +273,13 @@ export function OnboardingWizard({ userName, userImage }: OnboardingWizardProps)
               <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm">
                 <CardHeader>
                   <CardTitle className="font-heading text-2xl text-gray-900">Passo 3 de 3 — Adicionar alunos</CardTitle>
-                  <CardDescription className="text-gray-500">Inclua manualmente ou importe por CSV.</CardDescription>
+                  <CardDescription className="text-gray-500">Inclua manualmente os alunos.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
                     <label className="mb-1 block text-xs font-semibold text-gray-500">
                       <Users className="mr-1 inline size-3.5" />
-                      Um aluno por linha: <code className="rounded bg-gray-100 px-1 text-[#6C5CE7]">Nome;AAAA-MM-DD</code>
+                      Um aluno por linha: <code className="rounded bg-gray-100 px-1 text-[#a65f7f]">Nome;AAAA-MM-DD</code>
                     </label>
                     <Textarea
                       placeholder={"Maria Silva;2020-03-15\nJoão Santos;2020-07-22"}
@@ -306,24 +287,16 @@ export function OnboardingWizard({ userName, userImage }: OnboardingWizardProps)
                       {...form.register("alunosTexto")}
                     />
                   </div>
-                  <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4">
-                    <p className="mb-2 flex items-center gap-2 text-sm text-gray-500">
-                      <Upload className="size-4" />
-                      Importar por CSV (colunas: <code className="rounded bg-gray-100 px-1">nome,dataNasc</code>)
-                    </p>
-                    <Input type="file" accept=".csv" onChange={(e) => handleCsvImport(e.target.files?.[0])} />
-                  </div>
-
                   <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-600">
                     <div className="mb-1 flex items-center gap-2 font-medium">
                       <CheckCircle2 className="size-4" />
                       Alunos detectados: {alunosFinal.length}
                     </div>
-                    <p className="text-emerald-500">Você pode revisar e editar depois no módulo Alunos.</p>
+                    <p className="text-emerald-500">Você pode revisar e editar depois em Alunos.</p>
                   </div>
 
                   <label className="flex items-start gap-2 text-sm text-gray-600">
-                    <input type="checkbox" className="mt-0.5 accent-[#6C5CE7]" {...form.register("consentimentoLGPD")} />
+                    <input type="checkbox" className="mt-0.5 accent-[#a65f7f]" {...form.register("consentimentoLGPD")} />
                     Confirmo consentimento explícito para tratamento de dados pedagógicos de menores conforme LGPD.
                   </label>
                 </CardContent>
@@ -333,8 +306,8 @@ export function OnboardingWizard({ userName, userImage }: OnboardingWizardProps)
                     <ArrowLeft className="mr-1 size-4" />
                     Voltar
                   </Button>
-                  <Button type="submit" size="lg" className="h-11 bg-[#6C5CE7] text-white hover:bg-[#5a4bd6]" disabled={saving}>
-                    {saving ? "Finalizando..." : "Concluir onboarding 🎉"}
+                  <Button type="submit" size="lg" className="h-11 bg-[#a65f7f] text-white hover:bg-[#8b4e6a]" disabled={saving}>
+                    {saving ? "Finalizando..." : "Concluir onboarding"}
                   </Button>
                 </CardContent>
               </Card>

@@ -1,22 +1,20 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Filter, PlayCircle, Search, Sparkles, Tv2, UsersRound } from "lucide-react";
+import { FileUp, Heart, Layers3, PlayCircle, Search } from "lucide-react";
 
+import { DashboardFilterBar } from "@/components/dashboard-filter-bar";
+import { ProjectImportDialog } from "@/components/project-import-dialog";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { getPaginatedPayload } from "@/lib/api-payload";
 import { type EtapaTurma, inferEtapaTurma } from "@/lib/etapa";
+import { getProjectCoverPath, resolveProjectCoverKey, type ProjectCoverKey } from "@/lib/project-cover";
 import { SHOWCASE_PROJECTS, SHOWCASE_TOTAL, projectMatchesEtapa, type ShowcaseProject } from "@/lib/project-showcase";
 import { cn } from "@/lib/utils";
-
-type Turma = {
-  id: string;
-  nome: string;
-  faixaEtaria: string;
-};
 
 type ApiProjeto = {
   id: string;
@@ -25,8 +23,13 @@ type ApiProjeto = {
   categoria: string;
   faixaEtaria: string;
   duracao: string;
+  thumbnailKey?: string | null;
+  origem?: "CATALOGO" | "IMPORTADO";
+  salvo?: boolean;
+  createdAt?: string;
   bnccObjetivos?: string[];
-  atividades: Array<{
+  atividadesCount?: number;
+  atividades?: Array<{
     id: string;
     titulo: string;
     descricao?: string;
@@ -45,6 +48,7 @@ type ProjetoCard = {
   categoria: string;
   faixaEtaria: string;
   duracao: string;
+  coverKey: ProjectCoverKey;
   atividades: Array<{
     id: string;
     titulo: string;
@@ -54,10 +58,13 @@ type ProjetoCard = {
     materiais: string[];
     bnccCodigos: string[];
   }>;
+  atividadesCount: number;
   bnccObjetivos: string[];
   turmasIndicadas: string[];
   etapas: EtapaTurma[];
-  origem: "catalogo" | "api";
+  origem: "catalogo" | "api" | "importado";
+  salvo: boolean;
+  createdAt?: string;
 };
 
 const ETAPA_LABELS: Record<EtapaTurma, string> = {
@@ -67,7 +74,8 @@ const ETAPA_LABELS: Record<EtapaTurma, string> = {
   PRE: "Pre-escola",
 };
 
-const ETAPA_FILTER_OPTIONS: ReadonlyArray<{ value: EtapaTurma; label: string }> = [
+const ETAPA_FILTER_OPTIONS: ReadonlyArray<{ value: "TODAS" | EtapaTurma; label: string }> = [
+  { value: "TODAS", label: "Todas as etapas" },
   { value: "BERCARIO", label: "Bercario" },
   { value: "MATERNAL", label: "Maternal" },
   { value: "JARDIM", label: "Jardim" },
@@ -81,16 +89,10 @@ const CATEGORY_ORDER = [
   "Corpo",
   "Arte",
   "Sociedade",
+  "Musica",
+  "Bem-estar",
+  "Criatividade",
 ];
-
-const categoryCoverGradient: Record<string, string> = {
-  natureza: "from-emerald-500 via-teal-500 to-cyan-500",
-  linguagem: "from-amber-500 via-orange-500 to-yellow-500",
-  matematica: "from-blue-500 via-sky-500 to-indigo-500",
-  corpo: "from-rose-500 via-pink-500 to-orange-500",
-  arte: "from-fuchsia-500 via-pink-500 to-rose-500",
-  sociedade: "from-cyan-500 via-teal-500 to-emerald-500",
-};
 
 function normalizeText(value: string) {
   return value
@@ -110,10 +112,7 @@ function categoryRank(value: string) {
 }
 
 function parseJsonSafely<T>(text: string): T | null {
-  if (!text) {
-    return null;
-  }
-
+  if (!text) return null;
   try {
     return JSON.parse(text) as T;
   } catch {
@@ -129,11 +128,15 @@ function getCardFromShowcase(project: ShowcaseProject): ProjetoCard {
     categoria: project.categoria,
     faixaEtaria: project.faixaEtaria,
     duracao: project.duracao,
+    coverKey: project.coverKey,
     atividades: project.atividades,
+    atividadesCount: project.atividades.length,
     bnccObjetivos: project.bnccObjetivos,
     turmasIndicadas: project.turmasIndicadas,
     etapas: project.etapas,
     origem: "catalogo",
+    salvo: false,
+    createdAt: undefined,
   };
 }
 
@@ -148,7 +151,13 @@ function getCardFromApi(project: ApiProjeto): ProjetoCard {
     categoria: project.categoria,
     faixaEtaria: project.faixaEtaria,
     duracao: project.duracao,
-    atividades: project.atividades.map((activity) => ({
+    coverKey: resolveProjectCoverKey(
+      project.titulo,
+      project.categoria,
+      project.thumbnailKey,
+      project.origem === "IMPORTADO",
+    ),
+    atividades: (project.atividades ?? []).map((activity) => ({
       id: activity.id,
       titulo: activity.titulo,
       descricao: activity.descricao ?? "Atividade da proposta.",
@@ -157,76 +166,80 @@ function getCardFromApi(project: ApiProjeto): ProjetoCard {
       materiais: activity.materiais ?? [],
       bnccCodigos: activity.bnccCodigos ?? [],
     })),
+    atividadesCount: project.atividadesCount ?? project.atividades?.length ?? 0,
     bnccObjetivos: project.bnccObjetivos ?? [],
     turmasIndicadas: etapas.length ? etapas.map((etapa) => ETAPA_LABELS[etapa]) : [project.faixaEtaria],
     etapas,
-    origem: "api",
+    origem: project.origem === "IMPORTADO" ? "importado" : "api",
+    salvo: Boolean(project.salvo || project.salvosPor?.length),
+    createdAt: project.createdAt,
   };
 }
 
 function mergeCatalogWithApi(apiProjects: ApiProjeto[]) {
-  const merged = SHOWCASE_PROJECTS.map(getCardFromShowcase);
-  const byTitle = new Map(merged.map((project) => [normalizeText(project.titulo), project]));
+  const merged = apiProjects.map(getCardFromApi);
+  const byTitle = new Set(merged.map((project) => normalizeText(project.titulo)));
 
-  for (const apiProject of apiProjects) {
-    const key = normalizeText(apiProject.titulo);
-    const existing = byTitle.get(key);
-
-    if (existing) {
-      continue;
-    }
-
-    merged.push(getCardFromApi(apiProject));
+  for (const localProject of SHOWCASE_PROJECTS) {
+    const key = normalizeText(localProject.titulo);
+    if (!byTitle.has(key)) merged.push(getCardFromShowcase(localProject));
   }
 
   return merged;
 }
 
+function getApiProjects(data: unknown): ApiProjeto[] {
+  return getPaginatedPayload<ApiProjeto>(data).items;
+}
+
+function getApiTotal(data: unknown, fallback: number) {
+  return getPaginatedPayload<ApiProjeto>(data).total ?? fallback;
+}
+
 export default function ProjetosPage() {
   const [projetos, setProjetos] = useState<ProjetoCard[]>(() => SHOWCASE_PROJECTS.map(getCardFromShowcase));
-  const [turmas, setTurmas] = useState<Turma[]>([]);
   const [busca, setBusca] = useState("");
   const [categoria, setCategoria] = useState("TODAS");
-  const [turmaId, setTurmaId] = useState("TODAS");
+  const [etapa, setEtapa] = useState<"TODAS" | EtapaTurma>("TODAS");
+  const [collection, setCollection] = useState<"todos" | "salvos" | "importados">("todos");
   const [loading, setLoading] = useState(true);
   const [usingCatalogFallback, setUsingCatalogFallback] = useState(false);
+  const [savingProjectId, setSavingProjectId] = useState<string | null>(null);
+  const [totalProjetos, setTotalProjetos] = useState(SHOWCASE_TOTAL);
 
   const loadData = useCallback(async () => {
     setLoading(true);
 
     try {
-      const [turmasResponse, projetosResponse] = await Promise.allSettled([
-        fetch("/api/turmas", { cache: "no-store" }),
-        fetch("/api/projetos", { cache: "no-store" }),
+      const responses = await Promise.all([
+        fetch("/api/projetos?limit=80", { cache: "no-store" }),
+        fetch("/api/projetos?salvos=true&limit=80", { cache: "no-store" }),
+        fetch("/api/projetos?origem=IMPORTADO&limit=80", { cache: "no-store" }),
       ]);
+      const payloads = await Promise.all(responses.map(async (response) => (
+        parseJsonSafely<{ data?: ApiProjeto[] | { items: ApiProjeto[]; total?: number }; error?: { message?: string } }>(await response.text())
+      )));
+      const apiById = new Map<string, ApiProjeto>();
+      [payloads[2], payloads[1], payloads[0]].forEach((payload) => {
+        getApiProjects(payload?.data).forEach((project) => {
+          if (!apiById.has(project.id)) apiById.set(project.id, project);
+        });
+      });
+      const apiProjects = [...apiById.values()];
 
-      if (turmasResponse.status === "fulfilled") {
-        const turmasPayload = parseJsonSafely<{ data?: Turma[]; error?: { message?: string } }>(
-          await turmasResponse.value.text(),
-        );
-
-        if (turmasResponse.value.ok) {
-          setTurmas(turmasPayload?.data ?? []);
-        }
-      }
-
-      if (projetosResponse.status === "fulfilled") {
-        const projetosPayload = parseJsonSafely<{ data?: ApiProjeto[]; error?: { message?: string } }>(
-          await projetosResponse.value.text(),
-        );
-
-        if (projetosResponse.value.ok && Array.isArray(projetosPayload?.data) && projetosPayload.data.length) {
-          setProjetos(mergeCatalogWithApi(projetosPayload.data));
-          setUsingCatalogFallback(false);
-          setLoading(false);
-          return;
-        }
+      if (responses.some((response) => response.ok) && apiProjects.length) {
+        setProjetos(mergeCatalogWithApi(apiProjects));
+        setTotalProjetos(getApiTotal(payloads[0]?.data, apiProjects.length));
+        setUsingCatalogFallback(false);
+        return;
       }
 
       setProjetos(SHOWCASE_PROJECTS.map(getCardFromShowcase));
+      setTotalProjetos(SHOWCASE_TOTAL);
       setUsingCatalogFallback(true);
     } catch {
       setProjetos(SHOWCASE_PROJECTS.map(getCardFromShowcase));
+      setTotalProjetos(SHOWCASE_TOTAL);
       setUsingCatalogFallback(true);
       toast.error("Exibindo catalogo local de projetos.");
     } finally {
@@ -238,34 +251,28 @@ export default function ProjetosPage() {
     void loadData();
   }, [loadData]);
 
-  const turmaOptions = useMemo(() => {
-    if (turmas.length) {
-      return turmas.map((turma) => ({
-        id: turma.id,
-        nome: turma.nome,
-        faixaEtaria: turma.faixaEtaria,
-      }));
+  const toggleSaveProject = async (project: ProjetoCard) => {
+    if (project.origem === "catalogo") {
+      toast.info("Conecte o banco para salvar este projeto.");
+      return;
     }
 
-    return ETAPA_FILTER_OPTIONS.map((option) => ({
-      id: `etapa:${option.value}`,
-      nome: option.label,
-      faixaEtaria: option.label,
-    }));
-  }, [turmas]);
+    setSavingProjectId(project.id);
+    const response = await fetch("/api/projetos", {
+      method: project.salvo ? "DELETE" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ projetoId: project.id }),
+    });
+    const payload = parseJsonSafely<{ error?: { message?: string } }>(await response.text());
+    setSavingProjectId(null);
 
-  const etapaSelecionada = useMemo(() => {
-    if (turmaId === "TODAS") {
-      return null;
+    if (!response.ok) {
+      toast.error(payload?.error?.message ?? "Nao foi possivel atualizar favorito");
+      return;
     }
 
-    if (turmaId.startsWith("etapa:")) {
-      return turmaId.replace("etapa:", "") as EtapaTurma;
-    }
-
-    const turma = turmas.find((item) => item.id === turmaId);
-    return turma ? inferEtapaTurma(turma.faixaEtaria) : null;
-  }, [turmaId, turmas]);
+    setProjetos((prev) => prev.map((item) => (item.id === project.id ? { ...item, salvo: !item.salvo } : item)));
+  };
 
   const categoriasDisponiveis = useMemo(() => {
     const categories = Array.from(new Set(projetos.map((item) => item.categoria)));
@@ -274,20 +281,13 @@ export default function ProjetosPage() {
 
   const projetosFiltrados = useMemo(() => {
     return projetos.filter((project) => {
-      if (categoria !== "TODAS" && categoryKey(project.categoria) !== categoryKey(categoria)) {
-        return false;
-      }
-
-      if (etapaSelecionada && !projectMatchesEtapa(project.faixaEtaria, etapaSelecionada)) {
-        return false;
-      }
-
-      if (!busca.trim()) {
-        return true;
-      }
+      if (collection === "salvos" && !project.salvo) return false;
+      if (collection === "importados" && project.origem !== "importado") return false;
+      if (categoria !== "TODAS" && categoryKey(project.categoria) !== categoryKey(categoria)) return false;
+      if (etapa !== "TODAS" && !projectMatchesEtapa(project.faixaEtaria, etapa)) return false;
+      if (!busca.trim()) return true;
 
       const normalizedSearch = normalizeText(busca);
-
       return (
         normalizeText(project.titulo).includes(normalizedSearch) ||
         normalizeText(project.descricao).includes(normalizedSearch) ||
@@ -295,193 +295,177 @@ export default function ProjetosPage() {
         project.atividades.some((activity) => normalizeText(activity.titulo).includes(normalizedSearch))
       );
     });
-  }, [busca, categoria, etapaSelecionada, projetos]);
+  }, [busca, categoria, collection, etapa, projetos]);
 
-  const rowsByCategory = useMemo(() => {
-    const groups = new Map<string, ProjetoCard[]>();
-
-    for (const project of projetosFiltrados) {
-      const key = project.categoria;
-      const bucket = groups.get(key);
-
-      if (bucket) {
-        bucket.push(project);
-      } else {
-        groups.set(key, [project]);
+  const projetosOrdenados = useMemo(() => {
+    return [...projetosFiltrados].sort((left, right) => {
+      if (collection === "importados") {
+        return new Date(right.createdAt ?? 0).getTime() - new Date(left.createdAt ?? 0).getTime();
       }
-    }
-
-    return Array.from(groups.entries()).sort((left, right) => {
-      const rankDiff = categoryRank(left[0]) - categoryRank(right[0]);
-      if (rankDiff !== 0) {
-        return rankDiff;
-      }
-
-      return left[0].localeCompare(right[0]);
+      const rankDiff = categoryRank(left.categoria) - categoryRank(right.categoria);
+      if (rankDiff !== 0) return rankDiff;
+      return left.titulo.localeCompare(right.titulo);
     });
-  }, [projetosFiltrados]);
+  }, [collection, projetosFiltrados]);
+
+  const savedCount = projetos.filter((project) => project.salvo).length;
+  const importedCount = projetos.filter((project) => project.origem === "importado").length;
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6">
-      <section className="relative overflow-hidden rounded-3xl border border-slate-800/40 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 p-7 md:p-10">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.35),transparent_45%)]" />
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(244,114,182,0.22),transparent_40%)]" />
-
-        <div className="relative z-10 space-y-3">
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-white/90">
-            <Tv2 className="size-3.5" />
-            Catalogo de Projetos
+    <div className="mx-auto max-w-7xl space-y-5">
+      <DashboardFilterBar
+        title="Biblioteca de projetos"
+        summary={
+          <span>
+            {projetosFiltrados.length} de {totalProjetos} projeto{totalProjetos !== 1 ? "s" : ""}
+            <span className="mx-2 text-[#e5c4d3]">/</span>
+            {etapa === "TODAS" ? "Todas as etapas" : ETAPA_LABELS[etapa]}
+            {usingCatalogFallback ? (
+              <>
+                <span className="mx-2 text-[#e5c4d3]">/</span>
+                Catalogo local
+              </>
+            ) : null}
           </span>
-
-          <h1 className="font-heading text-4xl tracking-tight text-white md:text-5xl">
-            Selecione e reproduza ideias
-            <span className="block text-sky-300">em estilo streaming</span>
-          </h1>
-
-          <p className="max-w-3xl text-sm font-semibold text-slate-200 md:text-base">
-            Biblioteca com {SHOWCASE_TOTAL} projetos completos, todos com atividades, filtros por turma e categoria, e pagina detalhada.
-          </p>
-
-          {usingCatalogFallback && (
-            <p className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/40 bg-amber-300/10 px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-amber-200">
-              <Sparkles className="size-3.5" />
-              Exibindo catalogo local completo
-            </p>
-          )}
+        }
+        controlsClassName="lg:flex-wrap"
+      >
+        <ProjectImportDialog compact onCreated={() => { setCollection("importados"); void loadData(); }} />
+        <div className="relative lg:w-[340px]">
+          <Search className="pointer-events-none absolute left-3.5 top-3 size-4 text-[#a99ba5]" />
+          <Input
+            value={busca}
+            onChange={(event) => setBusca(event.target.value)}
+            className="h-11 w-full rounded-xl border-2 border-[#e5c4d3] bg-white pl-10 text-sm font-bold text-[#312834] placeholder:text-[#a99ba5] focus:border-[#d8a4bb] focus:ring-2 focus:ring-[#f8dbe7]"
+            placeholder="Buscar titulo, atividade ou tema..."
+          />
         </div>
-      </section>
 
-      <Card className="rounded-3xl border-sky-100/80 bg-white shadow-sm">
-        <CardContent className="space-y-4 pt-5">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3.5 top-3 size-4 text-[#86a0b8]" />
-            <Input
-              value={busca}
-              onChange={(event) => setBusca(event.target.value)}
-              className="h-11 w-full rounded-xl border-sky-100 bg-white pl-10 text-sm font-bold text-[#2c4359] placeholder:text-[#9bb0c2] focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
-              placeholder="Busque por titulo, atividade ou tema..."
-            />
-          </div>
+        <select
+          className="h-11 w-full appearance-none rounded-xl border-2 border-[#e5c4d3] bg-white px-3.5 text-sm font-bold text-[#312834] focus:border-[#d8a4bb] focus:outline-none focus:ring-2 focus:ring-[#f8dbe7] lg:w-[220px]"
+          value={etapa}
+          onChange={(event) => setEtapa(event.target.value as "TODAS" | EtapaTurma)}
+        >
+          {ETAPA_FILTER_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
 
-          <div className="grid gap-3 md:grid-cols-[1.4fr_1fr_auto]">
-            <select
-              className="h-11 w-full appearance-none rounded-xl border border-sky-100 bg-white px-3.5 text-sm font-bold text-[#2c4359] focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
-              value={turmaId}
-              onChange={(event) => setTurmaId(event.target.value)}
-            >
-              <option value="TODAS">Todas as turmas</option>
-              {turmaOptions.map((turma) => (
-                <option key={turma.id} value={turma.id}>
-                  {turma.nome} ({turma.faixaEtaria})
-                </option>
-              ))}
-            </select>
+        <select
+          className="h-11 w-full appearance-none rounded-xl border-2 border-[#e5c4d3] bg-white px-3.5 text-sm font-bold text-[#312834] focus:border-[#d8a4bb] focus:outline-none focus:ring-2 focus:ring-[#f8dbe7] lg:w-[180px]"
+          value={categoria}
+          onChange={(event) => setCategoria(event.target.value)}
+        >
+          {categoriasDisponiveis.map((item) => (
+            <option key={item} value={item}>
+              {item}
+            </option>
+          ))}
+        </select>
 
-            <select
-              className="h-11 w-full appearance-none rounded-xl border border-sky-100 bg-white px-3.5 text-sm font-bold text-[#2c4359] focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
-              value={categoria}
-              onChange={(event) => setCategoria(event.target.value)}
-            >
-              {categoriasDisponiveis.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
-            </select>
+        <div className="flex h-11 items-center justify-center gap-2 rounded-xl border-2 border-[#e5c4d3] bg-white px-4 text-sm font-black text-[#a65f7f]">
+          <Layers3 className="size-4" />
+          {projetosFiltrados.length}
+        </div>
+      </DashboardFilterBar>
 
-            <div className="flex h-11 items-center justify-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 text-sm font-black text-sky-700">
-              <UsersRound className="size-4" />
-              {projetosFiltrados.length} de {SHOWCASE_TOTAL} projetos
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 rounded-xl border border-sky-100 bg-sky-50/50 px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] text-[#6f88a2]">
-            <Filter className="size-3.5" />
-            {etapaSelecionada ? `Filtrando por etapa: ${ETAPA_LABELS[etapaSelecionada]}` : "Filtrando por todas as etapas"}
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex w-full gap-1 overflow-x-auto rounded-lg border border-[#eadde5] bg-white p-1 scrollbar-hide sm:w-fit">
+        <button type="button" onClick={() => setCollection("todos")} className={cn("inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-md px-4 text-sm font-black transition", collection === "todos" ? "bg-[#7d405d] text-white" : "text-[#74616d] hover:bg-[#f8eef3]")}>
+          <Layers3 className="size-4" /> Todos
+        </button>
+        <button type="button" onClick={() => setCollection("salvos")} className={cn("inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-md px-4 text-sm font-black transition", collection === "salvos" ? "bg-[#7d405d] text-white" : "text-[#74616d] hover:bg-[#f8eef3]")}>
+          <Heart className="size-4" /> Projetos salvos <span className="opacity-70">{savedCount}</span>
+        </button>
+        <button type="button" onClick={() => setCollection("importados")} className={cn("inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-md px-4 text-sm font-black transition", collection === "importados" ? "bg-[#7d405d] text-white" : "text-[#74616d] hover:bg-[#f8eef3]")}>
+          <FileUp className="size-4" /> Projetos importados <span className="opacity-70">{importedCount}</span>
+        </button>
+      </div>
 
       {loading && (
-        <div className="rounded-2xl border border-sky-100 bg-white p-5 text-sm font-semibold text-[#6f88a2]">
-          Montando prateleiras de projetos...
+        <div className="rounded-2xl border-2 border-[#f0e2e8] bg-white p-5 text-sm font-extrabold text-[#857582]">
+          Carregando projetos...
         </div>
       )}
 
-      {!loading && !rowsByCategory.length && (
-        <div className="rounded-2xl border border-dashed border-sky-200 bg-white p-5 text-sm font-semibold text-[#6f88a2]">
+      {!loading && !projetosOrdenados.length && (
+        <div className="rounded-2xl border-2 border-dashed border-[#e5c4d3] bg-white p-5 text-sm font-extrabold text-[#857582]">
           Nenhum projeto encontrado com os filtros atuais.
         </div>
       )}
 
-      {!loading && rowsByCategory.length > 0 && (
-        <div className="space-y-6">
-          {rowsByCategory.map(([category, projects]) => (
-            <section key={category} className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h2 className="font-heading text-2xl text-[#223246]">{category}</h2>
-                <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-sky-700">
-                  {projects.length} titulo{projects.length > 1 ? "s" : ""}
-                </span>
-              </div>
-
-              <div className="flex gap-4 overflow-x-auto pb-1">
-                {projects.map((project) => {
-                  const catKey = categoryKey(project.categoria);
-                  const cover = categoryCoverGradient[catKey] ?? "from-sky-500 via-cyan-500 to-teal-500";
-
-                  return (
-                    <article
-                      key={project.id}
-                      className="group relative min-w-[280px] max-w-[280px] overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg"
+      {!loading && projetosOrdenados.length > 0 && (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          {projetosOrdenados.map((project) => {
+            return (
+              <article
+                key={project.id}
+                className="group relative overflow-hidden rounded-[1rem] border border-[#f0e2e8] bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:border-[#e5c4d3] hover:shadow-md"
+              >
+                <div className="relative aspect-[3/1.65] overflow-hidden bg-[#f4edf1]">
+                  <Image
+                    src={getProjectCoverPath(project.coverKey)}
+                    alt={`Prévia do projeto ${project.titulo}`}
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 25vw"
+                    className="object-cover transition duration-500 group-hover:scale-[1.03]"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#2f2330]/35 via-transparent to-white/5" />
+                  <span className="absolute left-3 top-3 rounded-full border border-white/75 bg-white/90 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#312834] shadow-sm backdrop-blur-sm">
+                    {project.origem === "importado" ? "Meu projeto" : project.categoria}
+                  </span>
+                  {project.origem !== "importado" ? (
+                    <button
+                      type="button"
+                      onClick={() => void toggleSaveProject(project)}
+                      disabled={savingProjectId === project.id}
+                      className={cn(
+                        "absolute right-3 top-3 inline-flex size-9 items-center justify-center rounded-xl border border-white/75 bg-white/90 shadow-sm backdrop-blur-sm transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60",
+                        project.salvo ? "text-[#a65f7f]" : "text-[#312834]",
+                      )}
+                      aria-label={project.salvo ? "Remover dos favoritos" : "Salvar projeto"}
                     >
-                      <div className={cn("relative h-36 bg-gradient-to-br", cover)}>
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(255,255,255,0.45),transparent_45%)]" />
-                        <span className="absolute left-3 top-3 rounded-full border border-white/70 bg-white/85 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#294662]">
-                          {project.categoria}
-                        </span>
+                      <Heart className={cn("size-4", project.salvo && "fill-current")} />
+                    </button>
+                  ) : null}
+                </div>
 
-                      </div>
+                <div className="space-y-2.5 p-3.5">
+                  <div>
+                    <h3 className="line-clamp-2 font-heading text-lg leading-tight text-[#312834]">{project.titulo}</h3>
+                    <p className="mt-1 line-clamp-2 text-xs font-semibold text-[#857582]">{project.descricao}</p>
+                  </div>
 
-                      <div className="space-y-3 p-4">
-                        <div>
-                          <h3 className="line-clamp-2 font-heading text-2xl leading-tight text-[#223246]">{project.titulo}</h3>
-                          <p className="mt-1 line-clamp-2 text-sm font-semibold text-[#5f7790]">{project.descricao}</p>
-                        </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    <span className="rounded-full border border-[#e5c4d3] bg-[#fff3f7] px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#a65f7f]">
+                      {project.faixaEtaria}
+                    </span>
+                    <span className="rounded-full border border-[#e5c4d3] bg-[#fff3f7] px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#a65f7f]">
+                      {project.duracao}
+                    </span>
+                    <span className="rounded-full border border-[#e5c4d3] bg-[#fff3f7] px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#a65f7f]">
+                      {project.atividadesCount} atividades
+                    </span>
+                  </div>
 
-                        <div className="flex flex-wrap gap-1.5">
-                          <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-sky-700">
-                            {project.faixaEtaria}
-                          </span>
-                          <span className="rounded-full border border-teal-200 bg-teal-50 px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-teal-700">
-                            {project.duracao}
-                          </span>
-                          <span className="rounded-full border border-indigo-200 bg-indigo-50 px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-indigo-700">
-                            {project.atividades.length} atividades
-                          </span>
-                        </div>
+                  <p className="line-clamp-1 text-xs font-bold uppercase tracking-[0.1em] text-[#857582]">
+                    Etapas: {project.turmasIndicadas.join(" / ")}
+                  </p>
 
-                        <p className="line-clamp-1 text-xs font-bold uppercase tracking-[0.1em] text-[#6f88a2]">
-                          Turmas: {project.turmasIndicadas.join(" / ")}
-                        </p>
-
-                        <Link
-                          href={`/dashboard/projetos/${project.id}`}
-                          className={buttonVariants({
-                            className:
-                              "h-10 w-full rounded-xl bg-sky-500 text-sm font-black text-white transition hover:bg-sky-600",
-                          })}
-                        >
-                          <PlayCircle className="mr-2 size-4" />
-                          Abrir projeto
-                        </Link>
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-            </section>
-          ))}
+                  <Link
+                    href={`/dashboard/projetos/${project.id}`}
+                    className={buttonVariants({
+                      className: "h-10 w-full rounded-xl bg-[#a65f7f] text-sm font-black text-white transition hover:bg-[#8b4e6a]",
+                    })}
+                  >
+                    <PlayCircle className="mr-2 size-4" />
+                    Abrir projeto
+                  </Link>
+                </div>
+              </article>
+            );
+          })}
         </div>
       )}
     </div>

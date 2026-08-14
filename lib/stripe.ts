@@ -5,7 +5,7 @@ import { env } from "@/lib/env";
 export const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
   apiVersion: "2026-03-25.dahlia",
   appInfo: {
-    name: "Planejei",
+    name: "Pequenos Passos",
     version: "1.0.0",
   },
 });

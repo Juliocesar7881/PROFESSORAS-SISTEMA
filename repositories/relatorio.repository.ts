@@ -1,7 +1,27 @@
+import { CategoriaObservacao } from "@prisma/client";
 import { endOfMonth, startOfMonth } from "date-fns";
 
 import { prisma } from "@/lib/prisma";
 import { BaseRepository } from "@/repositories/base.repository";
+
+type CreateRelatorioPayload = {
+  alunoId?: string;
+  periodo: string;
+  texto: string;
+  nomeCrianca?: string;
+  contexto?: string;
+  descricaoBase?: string;
+  descricaoObservacao?: string;
+  modeloIa?: string;
+  registroIds?: string[];
+};
+
+type UpdateRelatorioPayload = {
+  texto: string;
+  nomeCrianca?: string;
+  contexto?: string;
+  periodo: string;
+};
 
 export class RelatorioRepository extends BaseRepository {
   private async assertAlunoOwnership(userId: string, alunoId: string) {
@@ -14,10 +34,17 @@ export class RelatorioRepository extends BaseRepository {
       },
       select: {
         id: true,
+        nome: true,
+        turma: {
+          select: {
+            id: true,
+            nome: true,
+          },
+        },
       },
     });
 
-    this.assertFound(aluno, "Aluno não encontrado");
+    return this.assertFound(aluno, "Aluno nao encontrado");
   }
 
   async countByUserCurrentMonth(userId: string) {
@@ -27,28 +54,57 @@ export class RelatorioRepository extends BaseRepository {
 
     return prisma.avaliacao.count({
       where: {
+        userId,
         createdAt: {
           gte: start,
           lte: end,
-        },
-        aluno: {
-          turma: {
-            userId,
-          },
         },
       },
     });
   }
 
-  async create(userId: string, payload: { alunoId: string; periodo: string; texto: string }) {
-    await this.assertAlunoOwnership(userId, payload.alunoId);
+  async create(userId: string, payload: CreateRelatorioPayload) {
+    return this.createWithOptionalObservation(userId, payload);
+  }
 
-    return prisma.avaliacao.create({
-      data: {
-        alunoId: payload.alunoId,
-        periodo: payload.periodo,
-        texto: payload.texto,
-      },
+  async createWithOptionalObservation(userId: string, payload: CreateRelatorioPayload) {
+    const aluno = payload.alunoId ? await this.assertAlunoOwnership(userId, payload.alunoId) : null;
+
+    return prisma.$transaction(async (tx) => {
+      if (payload.descricaoObservacao && payload.alunoId) {
+        await tx.observacao.create({
+          data: {
+            userId,
+            alunoId: payload.alunoId,
+            categoria: CategoriaObservacao.APRENDIZAGEM,
+            texto: payload.descricaoObservacao,
+            dataRegistro: new Date(),
+          },
+        });
+      }
+
+      const relatorio = await tx.avaliacao.create({
+        data: {
+          userId,
+          alunoId: payload.alunoId ?? null,
+          periodo: payload.periodo,
+          texto: payload.texto,
+          nomeCrianca: payload.nomeCrianca || aluno?.nome || null,
+          contexto: payload.contexto || aluno?.turma.nome || null,
+          descricaoBase: payload.descricaoBase || payload.descricaoObservacao || null,
+          modeloIa: payload.modeloIa || null,
+          registros: payload.registroIds?.length
+            ? {
+                create: payload.registroIds.map((registroId) => ({ registroId })),
+              }
+            : undefined,
+        },
+      });
+
+      return {
+        ...relatorio,
+        descricaoObservacaoSalva: Boolean(payload.descricaoObservacao && payload.alunoId),
+      };
     });
   }
 
@@ -57,6 +113,7 @@ export class RelatorioRepository extends BaseRepository {
 
     return prisma.avaliacao.findMany({
       where: {
+        userId,
         alunoId,
       },
       orderBy: {
@@ -68,11 +125,7 @@ export class RelatorioRepository extends BaseRepository {
   async listRecentByUser(userId: string, limit = 20) {
     return prisma.avaliacao.findMany({
       where: {
-        aluno: {
-          turma: {
-            userId,
-          },
-        },
+        userId,
       },
       orderBy: {
         createdAt: "desc",
@@ -99,11 +152,7 @@ export class RelatorioRepository extends BaseRepository {
     const relatorio = await prisma.avaliacao.findFirst({
       where: {
         id: relatorioId,
-        aluno: {
-          turma: {
-            userId,
-          },
-        },
+        userId,
       },
       include: {
         aluno: {
@@ -121,7 +170,7 @@ export class RelatorioRepository extends BaseRepository {
       },
     });
 
-    return this.assertFound(relatorio, "Relatório não encontrado");
+    return this.assertFound(relatorio, "Relatorio nao encontrado");
   }
 
   async deleteOwnedById(userId: string, relatorioId: string) {
@@ -130,6 +179,22 @@ export class RelatorioRepository extends BaseRepository {
     return prisma.avaliacao.delete({
       where: {
         id: relatorio.id,
+      },
+    });
+  }
+
+  async updateOwnedById(userId: string, relatorioId: string, payload: UpdateRelatorioPayload) {
+    const relatorio = await this.findOwnedById(userId, relatorioId);
+
+    return prisma.avaliacao.update({
+      where: {
+        id: relatorio.id,
+      },
+      data: {
+        texto: payload.texto,
+        periodo: payload.periodo,
+        nomeCrianca: payload.nomeCrianca?.trim() || null,
+        contexto: payload.contexto?.trim() || null,
       },
     });
   }

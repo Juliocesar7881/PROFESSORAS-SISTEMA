@@ -1,11 +1,11 @@
-import type { CreateAlunoInput, UpdateAlunoInput } from "@/dtos/aluno.dto";
+import type { AlunoQueryInput, CreateAlunoInput, UpdateAlunoInput } from "@/dtos/aluno.dto";
 import { AlunoRepository } from "@/repositories/aluno.repository";
 
 export class AlunoService {
   private readonly alunoRepository = new AlunoRepository();
 
-  async list(userId: string, turmaId?: string) {
-    return this.alunoRepository.listByUser(userId, turmaId);
+  async list(userId: string, query: AlunoQueryInput) {
+    return this.alunoRepository.listByUserPaginated(userId, query);
   }
 
   async create(userId: string, payload: CreateAlunoInput) {
@@ -22,6 +22,10 @@ export class AlunoService {
 
   async remove(userId: string, alunoId: string) {
     return this.alunoRepository.softDelete(userId, alunoId);
+  }
+
+  async restore(userId: string, alunoId: string) {
+    return this.alunoRepository.restore(userId, alunoId);
   }
 
   async listWithoutRecentObservations(userId: string) {

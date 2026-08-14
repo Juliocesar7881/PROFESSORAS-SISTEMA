@@ -1,21 +1,28 @@
+import { FileText } from "lucide-react";
+
+import { BrandMark } from "@/components/brand-mark";
+
 export default function TermosPage() {
   return (
-    <main className="mesh-bg soft-grid min-h-screen px-6 py-10 text-slate-700">
-      <article className="glass-card mx-auto max-w-3xl space-y-4 rounded-3xl border-none p-8 shadow-[0_8px_30px_-20px_rgba(18,38,58,0.2)]">
-        <span className="inline-flex rounded-full bg-cyan-50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-cyan-700 ring-1 ring-cyan-100">Documento legal</span>
-        <h1 className="font-heading text-4xl text-slate-900">Termos de Uso</h1>
-        <p className="leading-relaxed">
-          A professora usuaria e a controladora dos dados pedagogicos de seus alunos. O Planejei atua como operadora,
-          processando os dados exclusivamente para apoiar planejamento, observacao e comunicacao pedagogica.
-        </p>
-        <p className="leading-relaxed">
-          O uso da plataforma exige consentimento explicito no onboarding para tratamento de dados de menores, conforme
-          art. 14 da LGPD (Lei 13.709/2018).
-        </p>
-        <p className="leading-relaxed">
-          Ao excluir a conta, o sistema executa apagamento em cascata dos dados vinculados e mantem logs de auditoria
-          por ate 2 anos para finalidades legais e de seguranca.
-        </p>
+    <main className="mesh-bg min-h-screen px-4 py-10 text-[#312834] md:px-6">
+      <article className="mx-auto max-w-3xl rounded-[0.95rem] border border-[#eadde5] bg-white p-6 shadow-[0_30px_90px_-52px_rgba(91,58,85,0.5)] md:p-8">
+        <BrandMark href="/" />
+        <span className="mt-8 inline-flex items-center gap-2 rounded-full border border-[#f1d6e2] bg-[#fff7fa] px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-[#a65f7f]">
+          <FileText className="size-3.5" />
+          Documento legal
+        </span>
+        <h1 className="font-heading mt-4 text-4xl font-extrabold text-[#312834]">Termos de Uso</h1>
+        <div className="mt-5 space-y-4 text-sm font-bold leading-relaxed text-[#857582]">
+          <p>
+            A professora usuária é a controladora dos dados pedagógicos de seus alunos. O Pequenos Passos atua como operador, processando os dados exclusivamente para apoiar planejamento, registros e acompanhamento pedagógico.
+          </p>
+          <p>
+            O uso da plataforma exige consentimento explícito no onboarding para tratamento de dados de menores, conforme art. 14 da LGPD (Lei 13.709/2018).
+          </p>
+          <p>
+            Ao excluir a conta, o sistema executa apagamento em cascata dos dados vinculados e mantém logs de auditoria por até 2 anos para finalidades legais e de segurança.
+          </p>
+        </div>
       </article>
     </main>
   );

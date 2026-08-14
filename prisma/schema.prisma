@@ -19,171 +19,324 @@ enum CategoriaObservacao {
   CRIATIVIDADE
 }
 
-model User {
-  id           String              @id @default(cuid())
-  name         String?
-  email        String?             @unique
-  emailVerified DateTime?
-  image        String?
-  plano        Plano               @default(GRATUITO)
-  stripeId     String?             @unique
-  stripeSubId  String?
-  deletedAt    DateTime?
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
+enum StatusFotoObservacao {
+  PENDENTE
+  PRONTA
+  FALHOU
+}
 
-  accounts     Account[]
-  sessions     Session[]
-  turmas       Turma[]
-  planejamentos Planejamento[]
-  projetosSalvos ProjetoSalvo[]
-  auditLogs    AuditLog[]
+enum OrigemProjeto {
+  CATALOGO
+  IMPORTADO
+}
+
+enum StatusImportacaoProjeto {
+  PROCESSANDO
+  PRONTO
+  FALHOU
+  CONFIRMADO
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  plano         Plano     @default(GRATUITO)
+  stripeId      String?   @unique
+  stripeSubId   String?
+  deletedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts            Account[]
+  sessions            Session[]
+  turmas              Turma[]
+  alunos              Aluno[]
+  registros           Observacao[]
+  planejamentos       Planejamento[]
+  avaliacoes          Avaliacao[]
+  mobileSessions      MobileSession[]
+  mobileLoginCodes    MobileLoginCode[]
+  projetosImportados  Projeto[]           @relation("ProjetoOwner")
+  importacoesProjetos ProjetoImportacao[]
+  projetosSalvos      ProjetoSalvo[]
+  auditLogs           AuditLog[]
 
   @@index([createdAt])
 }
 
 model Turma {
-  id          String         @id @default(cuid())
+  id          String    @id @default(cuid())
   nome        String
-  faixaEtaria String
-  ano         Int
+  faixaEtaria String?
+  ano         Int?
+  turno       String?
+  instituicao String?
   deletedAt   DateTime?
   userId      String
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  alunos       Aluno[]
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  alunos        Aluno[]
   planejamentos Planejamento[]
-  chamadas     Chamada[]
+  chamadas      Chamada[]
 
   @@index([userId])
   @@index([deletedAt])
 }
 
 model Aluno {
-  id          String        @id @default(cuid())
-  nome        String
-  dataNasc    DateTime
-  fotoKey     String?
-  deletedAt   DateTime?
-  turmaId     String
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id        String    @id @default(cuid())
+  nome      String
+  dataNasc  DateTime?
+  fotoKey   String?
+  contexto  String?
+  deletedAt DateTime?
+  turmaId   String
+  userId    String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
-  turma       Turma         @relation(fields: [turmaId], references: [id], onDelete: Cascade)
+  turma       Turma        @relation(fields: [turmaId], references: [id], onDelete: Cascade)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   observacoes Observacao[]
   avaliacoes  Avaliacao[]
   presencas   Presenca[]
 
   @@index([turmaId])
+  @@index([userId, nome])
   @@index([deletedAt])
 }
 
 model Observacao {
-  id         String             @id @default(cuid())
-  texto      String
-  categoria  CategoriaObservacao
-  alunoId    String
-  createdAt  DateTime           @default(now())
+  id               String              @id @default(cuid())
+  texto            String
+  categoria        CategoriaObservacao
+  alunoId          String
+  userId           String
+  dataRegistro     DateTime            @db.Date
+  clientMutationId String?
+  deletedAt        DateTime?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
 
-  aluno      Aluno              @relation(fields: [alunoId], references: [id], onDelete: Cascade)
+  aluno      Aluno               @relation(fields: [alunoId], references: [id], onDelete: Cascade)
+  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   fotos      FotoObservacao[]
+  avaliacoes AvaliacaoRegistro[]
 
+  @@unique([userId, clientMutationId])
   @@index([alunoId, createdAt])
+  @@index([userId, dataRegistro, createdAt])
+  @@index([userId, deletedAt])
 }
 
 model FotoObservacao {
-  id           String      @id @default(cuid())
-  storageKey   String
-  observacaoId String
+  id             String                @id @default(cuid())
+  storageKey     String
+  observacaoId   String
+  clientUploadId String?
+  status         StatusFotoObservacao @default(PRONTA)
+  mimeType       String?
+  tamanhoBytes   Int?
+  erroCodigo     String?
+  ordem          Int                   @default(0)
+  deletedAt      DateTime?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
 
-  observacao   Observacao  @relation(fields: [observacaoId], references: [id], onDelete: Cascade)
+  observacao Observacao @relation(fields: [observacaoId], references: [id], onDelete: Cascade)
 
+  @@unique([observacaoId, clientUploadId])
   @@index([observacaoId])
+  @@index([status, updatedAt])
+  @@index([deletedAt])
 }
 
 model Avaliacao {
-  id        String    @id @default(cuid())
-  texto     String
-  periodo   String
-  alunoId   String
-  createdAt DateTime  @default(now())
+  id            String   @id @default(cuid())
+  texto         String
+  periodo       String
+  userId        String
+  alunoId       String?
+  nomeCrianca   String?
+  contexto      String?
+  descricaoBase String?  @db.Text
+  modeloIa      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  aluno     Aluno     @relation(fields: [alunoId], references: [id], onDelete: Cascade)
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  aluno     Aluno?              @relation(fields: [alunoId], references: [id], onDelete: SetNull)
+  registros AvaliacaoRegistro[]
 
+  @@index([userId, createdAt])
   @@index([alunoId, createdAt])
 }
 
-model Projeto {
-  id            String         @id @default(cuid())
-  titulo        String
-  descricao     String
-  categoria     String
-  faixaEtaria   String
-  duracao       String
-  thumbnailKey  String?
-  bnccObjetivos String[]
-  premium       Boolean        @default(false)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+model AvaliacaoRegistro {
+  avaliacaoId String
+  registroId  String
+  createdAt   DateTime @default(now())
 
-  atividades    Atividade[]
-  salvosPor     ProjetoSalvo[]
+  avaliacao Avaliacao  @relation(fields: [avaliacaoId], references: [id], onDelete: Cascade)
+  registro  Observacao @relation(fields: [registroId], references: [id], onDelete: Cascade)
+
+  @@id([avaliacaoId, registroId])
+  @@index([registroId])
+}
+
+model Projeto {
+  id                   String        @id @default(cuid())
+  titulo               String
+  descricao            String
+  categoria            String
+  faixaEtaria          String
+  duracao              String
+  thumbnailKey         String?
+  ownerId              String?
+  origem               OrigemProjeto @default(CATALOGO)
+  bnccObjetivos        String[]
+  problema             String?
+  justificativa        String?       @db.Text
+  objetivoGeral        String?       @db.Text
+  objetivosEspecificos String[]      @default([])
+  camposExperiencia    String[]      @default([])
+  metodologia          String[]      @default([])
+  cronograma           String?       @db.Text
+  avaliacao            String[]      @default([])
+  premium              Boolean       @default(false)
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  owner             User?              @relation("ProjetoOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  importacao        ProjetoImportacao?
+  atividades        Atividade[]
+  salvosPor         ProjetoSalvo[]
+  planejamentosBase Planejamento[]
 
   @@index([categoria])
   @@index([premium])
+  @@index([ownerId, origem])
+}
+
+model ProjetoImportacao {
+  id             String                  @id @default(cuid())
+  userId         String
+  projetoId      String?                 @unique
+  storageKey     String
+  fileName       String
+  mimeType       String
+  size           Int
+  status         StatusImportacaoProjeto @default(PROCESSANDO)
+  dadosExtraidos Json?
+  erro           String?
+  expiresAt      DateTime?
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projeto Projeto? @relation(fields: [projetoId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([status, expiresAt])
 }
 
 model Atividade {
-  id          String      @id @default(cuid())
-  titulo      String
-  descricao   String
-  categoria   String
-  duracao     Int
-  materiais   String[]
-  bnccCodigos String[]
-  projetoId   String?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id            String   @id @default(cuid())
+  titulo        String
+  descricao     String
+  categoria     String
+  duracao       Int
+  materiais     String[]
+  bnccCodigos   String[]
+  objetivoTexto String?  @db.Text
+  ordem         Int      @default(0)
+  projetoId     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  projeto     Projeto?    @relation(fields: [projetoId], references: [id], onDelete: SetNull)
+  projeto       Projeto?                @relation(fields: [projetoId], references: [id], onDelete: SetNull)
   planejamentos PlanejamentoAtividade[]
 
   @@index([projetoId])
 }
 
 model Planejamento {
-  id           String                  @id @default(cuid())
-  semanaInicio DateTime
-  semanaFim    DateTime
-  userId       String
-  turmaId      String
-  shareToken   String?                 @unique
-  createdAt    DateTime                @default(now())
-  updatedAt    DateTime                @updatedAt
+  id                   String   @id @default(cuid())
+  semanaInicio         DateTime
+  semanaFim            DateTime
+  userId               String
+  turmaId              String?
+  grupoNome            String?
+  projetoBaseId        String?
+  camposExperiencia    String[] @default([])
+  direitosAprendizagem String[] @default([])
+  nomeInstituicao      String?
+  nomeProfessora       String?
+  shareToken           String?  @unique
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
-  user         User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  turma        Turma                   @relation(fields: [turmaId], references: [id], onDelete: Cascade)
-  atividades   PlanejamentoAtividade[]
+  user        User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  turma       Turma?                  @relation(fields: [turmaId], references: [id], onDelete: SetNull)
+  projetoBase Projeto?                @relation(fields: [projetoBaseId], references: [id], onDelete: SetNull)
+  atividades  PlanejamentoAtividade[]
 
-  @@index([userId])
-  @@index([turmaId])
   @@unique([userId, turmaId, semanaInicio])
+  @@index([userId])
+  @@index([userId, semanaInicio])
+  @@index([turmaId])
+  @@index([projetoBaseId])
 }
 
 model PlanejamentoAtividade {
-  id             String       @id @default(cuid())
+  id             String  @id @default(cuid())
   diaSemana      Int
-  horario        String
-  atividadeId    String
+  horario        String?
+  ordem          Int     @default(0)
+  atividadeId    String?
+  objetivosTexto String? @db.Text
+  atividadeTexto String? @db.Text
   planejamentoId String
 
-  atividade      Atividade    @relation(fields: [atividadeId], references: [id], onDelete: Cascade)
-  planejamento   Planejamento @relation(fields: [planejamentoId], references: [id], onDelete: Cascade)
+  atividade    Atividade?   @relation(fields: [atividadeId], references: [id], onDelete: SetNull)
+  planejamento Planejamento @relation(fields: [planejamentoId], references: [id], onDelete: Cascade)
 
   @@index([planejamentoId])
   @@index([atividadeId])
+}
+
+model MobileSession {
+  id         String    @id @default(cuid())
+  userId     String
+  tokenHash  String    @unique
+  deviceName String?
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  lastUsedAt DateTime  @default(now())
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+}
+
+model MobileLoginCode {
+  id        String    @id @default(cuid())
+  userId    String
+  codeHash  String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt, usedAt])
 }
 
 model ProjetoSalvo {
@@ -191,35 +344,35 @@ model ProjetoSalvo {
   projetoId String
   createdAt DateTime @default(now())
 
-  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  projeto   Projeto @relation(fields: [projetoId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projeto Projeto @relation(fields: [projetoId], references: [id], onDelete: Cascade)
 
   @@id([userId, projetoId])
   @@index([projetoId])
 }
 
 model Chamada {
-  id        String     @id @default(cuid())
-  data      DateTime   @db.Date
+  id        String   @id @default(cuid())
+  data      DateTime @db.Date
   turmaId   String
-  createdAt DateTime   @default(now())
+  createdAt DateTime @default(now())
 
   turma     Turma      @relation(fields: [turmaId], references: [id], onDelete: Cascade)
   presencas Presenca[]
 
-  @@index([turmaId])
   @@unique([turmaId, data])
+  @@index([turmaId])
 }
 
 model Presenca {
-  id           String   @id @default(cuid())
-  presente     Boolean
+  id            String  @id @default(cuid())
+  presente      Boolean
   justificativa String?
-  alunoId      String
-  chamadaId    String
+  alunoId       String
+  chamadaId     String
 
-  aluno        Aluno    @relation(fields: [alunoId], references: [id], onDelete: Cascade)
-  chamada      Chamada  @relation(fields: [chamadaId], references: [id], onDelete: Cascade)
+  aluno   Aluno   @relation(fields: [alunoId], references: [id], onDelete: Cascade)
+  chamada Chamada @relation(fields: [chamadaId], references: [id], onDelete: Cascade)
 
   @@unique([alunoId, chamadaId])
   @@index([chamadaId])
@@ -234,7 +387,7 @@ model AuditLog {
   userAgent String?
   createdAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
 }

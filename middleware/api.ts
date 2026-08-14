@@ -2,40 +2,39 @@ import { Plano } from "@prisma/client";
 import { Session } from "next-auth";
 import type { Duration } from "@upstash/ratelimit";
 
-import { DomainError, PlanLimitError, ServiceUnavailableError, UnauthorizedError } from "@/dtos/errors";
+import { DomainError, ForbiddenError, ServiceUnavailableError, UnauthorizedError } from "@/dtos/errors";
 import { env } from "@/lib/env";
 import { fail } from "@/lib/http";
 import { requireSession } from "@/lib/session";
 import { AuditRepository } from "@/repositories/audit.repository";
 import { enforceRateLimit, enforcePlanAwareRateLimit } from "@/lib/rate-limit";
+import { authenticateMobileRequest } from "@/lib/mobile-auth";
 
 type RouteHandler = (request: Request, context: RequestContext) => Promise<Response>;
 
 export interface RequestContext {
+  requestId: string;
   session: Session | null;
   userId: string | null;
   plano: Plano;
   ip: string | null;
   userAgent: string | null;
+  authKind: "web" | "mobile" | null;
+  mobileSessionId: string | null;
 }
 
 const defaultContext: RequestContext = {
+  requestId: "",
   session: null,
   userId: null,
   plano: Plano.GRATUITO,
   ip: null,
   userAgent: null,
+  authKind: null,
+  mobileSessionId: null,
 };
 
-const TRIAL_EXEMPT_API_PATHS = new Set([
-  "/api/stripe/checkout",
-  "/api/account",
-  "/api/account/logout-all",
-]);
-
-function isTrialExemptPath(pathname: string) {
-  return TRIAL_EXEMPT_API_PATHS.has(pathname);
-}
+const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
 function withRequestMeta(context: RequestContext, request: Request): RequestContext {
   const requestHeaders = request.headers;
@@ -46,18 +45,52 @@ function withRequestMeta(context: RequestContext, request: Request): RequestCont
   };
 }
 
+function assertSameOriginMutation(request: Request) {
+  if (SAFE_METHODS.has(request.method.toUpperCase())) {
+    return;
+  }
+
+  const requestOrigin = new URL(request.url).origin;
+  const configuredOrigin = new URL(env.NEXT_PUBLIC_APP_URL).origin;
+  const origin = request.headers.get("origin");
+  const referer = request.headers.get("referer");
+  let sourceOrigin = origin;
+
+  if (!sourceOrigin && referer) {
+    try {
+      sourceOrigin = new URL(referer).origin;
+    } catch {
+      throw new ForbiddenError("Origem da requisição não permitida");
+    }
+  }
+
+  if (!sourceOrigin) {
+    return;
+  }
+
+  if (sourceOrigin !== requestOrigin && sourceOrigin !== configuredOrigin) {
+    throw new ForbiddenError("Origem da requisição não permitida");
+  }
+}
+
 export function withAuth(handler: RouteHandler): RouteHandler {
   return async (request, context) => {
+    const mobile = await authenticateMobileRequest(request);
+
+    if (mobile) {
+      return handler(request, {
+        ...withRequestMeta(context, request),
+        userId: mobile.user.id,
+        plano: mobile.plan,
+        authKind: "mobile",
+        mobileSessionId: mobile.sessionId,
+      });
+    }
+
     const session = await requireSession();
 
     if (!session.user?.id) {
       throw new UnauthorizedError();
-    }
-
-    const pathname = new URL(request.url).pathname;
-
-    if (session.user.plano !== Plano.PRO && session.user.trialExpired && !isTrialExemptPath(pathname)) {
-      throw new PlanLimitError("Seu período grátis de 14 dias terminou. Ative o Pro para continuar.", env.STRIPE_UPGRADE_URL);
     }
 
     return handler(request, {
@@ -65,21 +98,19 @@ export function withAuth(handler: RouteHandler): RouteHandler {
       session,
       userId: session.user.id,
       plano: session.user.plano,
+      authKind: "web",
+      mobileSessionId: null,
     });
   };
 }
 
 export function withPlan(requiredPlan: Plano) {
+  void requiredPlan;
+
   return (handler: RouteHandler): RouteHandler => {
     return async (request, context) => {
       if (!context.userId) {
         throw new UnauthorizedError();
-      }
-
-      const hasTrialProAccess = context.session?.user?.trialExpired === false;
-
-      if (requiredPlan === Plano.PRO && context.plano !== Plano.PRO && !hasTrialProAccess) {
-        throw new PlanLimitError("Funcionalidade exclusiva do Plano Pro", env.STRIPE_UPGRADE_URL);
       }
 
       return handler(request, context);
@@ -120,14 +151,9 @@ export function withRateLimit(params: {
         }
 
         if (params.planAware) {
-          const effectivePlan =
-            context.plano === Plano.PRO || context.session?.user?.trialExpired === false
-              ? Plano.PRO
-              : context.plano;
-
           await enforcePlanAwareRateLimit({
             key: rateKey,
-            plan: effectivePlan,
+            plan: Plano.PRO,
             prefix: params.keyPrefix,
             freeLimit: params.planAware.freeLimit,
             proLimit: params.planAware.proLimit,
@@ -160,12 +186,14 @@ export function withAudit(params: { action: string; resource: string }) {
       if (context.userId) {
         const auditRepository = new AuditRepository();
 
-        await auditRepository.log({
+        void auditRepository.log({
           userId: context.userId,
           action: params.action,
           resource: params.resource,
           ip: context.ip,
           userAgent: context.userAgent,
+        }).catch((error) => {
+          console.error("[audit] failed to write log", error);
         });
       }
 
@@ -178,10 +206,13 @@ export function route(handler: RouteHandler, wrappers: Array<(handler: RouteHand
   const composed = wrappers.reduceRight((acc, wrapper) => wrapper(acc), handler);
 
   return async (request: Request) => {
+    const requestId = crypto.randomUUID();
+
     try {
-      return await composed(request, withRequestMeta(defaultContext, request));
+      assertSameOriginMutation(request);
+      return await composed(request, withRequestMeta({ ...defaultContext, requestId }, request));
     } catch (error) {
-      return fail(error);
+      return fail(error, requestId);
     }
   };
 }

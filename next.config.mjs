@@ -1,6 +1,6 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import withPWAInit from "next-pwa";
+import withPWAInit from "@ducanh2912/next-pwa";
 import { withSentryConfig } from "@sentry/nextjs";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -13,19 +13,29 @@ const withPWA = withPWAInit({
 	disable: isDev,
 	register: true,
 	skipWaiting: true,
+	cacheOnFrontEndNav: false,
+	aggressiveFrontEndNavCaching: false,
 	fallbacks: {
 		document: "/offline",
 	},
 });
 
+const scriptSrc = ["'self'", "'unsafe-inline'"];
+
+if (isDev) {
+	scriptSrc.push("'unsafe-eval'");
+}
+
 const contentSecurityPolicy = [
 	"default-src 'self'",
-	"script-src 'self' 'unsafe-inline'",
+	`script-src ${scriptSrc.join(" ")}`,
 	"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
 	"font-src 'self' https://fonts.gstatic.com data:",
 	"img-src 'self' data: blob: https:",
 	"connect-src 'self' https://*.supabase.co https://api.stripe.com https://generativelanguage.googleapis.com https://*.ingest.sentry.io",
 	"frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
+	"worker-src 'self' blob:",
+	"manifest-src 'self'",
 	"object-src 'none'",
 	"base-uri 'self'",
 	"form-action 'self'",
@@ -38,7 +48,7 @@ const securityHeaders = [
 	{ key: "X-Frame-Options", value: "DENY" },
 	{ key: "X-Content-Type-Options", value: "nosniff" },
 	{ key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-	{ key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=()" },
+	{ key: "Permissions-Policy", value: "camera=(self), microphone=(self), geolocation=()" },
 ];
 
 const pwaNoCacheHeaders = [

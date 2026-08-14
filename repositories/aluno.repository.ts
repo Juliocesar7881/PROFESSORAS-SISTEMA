@@ -19,21 +19,30 @@ export class AlunoRepository extends BaseRepository {
     this.assertFound(turma, "Turma não encontrada");
   }
 
-  async listByUser(userId: string, turmaId?: string) {
+  private buildListWhere(userId: string, turmaId?: string, busca?: string): Prisma.AlunoWhereInput {
     const where: Prisma.AlunoWhereInput = {
       deletedAt: null,
-      turma: {
-        userId,
-        deletedAt: null,
-      },
+      userId,
+      turma: { deletedAt: null },
     };
 
     if (turmaId) {
       where.turmaId = turmaId;
     }
 
+    if (busca) {
+      where.nome = {
+        contains: busca,
+        mode: "insensitive",
+      };
+    }
+
+    return where;
+  }
+
+  async listByUser(userId: string, turmaId?: string) {
     return prisma.aluno.findMany({
-      where,
+      where: this.buildListWhere(userId, turmaId),
       orderBy: {
         nome: "asc",
       },
@@ -66,8 +75,10 @@ export class AlunoRepository extends BaseRepository {
     return prisma.aluno.create({
       data: {
         nome: data.nome,
-        dataNasc: data.dataNasc,
+        dataNasc: data.dataNasc ?? null,
+        contexto: data.contexto || null,
         turmaId: data.turmaId,
+        userId,
       },
     });
   }
@@ -76,9 +87,7 @@ export class AlunoRepository extends BaseRepository {
     const aluno = await prisma.aluno.findFirst({
       where: {
         id: alunoId,
-        turma: {
-          userId,
-        },
+        userId,
       },
       include: {
         turma: true,
@@ -90,6 +99,10 @@ export class AlunoRepository extends BaseRepository {
 
   async update(userId: string, alunoId: string, data: UpdateAlunoInput) {
     const aluno = await this.findOwnedById(userId, alunoId);
+
+    if (data.turmaId) {
+      await this.assertTurmaOwnership(userId, data.turmaId);
+    }
 
     return prisma.aluno.update({
       where: {
@@ -118,27 +131,29 @@ export class AlunoRepository extends BaseRepository {
     });
   }
 
-  async listWithoutRecentObservation(userId: string, days: number) {
+  async listWithoutRecentObservation(userId: string, days: number, take = 12) {
     const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
-    const alunos = await prisma.aluno.findMany({
+    return prisma.aluno.findMany({
       where: {
         deletedAt: null,
         turma: {
           userId,
           deletedAt: null,
         },
-      },
-      include: {
         observacoes: {
-          orderBy: {
-            createdAt: "desc",
-          },
-          take: 1,
-          select: {
-            createdAt: true,
+          none: {
+            createdAt: {
+              gte: cutoff,
+            },
           },
         },
+      },
+      orderBy: {
+        nome: "asc",
+      },
+      take,
+      include: {
         turma: {
           select: {
             nome: true,
@@ -146,10 +161,53 @@ export class AlunoRepository extends BaseRepository {
         },
       },
     });
+  }
 
-    return alunos.filter((aluno) => {
-      const last = aluno.observacoes[0]?.createdAt;
-      return !last || last < cutoff;
+  async restore(userId: string, alunoId: string) {
+    const aluno = await this.findOwnedById(userId, alunoId);
+
+    return prisma.aluno.update({
+      where: { id: aluno.id },
+      data: { deletedAt: null },
+      include: { turma: true },
     });
+  }
+
+  async listByUserPaginated(userId: string, query: { turmaId?: string; cursor?: string; limit?: number; busca?: string; lixeira?: boolean }) {
+    const limit = Math.min(Math.max(query.limit ?? 80, 1), 100);
+    const where = this.buildListWhere(userId, query.turmaId, query.busca);
+    where.deletedAt = query.lixeira ? { not: null } : null;
+
+    const total = await prisma.aluno.count({ where });
+    const alunos = await prisma.aluno.findMany({
+      where,
+      orderBy: [{ nome: "asc" }, { id: "asc" }],
+      take: limit + 1,
+      ...(query.cursor
+        ? {
+            cursor: {
+              id: query.cursor,
+            },
+            skip: 1,
+          }
+        : {}),
+      include: {
+        turma: {
+          select: {
+            id: true,
+            nome: true,
+          },
+        },
+      },
+    });
+
+    const hasNext = alunos.length > limit;
+    const items = alunos.slice(0, limit);
+
+    return {
+      items,
+      nextCursor: hasNext ? items.at(-1)?.id ?? null : null,
+      total,
+    };
   }
 }

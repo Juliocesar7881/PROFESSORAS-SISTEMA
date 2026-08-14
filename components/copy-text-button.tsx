@@ -25,7 +25,11 @@ export function CopyTextButton({ text, label = "Copiar texto" }: CopyTextButtonP
   };
 
   return (
-    <button type="button" onClick={copy} className="inline-flex items-center gap-1 text-xs font-semibold text-[#165DAD] underline">
+    <button
+      type="button"
+      onClick={copy}
+      className="inline-flex h-9 items-center gap-1.5 rounded-md border border-[#eadde5] bg-white px-3 text-xs font-semibold text-[#a65f7f] transition hover:bg-[#fff7fa]"
+    >
       {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
       {copied ? "Copiado" : label}
     </button>

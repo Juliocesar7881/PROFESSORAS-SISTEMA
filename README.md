@@ -1,18 +1,18 @@
-# Planejei
+# Pequenos Passos
 
-SaaS educacional com Next.js 14 (App Router), Prisma + PostgreSQL, Auth.js (Google), Stripe, Gemini, Sentry, Upstash e PWA.
+SaaS educacional com Next.js 16 (App Router), React 19, Prisma + PostgreSQL, Auth.js (Google), Stripe, Vercel AI Gateway, Sentry, Upstash e PWA.
 
 ## Stack
 
-- Next.js 14 + TypeScript
-- Tailwind + shadcn/ui (Base UI)
+- Next.js 16 + React 19 + TypeScript
+- Tailwind CSS 4 + shadcn/ui (Base UI)
 - Prisma 7 + PostgreSQL
 - Auth.js v5 (Google OAuth)
 - Stripe (Checkout + Webhook)
-- Gemini API (`@google/genai`)
+- Vercel AI Gateway + AI SDK (Gemini)
 - Sentry (`@sentry/nextjs`)
 - Upstash Redis (rate limit)
-- next-pwa
+- @ducanh2912/next-pwa
 
 ## Scripts principais
 
@@ -41,10 +41,12 @@ npm run deploy:vercel
 npm install
 ```
 
-4. Gere Prisma Client:
+4. Gere Prisma Client e aplique migrations quando houver alteração de schema:
 
 ```bash
 npm run db:generate
+npm run db:migrate:deploy
+npm run db:seed
 ```
 
 5. Rode o app:
@@ -56,7 +58,7 @@ npm run dev
 ### Requisitos obrigatorios para autenticacao e dados reais
 
 - O login funciona apenas com Google OAuth real (`AUTH_GOOGLE_ID` e `AUTH_GOOGLE_SECRET`).
-- O banco deve apontar para PostgreSQL remoto (Supabase) em `DATABASE_URL` e `DIRECT_URL`.
+- O app usa `DATABASE_URL`; o Prisma CLI usa `DIRECT_URL` quando disponível. Para Supabase com pooler, o `prisma.config.ts` monta o host direto `db.<project>.supabase.co:5432` para migrations.
 - Nao existe fallback para banco local nem modo demonstracao.
 
 ## Variaveis de ambiente obrigatorias
@@ -75,7 +77,6 @@ Use os nomes exatamente como em `.env.example`:
 - SUPABASE_STORAGE_BUCKET
 - UPSTASH_REDIS_REST_URL
 - UPSTASH_REDIS_REST_TOKEN
-- GEMINI_API_KEY
 - STRIPE_SECRET_KEY
 - STRIPE_WEBHOOK_SECRET
 - STRIPE_PRICE_MONTHLY
@@ -84,6 +85,8 @@ Use os nomes exatamente como em `.env.example`:
 - SENTRY_DSN (opcional)
 - NEXT_PUBLIC_SENTRY_DSN (opcional)
 - CRON_SECRET
+
+Em deploys Vercel, a avaliação com IA usa o `VERCEL_OIDC_TOKEN` provisionado automaticamente. Para desenvolvimento fora da Vercel, configure `AI_GATEWAY_API_KEY`.
 
 ## Deploy em producao (Vercel)
 
