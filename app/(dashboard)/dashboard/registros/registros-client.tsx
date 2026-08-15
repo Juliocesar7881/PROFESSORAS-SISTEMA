@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { CopyTextButton } from "@/components/copy-text-button";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { ViewportModal } from "@/components/viewport-modal";
 import { getPaginatedPayload, getPayloadItems } from "@/lib/api-payload";
 import {
   prepareRecordPhotos,
@@ -813,14 +814,65 @@ export function RegistrosClient() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center"><div className="min-w-0 flex-1"><p className="text-sm font-black text-[#17213f]">{selectedIds.length} registro(s) de {selectedChild?.nome}</p><input value={periodo} onChange={(event) => setPeriodo(event.target.value)} className="mt-1 h-8 w-full max-w-[260px] rounded-md border border-[#dcd3f7] px-2 text-xs" aria-label="Periodo da avaliacao" /></div><div className="flex flex-wrap gap-2"><Button type="button" onClick={generateReport} disabled={generating}>{generating ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />} Gerar avaliacao com IA</Button><Button type="button" variant="outline" onClick={exportRecords}><FileText className="size-4" /> Word</Button><Button type="button" variant="ghost" onClick={clearSelection}><X className="size-4" /> Limpar</Button></div></div>
       </div> : null}
 
-      {editingRecord ? <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#17213f]/45 p-0 backdrop-blur-sm sm:items-center sm:p-4"><div className="max-h-[94vh] w-full max-w-2xl overflow-y-auto rounded-t-lg bg-white p-5 shadow-xl sm:rounded-lg">
-        <div className="flex items-center justify-between"><h2 className="font-heading text-xl text-[#17213f]">Editar registro</h2><button type="button" onClick={() => setEditingRecord(null)} className="inline-flex size-9 items-center justify-center rounded-md border border-[#e8e3f0]"><X className="size-4" /></button></div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2"><label><span className="pf-label">Crianca</span><FilterSelect value={editingChild} onChange={(event) => setEditingChild(event.target.value)}>{criancas.map((item) => <option key={item.id} value={item.id}>{item.nome} - {item.turma.nome}</option>)}</FilterSelect></label><label><span className="pf-label">Data</span><input type="date" className="pf-input h-11" value={editingDate} onChange={(event) => setEditingDate(event.target.value)} /></label></div>
-        <label className="mt-3 block"><span className="pf-label">Anotacao</span><Textarea className="min-h-[220px]" value={editingText} onChange={(event) => setEditingText(event.target.value)} /></label>
-        {editingRecord.fotos.length ? <div className="mt-3 grid grid-cols-3 gap-2">{editingRecord.fotos.map((foto) => foto.url ? <button type="button" key={foto.id} onClick={() => setRemovedPhotoIds((current) => current.includes(foto.id) ? current.filter((id) => id !== foto.id) : [...current, foto.id])} className={cn("relative aspect-[4/3] overflow-hidden rounded-md", removedPhotoIds.includes(foto.id) && "opacity-35 ring-2 ring-red-500")}><Image src={foto.url} alt="Foto anexada" fill unoptimized sizes="(max-width: 640px) 33vw, 200px" className="object-cover" />{removedPhotoIds.includes(foto.id) ? <span className="absolute inset-0 z-10 grid place-items-center text-xs font-black text-red-700">Remover</span> : null}</button> : null)}</div> : null}
-        <label className="mt-3 inline-flex h-10 cursor-pointer items-center gap-2 rounded-md border border-[#dcd3f7] px-3 text-sm font-bold text-[#6757c8]"><Camera className="size-4" /> Novas fotos<input type="file" multiple accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(event) => setEditingFiles(Array.from(event.target.files ?? []))} /></label>
-        <div className="mt-5 flex justify-end gap-2 border-t border-[#e8e3f0] pt-4"><Button variant="outline" onClick={() => setEditingRecord(null)}>Cancelar</Button><Button onClick={saveRecordEdit}><Save className="size-4" /> Salvar</Button></div>
-      </div></div> : null}
+      <ViewportModal
+        open={Boolean(editingRecord)}
+        title="Editar registro"
+        description="Revise o texto, a data e as evidencias antes de salvar."
+        onClose={() => setEditingRecord(null)}
+        className="max-w-2xl"
+        footer={(
+          <>
+            <Button type="button" variant="outline" onClick={() => setEditingRecord(null)}>Cancelar</Button>
+            <Button type="button" onClick={() => void saveRecordEdit()}><Save className="size-4" /> Salvar alteracoes</Button>
+          </>
+        )}
+      >
+        {editingRecord ? (
+          <div className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label>
+                <span className="pf-label">Crianca</span>
+                <FilterSelect value={editingChild} onChange={(event) => setEditingChild(event.target.value)}>
+                  {criancas.map((item) => <option key={item.id} value={item.id}>{item.nome} - {item.turma.nome}</option>)}
+                </FilterSelect>
+              </label>
+              <label>
+                <span className="pf-label">Data</span>
+                <input type="date" className="pf-input h-11" value={editingDate} onChange={(event) => setEditingDate(event.target.value)} />
+              </label>
+            </div>
+            <label className="block">
+              <span className="pf-label">Anotacao</span>
+              <Textarea className="min-h-[220px]" value={editingText} onChange={(event) => setEditingText(event.target.value)} />
+            </label>
+            {editingRecord.fotos.length ? (
+              <div>
+                <p className="pf-label">Fotos anexadas</p>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {editingRecord.fotos.map((foto) => foto.url ? (
+                    <button
+                      type="button"
+                      key={foto.id}
+                      onClick={() => setRemovedPhotoIds((current) => current.includes(foto.id) ? current.filter((id) => id !== foto.id) : [...current, foto.id])}
+                      className={cn(
+                        "relative aspect-[4/3] overflow-hidden rounded-xl border border-[#e8e3f0] transition-[opacity,transform,box-shadow] hover:-translate-y-0.5 hover:shadow-md",
+                        removedPhotoIds.includes(foto.id) && "opacity-35 ring-2 ring-red-500",
+                      )}
+                    >
+                      <Image src={foto.url} alt="Foto anexada" fill unoptimized sizes="(max-width: 640px) 50vw, 200px" className="object-cover" />
+                      {removedPhotoIds.includes(foto.id) ? <span className="absolute inset-0 z-10 grid place-items-center bg-white/70 text-xs font-black text-red-700">Remover</span> : null}
+                    </button>
+                  ) : null)}
+                </div>
+              </div>
+            ) : null}
+            <label className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-xl border border-dashed border-[#b9a9f2] bg-[#f8f6ff] px-4 text-sm font-bold text-[#6757c8] transition hover:border-[#8f7ddd] hover:bg-[#f1edff]">
+              <Camera className="size-4" /> Adicionar novas fotos
+              <input type="file" multiple accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(event) => setEditingFiles(Array.from(event.target.files ?? []))} />
+            </label>
+          </div>
+        ) : null}
+      </ViewportModal>
     </div>
   );
 }

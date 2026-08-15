@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   ArrowDown,
   ArrowUp,
@@ -107,6 +107,84 @@ function PresetMiniature({ option }: { option: PresetOption }) {
   );
 }
 
+function PreviewImageSlot({
+  photo,
+  slotNumber,
+  onFile,
+  controls,
+  fit = "cover",
+  className,
+}: {
+  photo?: UploadedPhoto;
+  slotNumber: number;
+  onFile: (file: File | undefined) => void;
+  controls?: ReactNode;
+  fit?: "cover" | "contain";
+  className?: string;
+}) {
+  if (!photo) {
+    return (
+      <label
+        data-preview-image-slot="empty"
+        className={cn(
+          "group flex h-full min-h-0 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-[#b9a9f2] bg-[linear-gradient(145deg,#fcfbff_0%,#f3efff_100%)] p-2 text-center transition-[transform,border-color,background-color,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-[#7f6bd4] hover:bg-[#eee9ff] hover:shadow-[0_16px_30px_-24px_rgba(67,49,140,0.5)] focus-within:border-[#6757c8] focus-within:ring-4 focus-within:ring-[#6757c8]/15",
+          className,
+        )}
+      >
+        <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl border border-[#ddd4f7] bg-white text-[#6757c8] shadow-sm transition-transform duration-200 group-hover:scale-105">
+          <ImagePlus className="size-4" />
+        </span>
+        <span className="mt-2 text-[9px] font-black text-[#4f3ca6] sm:text-xs">Adicionar imagem</span>
+        <span className="mt-0.5 hidden text-[8px] font-semibold text-[#8c899b] sm:block sm:text-[10px]">Espaco {slotNumber}</span>
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="sr-only"
+          aria-label={`Adicionar imagem no espaco ${slotNumber}`}
+          onChange={(event) => {
+            onFile(event.target.files?.[0]);
+            event.currentTarget.value = "";
+          }}
+        />
+      </label>
+    );
+  }
+
+  return (
+    <div
+      data-preview-image-slot="filled"
+      className={cn(
+        "group relative min-h-0 overflow-hidden rounded-xl border border-[#e8e3f0] bg-[#f6f3fb] shadow-[0_12px_26px_-24px_rgba(43,35,91,0.35)] transition-[transform,border-color,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-[#b9a9f2] hover:shadow-[0_20px_34px_-24px_rgba(43,35,91,0.42)]",
+        className,
+      )}
+    >
+      <label className="absolute inset-0 z-0 cursor-pointer" aria-label={`Trocar imagem do espaco ${slotNumber}`}>
+        <Image
+          src={photo.previewUrl}
+          alt={photo.file.name}
+          fill
+          unoptimized
+          sizes="420px"
+          className={cn("transition-transform duration-300 group-hover:scale-[1.015]", fit === "cover" ? "object-cover" : "object-contain")}
+        />
+        <span className="absolute inset-x-2 bottom-2 inline-flex min-h-7 items-center justify-center gap-1.5 rounded-lg border border-white/80 bg-white/94 px-2 text-[8px] font-black text-[#6757c8] opacity-100 shadow-sm backdrop-blur-sm transition-[transform,background-color] duration-200 group-hover:-translate-y-0.5 group-hover:bg-white sm:text-[10px]">
+          <ImagePlus className="size-3" /> Trocar imagem
+        </span>
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="sr-only"
+          onChange={(event) => {
+            onFile(event.target.files?.[0]);
+            event.currentTarget.value = "";
+          }}
+        />
+      </label>
+      {controls ? <div className="absolute right-1.5 top-1.5 z-10 flex max-w-[calc(100%_-_12px)] flex-wrap justify-end gap-1">{controls}</div> : null}
+    </div>
+  );
+}
+
 export default function ArtesImpressaoPage() {
   const objectUrlsRef = useRef<string[]>([]);
   const [uploadedPhotos, setUploadedPhotos] = useState<UploadedPhoto[]>([]);
@@ -160,6 +238,30 @@ export default function ArtesImpressaoPage() {
 
     setUploadedPhotos((current) => [...current, ...newUploads]);
     setSelectedIds((current) => [...current, ...newUploads.map((upload) => upload.id)]);
+  };
+
+  const addPhotoFromPreview = (file: File | undefined) => {
+    if (!file) return;
+    if (!SUPPORTED_IMAGE_TYPES.has(file.type.toLowerCase())) {
+      toast.error("Use uma imagem JPG, PNG ou WEBP");
+      return;
+    }
+    if (uploadedPhotos.length >= MAX_TEMP_UPLOADS || selectedIds.length >= MAX_SELECTED_PHOTOS) {
+      toast.error("Limite de fotos atingido para este PDF");
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    objectUrlsRef.current.push(previewUrl);
+    const upload = {
+      id: makeUploadId(),
+      file,
+      previewUrl,
+      createdAt: new Date().toISOString(),
+      relato: "",
+    };
+    setUploadedPhotos((current) => [...current, upload]);
+    setSelectedIds((current) => [...current, upload.id]);
   };
 
   const togglePhoto = (id: string) => {
@@ -383,7 +485,9 @@ export default function ArtesImpressaoPage() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h2 className="flex items-center gap-2 font-heading text-xl text-[#17213f]"><LayoutTemplate className="size-5 text-[#6757c8]" /> Pré-visualização</h2>
-                <p className="mt-0.5 text-xs font-bold text-[#6d6c82]">Página {safePreviewPage + 1} de {pageCount}</p>
+                <p className="mt-1 text-xs font-semibold leading-relaxed text-[#6d6c82]">
+                  Página {safePreviewPage + 1} de {pageCount}. Clique nos espaços da folha para adicionar ou trocar imagens.
+                </p>
               </div>
             </div>
 
@@ -415,7 +519,7 @@ export default function ArtesImpressaoPage() {
               <button type="button" onClick={() => setPreviewPage(Math.min(pageCount - 1, safePreviewPage + 1))} disabled={safePreviewPage >= pageCount - 1} className="inline-flex size-10 items-center justify-center rounded-lg border border-[#dcd3f7] bg-white text-[#6757c8] disabled:opacity-30" title="Próxima página" aria-label="Próxima página"><ChevronRight className="size-5" /></button>
             </div>
 
-            <div className="mx-auto aspect-[210/297] w-full max-w-[820px] overflow-hidden bg-white p-[4.5%] shadow-[0_24px_70px_-32px_rgba(68,43,58,0.38)] ring-1 ring-[#e8e3f0]">
+            <div className="mx-auto aspect-[210/297] w-full max-w-[820px] overflow-hidden bg-white p-[4.5%] shadow-[0_24px_70px_-32px_rgba(68,43,58,0.38)] ring-1 ring-[#e8e3f0] transition-[box-shadow,ring-color] duration-300 hover:shadow-[0_30px_82px_-34px_rgba(68,43,58,0.46)]">
               <div className="flex h-full min-h-0 flex-col">
                 <header className="shrink-0 border-b border-[#dcd3f7] pb-3 text-center">
                   <input
@@ -434,80 +538,74 @@ export default function ArtesImpressaoPage() {
                 </header>
 
                 <div className="mt-[3%] min-h-0 flex-1">
-                  {!pagePhotos.length ? (
-                    <label className="flex h-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-[#dcd3f7] bg-[#fbfaf8] p-5 text-center">
-                      <ImagePlus className="size-8 text-[#6757c8]" />
-                      <span className="mt-2 text-sm font-black text-[#675660]">Adicionar fotos</span>
-                      <input type="file" accept="image/jpeg,image/png,image/webp" multiple className="sr-only" onChange={(event) => { handleUploadChange(event.target.files); event.currentTarget.value = ""; }} />
-                    </label>
-                  ) : narrativePreset ? (
+                  {narrativePreset ? (
                     <div className="grid h-full gap-[2.5%]" style={{ gridTemplateRows: `repeat(${activePreset.rows}, minmax(0, 1fr))` }}>
-                      {pagePhotos.map((photo, index) => {
+                      {Array.from({ length: activePreset.rows }, (_, index) => {
+                        const photo = pagePhotos[index];
                         const photoFirst = !activePreset.alternating || index % 2 === 0;
                         const globalIndex = safePreviewPage * pageSize + index;
+                        const textSize = activePreset.rows === 2 ? "text-[10px] sm:text-sm" : activePreset.rows === 3 ? "text-[8px] sm:text-xs" : "text-[7px] sm:text-[10px]";
                         return (
-                          <div key={photo.id} className="grid min-h-0 grid-cols-[42%_1fr] gap-[3%]">
-                            <div className={cn("group relative min-h-0 overflow-hidden rounded-lg border border-[#e8e3f0] bg-[#f6eef2]", !photoFirst && "order-2")}>
-                              <Image src={photo.previewUrl} alt={photo.file.name} fill unoptimized sizes="380px" className="object-cover" />
-                              <div className="absolute right-1.5 top-1.5 flex max-w-[calc(100%_-_12px)] flex-wrap justify-end gap-1 opacity-100 sm:opacity-0 sm:transition sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
-                                <label aria-label={`Trocar imagem ${index + 1}`} className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md bg-white/95 text-[#6757c8] shadow" title="Trocar imagem">
-                                  <ImagePlus className="size-3.5" />
-                                  <input
-                                    type="file"
-                                    accept="image/jpeg,image/png,image/webp"
-                                    className="sr-only"
-                                    onChange={(event) => {
-                                      replacePhotoFile(photo.id, event.target.files?.[0]);
-                                      event.currentTarget.value = "";
-                                    }}
-                                  />
-                                </label>
-                                <button type="button" onClick={() => moveSelectedItem(globalIndex, -1)} disabled={globalIndex === 0} className="inline-flex size-7 items-center justify-center rounded-md bg-white/95 text-[#6757c8] shadow disabled:opacity-35" title="Mover para cima" aria-label="Mover foto para cima"><ArrowUp className="size-3.5" /></button>
-                                <button type="button" onClick={() => moveSelectedItem(globalIndex, 1)} disabled={globalIndex === selectedPhotos.length - 1} className="inline-flex size-7 items-center justify-center rounded-md bg-white/95 text-[#6757c8] shadow disabled:opacity-35" title="Mover para baixo" aria-label="Mover foto para baixo"><ArrowDown className="size-3.5" /></button>
-                                <button type="button" onClick={() => removePhoto(photo.id)} className="inline-flex size-7 items-center justify-center rounded-md bg-white/95 text-rose-600 shadow" title="Remover" aria-label="Remover foto"><Trash2 className="size-3.5" /></button>
-                              </div>
-                            </div>
-                            <textarea
-                              value={photo.relato}
-                              onChange={(event) => updatePhoto(photo.id, { relato: event.target.value })}
-                              maxLength={1800}
-                              aria-label={`Relato da foto ${index + 1}`}
-                              placeholder="Escreva o relato desta vivência..."
-                              className={cn(
-                                "h-full min-h-0 w-full resize-none rounded-md border border-dashed border-transparent bg-transparent p-2 font-semibold leading-[1.5] text-[#17213f] outline-none transition hover:border-[#dcd3f7] focus:border-[#8b78dc] focus:bg-[#fbfaf8]",
-                                activePreset.rows === 2 ? "text-[10px] sm:text-sm" : activePreset.rows === 3 ? "text-[8px] sm:text-xs" : "text-[7px] sm:text-[10px]",
-                                !photoFirst && "order-1 text-right",
-                              )}
+                          <div key={photo?.id ?? `empty-${safePreviewPage}-${index}`} className="grid min-h-0 grid-cols-[42%_1fr] gap-[3%]">
+                            <PreviewImageSlot
+                              photo={photo}
+                              slotNumber={globalIndex + 1}
+                              className={cn(!photoFirst && "order-2")}
+                              onFile={(file) => photo ? replacePhotoFile(photo.id, file) : addPhotoFromPreview(file)}
+                              controls={photo ? (
+                                <>
+                                  <button type="button" onClick={() => moveSelectedItem(globalIndex, -1)} disabled={globalIndex === 0} className="inline-flex size-7 items-center justify-center rounded-lg bg-white/95 text-[#6757c8] shadow disabled:opacity-35" title="Mover para cima" aria-label="Mover foto para cima"><ArrowUp className="size-3.5" /></button>
+                                  <button type="button" onClick={() => moveSelectedItem(globalIndex, 1)} disabled={globalIndex === selectedPhotos.length - 1} className="inline-flex size-7 items-center justify-center rounded-lg bg-white/95 text-[#6757c8] shadow disabled:opacity-35" title="Mover para baixo" aria-label="Mover foto para baixo"><ArrowDown className="size-3.5" /></button>
+                                  <button type="button" onClick={() => removePhoto(photo.id)} className="inline-flex size-7 items-center justify-center rounded-lg bg-white/95 text-rose-600 shadow" title="Remover" aria-label="Remover foto"><Trash2 className="size-3.5" /></button>
+                                </>
+                              ) : undefined}
                             />
+                            {photo ? (
+                              <textarea
+                                value={photo.relato}
+                                onChange={(event) => updatePhoto(photo.id, { relato: event.target.value })}
+                                maxLength={1800}
+                                aria-label={`Relato da foto ${index + 1}`}
+                                placeholder="Escreva o relato desta vivência..."
+                                className={cn(
+                                  "h-full min-h-0 w-full resize-none rounded-xl border border-dashed border-transparent bg-transparent p-2 font-semibold leading-[1.5] text-[#17213f] outline-none transition-[border-color,background-color,box-shadow] duration-200 hover:border-[#dcd3f7] focus:border-[#8b78dc] focus:bg-[#fbfaf8] focus:shadow-[0_0_0_3px_rgba(103,87,200,0.1)]",
+                                  textSize,
+                                  !photoFirst && "order-1 text-right",
+                                )}
+                              />
+                            ) : (
+                              <div className={cn(
+                                "flex h-full min-h-0 items-center justify-center rounded-xl border border-dashed border-[#e2dced] bg-[#fcfbff] p-2 text-center font-semibold leading-relaxed text-[#9b97aa]",
+                                textSize,
+                                !photoFirst && "order-1",
+                              )}>
+                                O relato será escrito aqui depois que você adicionar a imagem.
+                              </div>
+                            )}
                           </div>
                         );
                       })}
                     </div>
                   ) : (
                     <div className="grid h-full gap-[2%]" style={{ gridTemplateColumns: `repeat(${activePreset.columns}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${activePreset.rows}, minmax(0, 1fr))` }}>
-                      {pagePhotos.map((photo, index) => {
+                      {Array.from({ length: pageSize }, (_, index) => {
+                        const photo = pagePhotos[index];
                         const globalIndex = safePreviewPage * pageSize + index;
                         return (
-                          <div key={photo.id} className="group relative min-h-0 overflow-hidden rounded-md border border-[#e8e3f0] bg-[#f6eef2]">
-                            <Image src={photo.previewUrl} alt={photo.file.name} fill unoptimized sizes="420px" className="object-contain" />
-                            <div className="absolute right-1.5 top-1.5 flex max-w-[calc(100%_-_12px)] flex-wrap justify-end gap-1 opacity-100 sm:opacity-0 sm:transition sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
-                              <label aria-label={`Trocar imagem ${index + 1}`} className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md bg-white/95 text-[#6757c8] shadow" title="Trocar imagem">
-                                <ImagePlus className="size-3.5" />
-                                <input
-                                  type="file"
-                                  accept="image/jpeg,image/png,image/webp"
-                                  className="sr-only"
-                                  onChange={(event) => {
-                                    replacePhotoFile(photo.id, event.target.files?.[0]);
-                                    event.currentTarget.value = "";
-                                  }}
-                                />
-                              </label>
-                              <button type="button" onClick={() => moveSelectedItem(globalIndex, -1)} disabled={globalIndex === 0} className="inline-flex size-7 items-center justify-center rounded-md bg-white/95 text-[#6757c8] shadow disabled:opacity-35" title="Mover para cima" aria-label="Mover foto para cima"><ArrowUp className="size-3.5" /></button>
-                              <button type="button" onClick={() => moveSelectedItem(globalIndex, 1)} disabled={globalIndex === selectedPhotos.length - 1} className="inline-flex size-7 items-center justify-center rounded-md bg-white/95 text-[#6757c8] shadow disabled:opacity-35" title="Mover para baixo" aria-label="Mover foto para baixo"><ArrowDown className="size-3.5" /></button>
-                              <button type="button" onClick={() => removePhoto(photo.id)} className="inline-flex size-7 items-center justify-center rounded-md bg-white/95 text-rose-600 shadow" title="Remover" aria-label="Remover foto"><Trash2 className="size-3.5" /></button>
-                            </div>
-                          </div>
+                          <PreviewImageSlot
+                            key={photo?.id ?? `empty-${safePreviewPage}-${index}`}
+                            photo={photo}
+                            slotNumber={globalIndex + 1}
+                            fit="contain"
+                            onFile={(file) => photo ? replacePhotoFile(photo.id, file) : addPhotoFromPreview(file)}
+                            controls={photo ? (
+                              <>
+                                <button type="button" onClick={() => moveSelectedItem(globalIndex, -1)} disabled={globalIndex === 0} className="inline-flex size-7 items-center justify-center rounded-lg bg-white/95 text-[#6757c8] shadow disabled:opacity-35" title="Mover para cima" aria-label="Mover foto para cima"><ArrowUp className="size-3.5" /></button>
+                                <button type="button" onClick={() => moveSelectedItem(globalIndex, 1)} disabled={globalIndex === selectedPhotos.length - 1} className="inline-flex size-7 items-center justify-center rounded-lg bg-white/95 text-[#6757c8] shadow disabled:opacity-35" title="Mover para baixo" aria-label="Mover foto para baixo"><ArrowDown className="size-3.5" /></button>
+                                <button type="button" onClick={() => removePhoto(photo.id)} className="inline-flex size-7 items-center justify-center rounded-lg bg-white/95 text-rose-600 shadow" title="Remover" aria-label="Remover foto"><Trash2 className="size-3.5" /></button>
+                              </>
+                            ) : undefined}
+                          />
                         );
                       })}
                     </div>

@@ -103,7 +103,6 @@ export function DashboardShell({
       <Link
         key={item.href}
         href={item.href}
-        prefetch={false}
         onClick={() => setMobileMenuOpen(false)}
         className={cn(
           "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-[background-color,color,transform] duration-200",
@@ -217,7 +216,7 @@ export function DashboardShell({
 
         <div className="relative flex-1">
           <main className="mx-auto w-full max-w-[1680px] flex-1 px-4 pb-28 pt-5 md:px-8 md:pb-10 md:pt-7">
-            <div key={pathname} className="page-enter">{children}</div>
+            <div className="min-w-0">{children}</div>
           </main>
         </div>
       </section>
@@ -263,7 +262,6 @@ export function DashboardShell({
               <Link
                 key={item.href}
                 href={item.href}
-                prefetch={false}
                 className={cn(
                   "flex min-h-[62px] flex-col items-center justify-center gap-1 rounded-xl border px-1 py-2 text-[11px] font-semibold transition-all",
                   active ? "border-[#ddd4f7] bg-[#f1edff] text-[#4f3ca6]" : "border-transparent text-[#77758a] active:bg-[#f7f4ff]",
