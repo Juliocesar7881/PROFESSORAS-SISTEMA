@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -48,12 +49,13 @@ const bottomNavLinks = navigationLinks.slice(0, 5);
 
 interface DashboardShellProps {
   userName: string;
+  userImage?: string | null;
   children: React.ReactNode;
 }
 
 function getPageMeta(pathname: string) {
   if (pathname.startsWith("/dashboard/artes-impressao")) return { title: "Impressao facil", subtitle: "PDFs A4 a partir das suas imagens" };
-  if (pathname.startsWith("/dashboard/planejamento")) return { title: "Planejamento", subtitle: "Semana pronta com projeto base ou escrita manual" };
+  if (pathname.startsWith("/dashboard/planejamento")) return { title: "Planejamento", subtitle: "Semana organizada com seus projetos ou escrita manual" };
   if (pathname.startsWith("/dashboard/registros")) return { title: "Registros", subtitle: "Evidencias pedagogicas e avaliacoes" };
   if (pathname.startsWith("/dashboard/turmas")) return { title: "Turmas e criancas", subtitle: "Organizacao minima para seus registros" };
   if (pathname.startsWith("/dashboard/configuracoes")) return { title: "Conta", subtitle: "Acesso gratuito, seguranca e preferencias" };
@@ -62,6 +64,7 @@ function getPageMeta(pathname: string) {
 
 export function DashboardShell({
   userName,
+  userImage,
   children,
 }: DashboardShellProps) {
   const pathname = usePathname();
@@ -104,7 +107,7 @@ export function DashboardShell({
         onClick={() => setMobileMenuOpen(false)}
         className={cn(
           "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-[background-color,color,transform] duration-200",
-          active ? "bg-white/[0.2] text-white shadow-[inset_3px_0_0_#d7cbff]" : "text-white/78 hover:bg-white/[0.1] hover:text-white",
+          active ? "bg-white/[0.2] text-white shadow-[inset_3px_0_0_#d7cbff]" : "text-white/78 hover:translate-x-0.5 hover:bg-white/[0.1] hover:text-white",
         )}
       >
         <span className={cn("inline-flex size-8 shrink-0 items-center justify-center rounded-lg", active ? "bg-white/[0.16]" : "bg-white/[0.08]")}>
@@ -140,8 +143,8 @@ export function DashboardShell({
         <div className="space-y-3 border-t border-white/10 p-3">
           <div className="rounded-2xl border border-white/16 bg-white/[0.11] p-3 shadow-[0_18px_42px_-30px_rgba(28,20,77,0.6)]">
             <div className="flex items-center gap-2.5">
-              <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-[linear-gradient(135deg,#8976df,#b19ff0)] text-sm font-bold text-white">
-                {initials}
+              <span className="relative inline-flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[linear-gradient(135deg,#8976df,#b19ff0)] text-sm font-bold text-white">
+                {userImage ? <Image src={userImage} alt="" fill sizes="36px" className="object-cover" referrerPolicy="no-referrer" /> : initials}
               </span>
               <div className="min-w-0">
                 <p className="truncate text-sm font-bold text-white">{userName}</p>
@@ -200,7 +203,9 @@ export function DashboardShell({
                 <Bell className="size-4" />
               </button>
               <div className="hidden items-center gap-2 rounded-xl border border-[#e8e3f0] bg-white px-3 py-2 md:flex">
-                <span className="inline-flex size-7 items-center justify-center rounded-lg bg-[#f1edff] text-xs font-bold text-[#6757c8]">{initials}</span>
+                <span className="relative inline-flex size-7 items-center justify-center overflow-hidden rounded-lg bg-[#f1edff] text-xs font-bold text-[#6757c8]">
+                  {userImage ? <Image src={userImage} alt="" fill sizes="28px" className="object-cover" referrerPolicy="no-referrer" /> : initials}
+                </span>
                 <div className="min-w-0">
                   <p className="max-w-[160px] truncate text-sm font-bold text-[#17213f]">{userName}</p>
                   <p className="text-[11px] font-medium text-[#6d6c82]">Acesso gratuito</p>
@@ -212,7 +217,7 @@ export function DashboardShell({
 
         <div className="relative flex-1">
           <main className="mx-auto w-full max-w-[1680px] flex-1 px-4 pb-28 pt-5 md:px-8 md:pb-10 md:pt-7">
-            {children}
+            <div key={pathname} className="page-enter">{children}</div>
           </main>
         </div>
       </section>

@@ -51,11 +51,11 @@ function assertSameOriginMutation(request: Request) {
   }
 
   const requestOrigin = new URL(request.url).origin;
-  const requestPath = new URL(request.url).pathname;
   const configuredOrigin = new URL(env.NEXT_PUBLIC_APP_URL).origin;
+  const requestPath = new URL(request.url).pathname;
   const origin = request.headers.get("origin");
   const referer = request.headers.get("referer");
-  let sourceOrigin = origin;
+  let sourceOrigin = origin && origin !== "null" ? origin : null;
 
   if (!sourceOrigin && referer) {
     try {
@@ -74,7 +74,18 @@ function assertSameOriginMutation(request: Request) {
     throw new ForbiddenError("Origem da requisicao nao permitida");
   }
 
-  if (sourceOrigin !== requestOrigin && sourceOrigin !== configuredOrigin) {
+  const trustedOrigins = new Set([requestOrigin, configuredOrigin]);
+
+  if (env.NODE_ENV !== "production") {
+    const requestUrl = new URL(requestOrigin);
+    if (requestUrl.hostname === "localhost" || requestUrl.hostname === "127.0.0.1") {
+      const port = requestUrl.port ? `:${requestUrl.port}` : "";
+      trustedOrigins.add(`${requestUrl.protocol}//localhost${port}`);
+      trustedOrigins.add(`${requestUrl.protocol}//127.0.0.1${port}`);
+    }
+  }
+
+  if (!trustedOrigins.has(sourceOrigin)) {
     throw new ForbiddenError("Origem da requisição não permitida");
   }
 }

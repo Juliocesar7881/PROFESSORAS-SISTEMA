@@ -42,6 +42,7 @@ type PresetOption = {
 
 const MAX_SELECTED_PHOTOS = 40;
 const MAX_TEMP_UPLOADS = 40;
+const SUPPORTED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 const presetOptions: PresetOption[] = [
   { value: "story-three", label: "3 relatos", description: "Alternado", columns: 2, rows: 3, narrative: true, alternating: true },
@@ -64,19 +65,6 @@ function parseFileName(disposition: string | null) {
   if (!disposition) return fallback;
   const match = disposition.match(/filename="?([^"]+)"?/i);
   return match?.[1] ?? fallback;
-}
-
-function formatDate(value: string) {
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return "";
-  return parsed.toLocaleDateString("pt-BR");
-}
-
-function dateInputValue(value: string) {
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return "";
-  const local = new Date(parsed.getTime() - parsed.getTimezoneOffset() * 60_000);
-  return local.toISOString().slice(0, 10);
 }
 
 function PresetMiniature({ option }: { option: PresetOption }) {
@@ -128,8 +116,6 @@ export default function ArtesImpressaoPage() {
   const [legenda, setLegenda] = useState("");
   const [nomeEscola, setNomeEscola] = useState("");
   const [nomeProfessora, setNomeProfessora] = useState("");
-  const [dataLabel, setDataLabel] = useState(() => new Date().toLocaleDateString("pt-BR"));
-  const [includeDate, setIncludeDate] = useState(true);
   const [previewPage, setPreviewPage] = useState(0);
   const [exportMode, setExportMode] = useState<"download" | "print" | null>(null);
 
@@ -161,7 +147,7 @@ export default function ArtesImpressaoPage() {
     if (availableSlots <= 0) return toast.error("Limite de fotos atingido para este PDF");
 
     const selectedFiles = Array.from(files)
-      .filter((file) => file.type.startsWith("image/"))
+      .filter((file) => SUPPORTED_IMAGE_TYPES.has(file.type.toLowerCase()))
       .slice(0, availableSlots);
     if (!selectedFiles.length) return toast.error("Escolha imagens em JPG, PNG ou WEBP");
     if (selectedFiles.length < files.length) toast.warning(`Foram adicionadas ${selectedFiles.length} foto(s).`);
@@ -201,7 +187,26 @@ export default function ArtesImpressaoPage() {
     });
   };
 
-  const updatePhoto = (id: string, patch: Partial<Pick<UploadedPhoto, "relato" | "createdAt">>) => {
+  const replacePhotoFile = (id: string, file: File | null | undefined) => {
+    if (!file) return;
+    if (!SUPPORTED_IMAGE_TYPES.has(file.type.toLowerCase())) {
+      toast.error("Use uma imagem JPG, PNG ou WEBP");
+      return;
+    }
+
+    const previous = uploadedById.get(id);
+    if (!previous) return;
+
+    const previewUrl = URL.createObjectURL(file);
+    URL.revokeObjectURL(previous.previewUrl);
+    objectUrlsRef.current = objectUrlsRef.current.filter((url) => url !== previous.previewUrl);
+    objectUrlsRef.current.push(previewUrl);
+    setUploadedPhotos((current) => current.map((photo) => (
+      photo.id === id ? { ...photo, file, previewUrl } : photo
+    )));
+  };
+
+  const updatePhoto = (id: string, patch: Pick<UploadedPhoto, "relato">) => {
     setUploadedPhotos((current) => current.map((photo) => (photo.id === id ? { ...photo, ...patch } : photo)));
   };
 
@@ -231,10 +236,9 @@ export default function ArtesImpressaoPage() {
       formData.append("legenda", legenda.trim());
       formData.append("nomeEscola", nomeEscola.trim());
       formData.append("nomeProfessora", nomeProfessora.trim());
-      formData.append("dataLabel", dataLabel.trim());
       formData.append("includeAlunoName", "false");
       formData.append("includeTurmaName", "false");
-      formData.append("includeDate", String(includeDate));
+      formData.append("includeDate", "false");
 
       for (const photo of selectedPhotos) {
         formData.append("uploadIds", photo.id);
@@ -381,10 +385,6 @@ export default function ArtesImpressaoPage() {
                 <h2 className="flex items-center gap-2 font-heading text-xl text-[#17213f]"><LayoutTemplate className="size-5 text-[#6757c8]" /> Pré-visualização</h2>
                 <p className="mt-0.5 text-xs font-bold text-[#6d6c82]">Página {safePreviewPage + 1} de {pageCount}</p>
               </div>
-              <label className="inline-flex items-center gap-2 rounded-lg border border-[#e8e3f0] bg-[#fbfaf8] px-3 py-2 text-xs font-black text-[#6d6c82]">
-                <input type="checkbox" checked={includeDate} onChange={(event) => setIncludeDate(event.target.checked)} className="size-4 accent-[#6757c8]" />
-                Datas
-              </label>
             </div>
 
             <div className="mt-4 grid grid-cols-2 gap-2 lg:grid-cols-4 2xl:grid-cols-8">
@@ -426,10 +426,9 @@ export default function ArtesImpressaoPage() {
                     placeholder="Título do material"
                     className="w-full border-0 bg-transparent text-center font-heading text-lg text-[#17213f] outline-none placeholder:text-[#b9abb4] focus:bg-[#f8f6ff] sm:text-2xl"
                   />
-                  <div className="mt-2 grid grid-cols-3 gap-2">
+                  <div className="mt-2 grid grid-cols-2 gap-2">
                     <input value={nomeEscola} onChange={(event) => setNomeEscola(event.target.value)} maxLength={120} aria-label="Instituição" placeholder="Instituição" className="min-w-0 border-0 border-b border-dashed border-[#dcd3f7] bg-transparent px-1 py-1 text-center text-[8px] font-bold text-[#6d6c82] outline-none placeholder:text-[#8c899b] focus:border-[#6757c8] sm:text-xs" />
                     <input value={nomeProfessora} onChange={(event) => setNomeProfessora(event.target.value)} maxLength={120} aria-label="Professora" placeholder="Professora" className="min-w-0 border-0 border-b border-dashed border-[#dcd3f7] bg-transparent px-1 py-1 text-center text-[8px] font-bold text-[#6d6c82] outline-none placeholder:text-[#8c899b] focus:border-[#6757c8] sm:text-xs" />
-                    <input value={dataLabel} onChange={(event) => setDataLabel(event.target.value)} maxLength={80} aria-label="Data ou período" placeholder="Data ou período" className="min-w-0 border-0 border-b border-dashed border-[#dcd3f7] bg-transparent px-1 py-1 text-center text-[8px] font-bold text-[#6d6c82] outline-none placeholder:text-[#8c899b] focus:border-[#6757c8] sm:text-xs" />
                   </div>
                   <textarea value={legenda} onChange={(event) => setLegenda(event.target.value)} maxLength={280} aria-label="Legenda geral" placeholder="Legenda geral opcional" rows={1} className="mt-2 w-full resize-none border-0 bg-transparent text-center text-[8px] font-semibold leading-4 text-[#796a73] outline-none placeholder:text-[#b9abb4] focus:bg-[#f8f6ff] sm:text-xs" />
                 </header>
@@ -450,20 +449,23 @@ export default function ArtesImpressaoPage() {
                           <div key={photo.id} className="grid min-h-0 grid-cols-[42%_1fr] gap-[3%]">
                             <div className={cn("group relative min-h-0 overflow-hidden rounded-lg border border-[#e8e3f0] bg-[#f6eef2]", !photoFirst && "order-2")}>
                               <Image src={photo.previewUrl} alt={photo.file.name} fill unoptimized sizes="380px" className="object-cover" />
-                              <div className="absolute right-1.5 top-1.5 flex gap-1 opacity-100 sm:opacity-0 sm:transition sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+                              <div className="absolute right-1.5 top-1.5 flex max-w-[calc(100%_-_12px)] flex-wrap justify-end gap-1 opacity-100 sm:opacity-0 sm:transition sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+                                <label aria-label={`Trocar imagem ${index + 1}`} className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md bg-white/95 text-[#6757c8] shadow" title="Trocar imagem">
+                                  <ImagePlus className="size-3.5" />
+                                  <input
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    className="sr-only"
+                                    onChange={(event) => {
+                                      replacePhotoFile(photo.id, event.target.files?.[0]);
+                                      event.currentTarget.value = "";
+                                    }}
+                                  />
+                                </label>
                                 <button type="button" onClick={() => moveSelectedItem(globalIndex, -1)} disabled={globalIndex === 0} className="inline-flex size-7 items-center justify-center rounded-md bg-white/95 text-[#6757c8] shadow disabled:opacity-35" title="Mover para cima" aria-label="Mover foto para cima"><ArrowUp className="size-3.5" /></button>
                                 <button type="button" onClick={() => moveSelectedItem(globalIndex, 1)} disabled={globalIndex === selectedPhotos.length - 1} className="inline-flex size-7 items-center justify-center rounded-md bg-white/95 text-[#6757c8] shadow disabled:opacity-35" title="Mover para baixo" aria-label="Mover foto para baixo"><ArrowDown className="size-3.5" /></button>
                                 <button type="button" onClick={() => removePhoto(photo.id)} className="inline-flex size-7 items-center justify-center rounded-md bg-white/95 text-rose-600 shadow" title="Remover" aria-label="Remover foto"><Trash2 className="size-3.5" /></button>
                               </div>
-                              {includeDate ? (
-                                <input
-                                  type="date"
-                                  value={dateInputValue(photo.createdAt)}
-                                  onChange={(event) => updatePhoto(photo.id, { createdAt: event.target.value ? `${event.target.value}T12:00:00.000Z` : photo.createdAt })}
-                                  aria-label={`Data da foto ${index + 1}`}
-                                  className="absolute bottom-1.5 left-1.5 max-w-[calc(100%_-_12px)] rounded bg-white/95 px-1.5 py-1 text-[7px] font-bold text-[#5c4d56] shadow outline-none sm:text-[9px]"
-                                />
-                              ) : null}
                             </div>
                             <textarea
                               value={photo.relato}
@@ -488,12 +490,23 @@ export default function ArtesImpressaoPage() {
                         return (
                           <div key={photo.id} className="group relative min-h-0 overflow-hidden rounded-md border border-[#e8e3f0] bg-[#f6eef2]">
                             <Image src={photo.previewUrl} alt={photo.file.name} fill unoptimized sizes="420px" className="object-contain" />
-                            <div className="absolute right-1.5 top-1.5 flex gap-1 opacity-100 sm:opacity-0 sm:transition sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+                            <div className="absolute right-1.5 top-1.5 flex max-w-[calc(100%_-_12px)] flex-wrap justify-end gap-1 opacity-100 sm:opacity-0 sm:transition sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+                              <label aria-label={`Trocar imagem ${index + 1}`} className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md bg-white/95 text-[#6757c8] shadow" title="Trocar imagem">
+                                <ImagePlus className="size-3.5" />
+                                <input
+                                  type="file"
+                                  accept="image/jpeg,image/png,image/webp"
+                                  className="sr-only"
+                                  onChange={(event) => {
+                                    replacePhotoFile(photo.id, event.target.files?.[0]);
+                                    event.currentTarget.value = "";
+                                  }}
+                                />
+                              </label>
                               <button type="button" onClick={() => moveSelectedItem(globalIndex, -1)} disabled={globalIndex === 0} className="inline-flex size-7 items-center justify-center rounded-md bg-white/95 text-[#6757c8] shadow disabled:opacity-35" title="Mover para cima" aria-label="Mover foto para cima"><ArrowUp className="size-3.5" /></button>
                               <button type="button" onClick={() => moveSelectedItem(globalIndex, 1)} disabled={globalIndex === selectedPhotos.length - 1} className="inline-flex size-7 items-center justify-center rounded-md bg-white/95 text-[#6757c8] shadow disabled:opacity-35" title="Mover para baixo" aria-label="Mover foto para baixo"><ArrowDown className="size-3.5" /></button>
                               <button type="button" onClick={() => removePhoto(photo.id)} className="inline-flex size-7 items-center justify-center rounded-md bg-white/95 text-rose-600 shadow" title="Remover" aria-label="Remover foto"><Trash2 className="size-3.5" /></button>
                             </div>
-                            {includeDate ? <span className="absolute bottom-1.5 left-1.5 rounded bg-white/95 px-1.5 py-1 text-[7px] font-bold text-[#5c4d56] shadow sm:text-[9px]">{formatDate(photo.createdAt)}</span> : null}
                           </div>
                         );
                       })}
@@ -505,6 +518,23 @@ export default function ArtesImpressaoPage() {
           </div>
         </section>
       </div>
+
+      <section className="flex flex-col gap-3 rounded-xl border border-[#e8e3f0] bg-white p-4 shadow-[0_14px_34px_-28px_rgba(43,35,91,0.22)] sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-black text-[#17213f]">Material pronto para finalizar</p>
+          <p className="mt-1 text-xs font-semibold text-[#6d6c82]">Baixe o PDF ou abra a versão de impressão diretamente daqui.</p>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <button type="button" onClick={() => void exportPdf("download")} disabled={!selectedPhotos.length || exportMode !== null} className="pf-btn-primary h-11 px-4">
+            {exportMode === "download" ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
+            Baixar PDF
+          </button>
+          <button type="button" onClick={() => void exportPdf("print")} disabled={!selectedPhotos.length || exportMode !== null} className="pf-btn-success h-11 px-4">
+            {exportMode === "print" ? <Loader2 className="size-4 animate-spin" /> : <Printer className="size-4" />}
+            Imprimir
+          </button>
+        </div>
+      </section>
     </div>
   );
 }

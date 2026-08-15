@@ -3,6 +3,7 @@ import {
   CheckCircle2,
   Cloud,
   CloudOff,
+  ExternalLink,
   LogOut,
   RefreshCw,
   Trash2,
@@ -14,6 +15,7 @@ import {
   ActivityIndicator,
   Alert,
   Keyboard,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -22,6 +24,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { API_URL } from "../api";
 import { useApp } from "../providers/AppProvider";
 import { colors } from "../theme";
 import { AppBottomSheet } from "./AppBottomSheet";
@@ -223,6 +226,19 @@ export function AppHeader() {
           <Text style={styles.accountPrivacyText}>Dados e envios separados com seguranca por conta.</Text>
         </View>
         <Pressable
+          accessibilityRole="link"
+          onPress={() => {
+            setAccountVisible(false);
+            void Linking.openURL(`${API_URL}/excluir-conta`).catch(() => {
+              Alert.alert("Privacidade", "Nao foi possivel abrir a pagina de privacidade agora.");
+            });
+          }}
+          style={({ pressed }) => [styles.privacyLink, pressed && styles.pressed]}
+        >
+          <ExternalLink size={18} color={colors.primary} />
+          <Text style={styles.privacyLinkText}>Privacidade e exclusao da conta</Text>
+        </Pressable>
+        <Pressable
           accessibilityRole="button"
           disabled={accountBusy}
           onPress={() => {
@@ -295,6 +311,8 @@ const styles = StyleSheet.create({
   accountEmail: { marginTop: 3, fontSize: 12, fontWeight: "600", color: colors.muted },
   accountPrivacy: { marginTop: 10, flexDirection: "row", alignItems: "center", gap: 9, padding: 12, borderRadius: 14, backgroundColor: colors.tealSoft },
   accountPrivacyText: { flex: 1, fontSize: 11, lineHeight: 16, fontWeight: "700", color: colors.text },
+  privacyLink: { minHeight: 48, marginTop: 10, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1, borderColor: colors.border, borderRadius: 14, backgroundColor: colors.surface },
+  privacyLinkText: { fontSize: 13, fontWeight: "800", color: colors.primary },
   signOutButton: { minHeight: 52, marginTop: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9, borderWidth: 1, borderColor: colors.borderStrong, borderRadius: 15, backgroundColor: colors.surfaceSoft },
   signOutText: { fontSize: 14, fontWeight: "900", color: colors.primary },
   disabled: { opacity: 0.46 },

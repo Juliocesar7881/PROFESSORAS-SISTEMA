@@ -1,7 +1,7 @@
 import * as Haptics from "expo-haptics";
 import { Redirect, Tabs } from "expo-router";
-import { BookOpenText, Plus, UsersRound } from "lucide-react-native";
-import { Easing, StyleSheet, View } from "react-native";
+import { BookOpenText, ClipboardPenLine, UsersRound } from "lucide-react-native";
+import { Easing } from "react-native";
 
 import { AppHeader } from "../../src/components/AppHeader";
 import { useApp } from "../../src/providers/AppProvider";
@@ -57,15 +57,9 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="novo"
         options={{
-          title: "",
-          tabBarAccessibilityLabel: "Novo registro",
-          tabBarItemStyle: styles.newItem,
-          tabBarLabel: () => null,
-          tabBarIcon: () => (
-            <View style={styles.newButton}>
-              <Plus size={28} color="white" strokeWidth={2.5} />
-            </View>
-          ),
+          title: "Criar registro",
+          tabBarAccessibilityLabel: "Criar registro",
+          tabBarIcon: ({ color, size }) => <ClipboardPenLine size={size} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -78,21 +72,3 @@ export default function TabsLayout() {
     </Tabs>
   );
 }
-
-const styles = StyleSheet.create({
-  newItem: { minHeight: 58, marginTop: -15, marginHorizontal: 4, borderRadius: 18 },
-  newButton: {
-    width: 54,
-    height: 54,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 4,
-    borderColor: colors.surface,
-    borderRadius: 27,
-    backgroundColor: colors.primary,
-    shadowColor: colors.primary,
-    shadowOpacity: 0.28,
-    shadowRadius: 10,
-    elevation: 8,
-  },
-});

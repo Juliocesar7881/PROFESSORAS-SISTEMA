@@ -4,6 +4,8 @@ import { Check, ChevronDown, Download, FileText, RefreshCw, RotateCcw, Search, T
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
+  Keyboard,
   Platform,
   Pressable,
   RefreshControl,
@@ -216,6 +218,17 @@ export function RecordsScreen({
     }
   };
 
+  const confirmRemove = (record: Registro) => {
+    Alert.alert(
+      "Mover registro para a lixeira?",
+      `O registro de ${record.aluno.nome} podera ser restaurado durante 30 dias.`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Mover para lixeira", style: "destructive", onPress: () => void remove(record) },
+      ],
+    );
+  };
+
   const restore = async (record: Registro) => {
     try {
       const restored = online
@@ -272,6 +285,7 @@ export function RecordsScreen({
             onChangeText={setQuery}
             placeholder="Buscar nos registros..."
             returnKeyType="search"
+            onSubmitEditing={Keyboard.dismiss}
             style={styles.searchInput}
           />
           {query ? <Pressable accessibilityLabel="Limpar busca" onPress={() => setQuery("")} style={styles.clearSearch}><X size={17} color={colors.muted} /></Pressable> : null}
@@ -401,7 +415,7 @@ export function RecordsScreen({
                       <Text style={styles.actionText}>Restaurar</Text>
                     </Pressable>
                   ) : (
-                    <Pressable accessibilityLabel="Mover para lixeira" onPress={() => void remove(item)} style={styles.dangerAction}>
+                    <Pressable accessibilityLabel="Mover para lixeira" onPress={(event) => { event.stopPropagation(); confirmRemove(item); }} style={styles.dangerAction}>
                       <Trash2 size={17} color={colors.danger} />
                     </Pressable>
                   )}

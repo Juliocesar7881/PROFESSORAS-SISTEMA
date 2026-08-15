@@ -153,6 +153,11 @@
     color: #a5a1b3;
     opacity: 1;
   }
+
+  :where(a, button, input, select, textarea):focus-visible {
+    outline: 3px solid rgba(103, 87, 200, 0.22);
+    outline-offset: 2px;
+  }
 }
 
 @layer utilities {
@@ -201,6 +206,7 @@
   .page-enter,
   .section-fade {
     animation: planejei-enter 0.36s cubic-bezier(0.22, 1, 0.36, 1) both;
+    will-change: opacity, transform;
   }
 
   @keyframes planejei-enter {
@@ -539,6 +545,17 @@
 
   .theme svg.lucide:is([class*="text-red-"], [class*="text-rose-"]) {
     color: var(--planejei-red) !important;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .theme :is(button, a, label[for]):not(:disabled) {
+      transition-duration: 200ms;
+      transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .theme button:not(:disabled):active {
+      transform: translateY(1px);
+    }
   }
 
   @media (max-width: 780px) {

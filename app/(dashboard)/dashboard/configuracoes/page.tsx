@@ -1,16 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { signOut, useSession } from "next-auth/react";
-import { toast } from "sonner";
-import { BadgeCheck, Download, Loader2, ShieldAlert, Smartphone, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { useMemo } from "react";
+import { useSession } from "next-auth/react";
+import { BadgeCheck, Download, ShieldCheck, Smartphone, Sparkles } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function ConfiguracoesPage() {
   const { data: session } = useSession();
-  const [deletingAccount, setDeletingAccount] = useState(false);
 
   const userName = session?.user?.name ?? "Professora";
   const userEmail = session?.user?.email ?? "sem email";
@@ -22,23 +20,6 @@ export default function ConfiguracoesPage() {
     if (parts.length === 1) return parts[0].slice(0, 1).toUpperCase();
     return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
   }, [userName]);
-
-  const deleteAccount = async () => {
-    const confirmDelete = window.confirm("Tem certeza? Esta acao exclui sua conta e dados salvos.");
-    if (!confirmDelete) return;
-
-    setDeletingAccount(true);
-    const response = await fetch("/api/account", { method: "DELETE" });
-    setDeletingAccount(false);
-
-    if (!response.ok) {
-      toast.error("Nao foi possivel excluir a conta");
-      return;
-    }
-
-    toast.success("Conta excluida");
-    await signOut({ callbackUrl: "/" });
-  };
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -119,11 +100,11 @@ export default function ConfiguracoesPage() {
           </Card>
         </div>
 
-        <Card className="pf-section pf-section-rose">
+        <Card className="pf-section pf-section-blue">
           <CardHeader className="p-5 pb-3">
-            <CardTitle className="font-heading text-xl text-[#17213f]">Privacidade e seguranca</CardTitle>
+            <CardTitle className="font-heading text-xl text-[#17213f]">Privacidade e segurança</CardTitle>
             <CardDescription className="text-[13px] font-semibold text-[#6d6c82]">
-              Controle da conta e exclusao de dados.
+              Seus dados pedagógicos ficam privados e separados por conta.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 p-5 pt-0 text-sm text-[#6d6c82]">
@@ -131,17 +112,14 @@ export default function ConfiguracoesPage() {
               <Sparkles className="size-4 text-[#6757c8]" />
               O acesso gratuito nao altera sua privacidade.
             </p>
-            <p className="inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-700">
-              <ShieldAlert className="size-4" />
-              Acao irreversivel: exclusao completa da conta
+            <p className="inline-flex items-center gap-2 rounded-lg border border-[#ccece5] bg-[#eaf9f6] px-3 py-2 font-semibold text-[#247f75]">
+              <ShieldCheck className="size-4" />
+              Fotos privadas e sessões protegidas
             </p>
             <p>
-              Excluir conta remove dados salvos do Pequenos Passos. Registros técnicos de auditoria podem ser mantidos pelo período legal necessário.
+              O painel não oferece ações destrutivas. Consulte a política para entender armazenamento, correção e seus direitos sobre os dados.
             </p>
-            <Button variant="destructive" onClick={deleteAccount} disabled={deletingAccount} className="w-full">
-              {deletingAccount ? <Loader2 className="size-4 animate-spin" /> : null}
-              Excluir conta e dados
-            </Button>
+            <Link href="/privacidade" className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-[#ddd4f7] bg-[#f8f6ff] px-4 text-sm font-black text-[#6757c8] transition hover:border-[#b9a9f2] hover:bg-[#f1edff]">Ler política de privacidade</Link>
           </CardContent>
         </Card>
       </div>

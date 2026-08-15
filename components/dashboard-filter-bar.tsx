@@ -20,7 +20,7 @@ export function DashboardFilterBar({
   return (
     <section
       className={cn(
-        "rounded-[0.8rem] border border-[#e8e3f0] bg-white px-4 py-3 shadow-[0_10px_28px_-26px_rgba(91,58,85,0.24)] md:px-5",
+        "rounded-[0.8rem] border border-[#e8e3f0] bg-white px-4 py-3 shadow-[0_10px_28px_-26px_rgba(91,58,85,0.24)] transition-[border-color,box-shadow] duration-200 hover:border-[#d9d0f4] hover:shadow-[0_18px_38px_-30px_rgba(43,35,91,0.3)] md:px-5",
         className,
       )}
     >

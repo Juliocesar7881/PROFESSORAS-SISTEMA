@@ -33,7 +33,6 @@ import { ProjectImportDialog } from "@/components/project-import-dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { getPayloadItems } from "@/lib/api-payload";
-import { SHOWCASE_PROJECTS } from "@/lib/project-showcase";
 import { cn } from "@/lib/utils";
 
 type ProjectActivity = {
@@ -155,23 +154,6 @@ function appendText(current: string, next: string) {
   return `${current.trim()}\n- ${clean.replace(/^[-*]\s*/, "")}`;
 }
 
-function mapLocalProjects(): Project[] {
-  return SHOWCASE_PROJECTS.map((project) => ({
-    id: project.id,
-    titulo: project.titulo,
-    descricao: project.descricao,
-    persisted: false,
-    salvo: false,
-    objetivosEspecificos: project.objetivosEspecificos,
-    bnccObjetivos: project.bnccObjetivos,
-    camposExperiencia: project.camposExperiencia,
-    atividades: project.atividades.map((item) => ({
-      ...item,
-      objetivoTexto: project.objetivosEspecificos.slice(0, 2).join("; "),
-    })),
-  }));
-}
-
 function mapApiProjects(value: unknown): Project[] {
   return getPayloadItems<Record<string, unknown>>(value).map((raw) => {
     const project = raw as unknown as Omit<Project, "persisted">;
@@ -229,7 +211,7 @@ function SuggestionPanel({
 
         {!items.length ? (
           <div className="rounded-md border border-dashed border-[#e2d2db] px-3 py-8 text-center text-xs font-bold text-[#8c899b]">
-            Selecione um projeto base.
+            Selecione um projeto salvo ou importado.
           </div>
         ) : null}
       </div>
@@ -328,7 +310,7 @@ export default function PlanejamentoPage() {
   const initialWeek = useMemo(() => localDate(monday()), []);
   const [week, setWeek] = useState(initialWeek);
   const [rows, setRows] = useState<WeekRow[]>(emptyRows);
-  const [projects, setProjects] = useState<Project[]>(mapLocalProjects);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [projectId, setProjectId] = useState(requestedProjectId);
   const [planId, setPlanId] = useState<string | null>(null);
   const [grupo, setGrupo] = useState("");
@@ -371,17 +353,11 @@ export default function PlanejamentoPage() {
     () => projects.filter((project) => project.origem !== "IMPORTADO" && project.salvo),
     [projects],
   );
-  const libraryProjects = useMemo(
-    () => projects.filter((project) => project.origem !== "IMPORTADO" && !project.salvo),
-    [projects],
-  );
-
   const loadProjects = useCallback(async (selectProjectId?: string) => {
     try {
       const urls = [
         "/api/projetos?includeAtividades=true&origem=IMPORTADO&limit=80",
         "/api/projetos?includeAtividades=true&salvos=true&limit=80",
-        "/api/projetos?includeAtividades=true&limit=80",
       ];
       const responses = await Promise.all(urls.map((url) => fetch(url, { cache: "no-store" })));
       const payloads = await Promise.all(responses.map((response) => response.json()));
@@ -394,16 +370,20 @@ export default function PlanejamentoPage() {
         });
       });
 
-      const api = [...apiById.values()];
-      const titles = new Set(api.map((item) => item.titulo.toLowerCase()));
-      const merged = [...api, ...mapLocalProjects().filter((item) => !titles.has(item.titulo.toLowerCase()))];
+      const merged = [...apiById.values()]
+        .filter((project) => project.origem === "IMPORTADO" || project.salvo)
+        .sort((left, right) => {
+          const leftDate = left.createdAt ? new Date(left.createdAt).getTime() : 0;
+          const rightDate = right.createdAt ? new Date(right.createdAt).getTime() : 0;
+          return rightDate - leftDate || left.titulo.localeCompare(right.titulo, "pt-BR");
+        });
       setProjects(merged);
       const desiredProjectId = selectProjectId || requestedProjectId;
       if (desiredProjectId && merged.some((item) => item.id === desiredProjectId)) {
         setProjectId(desiredProjectId);
       }
     } catch {
-      // O catalogo local continua disponivel quando a API estiver temporariamente indisponivel.
+      toast.error("Não foi possível carregar seus projetos.");
     }
   }, [requestedProjectId]);
 
@@ -572,13 +552,15 @@ export default function PlanejamentoPage() {
       </DashboardFilterBar>
 
       <section className="rounded-lg border border-[#e8e3f0] bg-white p-4">
+        <p className="mb-2 text-xs font-black uppercase tracking-[0.1em] text-[#6d6c82]">Projetos</p>
         <div className="grid gap-3 lg:grid-cols-[minmax(220px,1.4fr)_auto_auto]">
           <select
+            aria-label="Projetos salvos e importados"
             className="pf-select h-11"
             value={projectId}
             onChange={(event) => setProjectId(event.target.value)}
           >
-            <option value="">Sem projeto base</option>
+            <option value="">Escolha um projeto</option>
             {savedProjects.length ? (
               <optgroup label={`Projetos salvos (${savedProjects.length})`}>
                 {savedProjects.map((project) => <option key={project.id} value={project.id}>{project.titulo}</option>)}
@@ -587,11 +569,6 @@ export default function PlanejamentoPage() {
             {importedProjects.length ? (
               <optgroup label={`Projetos importados (${importedProjects.length})`}>
                 {importedProjects.map((project) => <option key={project.id} value={project.id}>{project.titulo}</option>)}
-              </optgroup>
-            ) : null}
-            {libraryProjects.length ? (
-              <optgroup label="Biblioteca de projetos">
-                {libraryProjects.map((project) => <option key={project.id} value={project.id}>{project.titulo}</option>)}
               </optgroup>
             ) : null}
           </select>
@@ -734,6 +711,25 @@ export default function PlanejamentoPage() {
         </aside>
       </div>
       </DndContext>
+
+      <section className="flex flex-col gap-3 rounded-xl border border-[#e8e3f0] bg-white p-4 shadow-[0_14px_34px_-28px_rgba(43,35,91,0.22)] sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-black text-[#17213f]">Finalize o planejamento da semana</p>
+          <p className="mt-1 text-xs font-semibold text-[#6d6c82]">Salve antes de baixar uma nova versão em PDF ou Word.</p>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button onClick={save} disabled={saving} className="pf-btn-success h-11">
+            {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+            Salvar
+          </Button>
+          <Button variant="outline" onClick={() => download("pdf")} className="h-11">
+            <Download className="size-4" /> PDF
+          </Button>
+          <Button variant="outline" onClick={() => download("docx")} className="h-11">
+            <FileText className="size-4" /> Word
+          </Button>
+        </div>
+      </section>
     </div>
   );
 }

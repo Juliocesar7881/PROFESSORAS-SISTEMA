@@ -72,6 +72,10 @@ type BrowserSpeechRecognition = {
   onresult: ((event: SpeechRecognitionEventLike) => void) | null;
   onerror: (() => void) | null;
   onend: (() => void) | null;
+  onspeechstart: (() => void) | null;
+  onspeechend: (() => void) | null;
+  onsoundstart: (() => void) | null;
+  onsoundend: (() => void) | null;
   start: () => void;
   stop: () => void;
   abort: () => void;
@@ -162,6 +166,9 @@ export function RegistrosClient() {
   const chunksRef = useRef<Blob[]>([]);
   const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
   const browserTranscriptRef = useRef("");
+  const browserInterimRef = useRef("");
+  const speechBaseRef = useRef("");
+  const silenceTimerRef = useRef<number | null>(null);
   const recognitionDoneRef = useRef<Promise<void> | null>(null);
 
   const [periodo, setPeriodo] = useState("Bimestre atual");
@@ -260,6 +267,16 @@ export function RegistrosClient() {
     return () => window.clearInterval(timer);
   }, [recording]);
 
+  useEffect(() => () => {
+    if (silenceTimerRef.current !== null) window.clearTimeout(silenceTimerRef.current);
+    try { recognitionRef.current?.abort(); } catch { /* O navegador pode encerrar o reconhecimento antes do React. */ }
+    if (recorderRef.current?.state === "recording") {
+      recorderRef.current.onstop = null;
+      recorderRef.current.stop();
+    }
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+  }, []);
+
   const transcribeBlob = async (blob: Blob) => {
     setTranscribing(true);
     try {
@@ -281,32 +298,69 @@ export function RegistrosClient() {
     }
   };
 
+  const clearSilenceTimer = () => {
+    if (silenceTimerRef.current === null) return;
+    window.clearTimeout(silenceTimerRef.current);
+    silenceTimerRef.current = null;
+  };
+
+  const stopRecording = () => {
+    clearSilenceTimer();
+    if (recorderRef.current?.state === "recording") recorderRef.current.stop();
+  };
+
+  const scheduleSilenceStop = () => {
+    clearSilenceTimer();
+    silenceTimerRef.current = window.setTimeout(() => {
+      silenceTimerRef.current = null;
+      stopRecording();
+    }, 3000);
+  };
+
+  const mergeBrowserTranscript = (interim = browserInterimRef.current) => {
+    const spoken = [browserTranscriptRef.current, interim].filter(Boolean).join(" ").trim();
+    return [speechBaseRef.current, spoken]
+      .filter(Boolean)
+      .join(speechBaseRef.current && spoken ? "\n\n" : "");
+  };
+
   const startBrowserTranscription = () => {
     const speechWindow = window as typeof window & {
       SpeechRecognition?: SpeechRecognitionConstructor;
       webkitSpeechRecognition?: SpeechRecognitionConstructor;
     };
     const Recognition = speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
+    speechBaseRef.current = texto.trim();
     browserTranscriptRef.current = "";
+    browserInterimRef.current = "";
     recognitionDoneRef.current = null;
     recognitionRef.current = null;
-    if (!Recognition) return;
+    if (!Recognition) return false;
 
     const recognition = new Recognition();
     recognition.lang = "pt-BR";
     recognition.continuous = true;
-    recognition.interimResults = false;
+    recognition.interimResults = true;
     recognition.onresult = (event) => {
       const finalParts: string[] = [];
-      for (let index = event.resultIndex; index < event.results.length; index += 1) {
+      const interimParts: string[] = [];
+      for (let index = 0; index < event.results.length; index += 1) {
         const result = event.results[index];
-        if (result.isFinal && result[0]?.transcript) finalParts.push(result[0].transcript.trim());
+        const transcript = result[0]?.transcript?.trim();
+        if (!transcript) continue;
+        if (result.isFinal) finalParts.push(transcript);
+        else interimParts.push(transcript);
       }
-      if (finalParts.length) {
-        browserTranscriptRef.current = [browserTranscriptRef.current, ...finalParts].filter(Boolean).join(" ");
-      }
+      browserTranscriptRef.current = finalParts.join(" ");
+      browserInterimRef.current = interimParts.join(" ");
+      setTexto(mergeBrowserTranscript());
+      scheduleSilenceStop();
     };
-    recognition.onerror = () => undefined;
+    recognition.onerror = () => clearSilenceTimer();
+    recognition.onspeechstart = scheduleSilenceStop;
+    recognition.onspeechend = scheduleSilenceStop;
+    recognition.onsoundstart = scheduleSilenceStop;
+    recognition.onsoundend = scheduleSilenceStop;
     recognitionDoneRef.current = new Promise((resolve) => {
       recognition.onend = resolve;
     });
@@ -314,10 +368,14 @@ export function RegistrosClient() {
     try {
       recognition.start();
       recognitionRef.current = recognition;
+      scheduleSilenceStop();
+      return true;
     } catch {
       recognition.abort();
       recognitionRef.current = null;
       recognitionDoneRef.current = null;
+      clearSilenceTimer();
+      return false;
     }
   };
 
@@ -335,10 +393,11 @@ export function RegistrosClient() {
       const recorder = preferredMimeType
         ? new MediaRecorder(stream, { mimeType: preferredMimeType })
         : new MediaRecorder(stream);
-      startBrowserTranscription();
+      const liveTranscription = startBrowserTranscription();
       recorderRef.current = recorder;
       recorder.ondataavailable = (event) => { if (event.data.size) chunksRef.current.push(event.data); };
       recorder.onstop = async () => {
+        clearSilenceTimer();
         const blob = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/webm" });
         const recognition = recognitionRef.current;
         recognitionRef.current = null;
@@ -352,14 +411,16 @@ export function RegistrosClient() {
         }
         stream.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
+        recorderRef.current = null;
         setRecording(false);
-        const browserText = browserTranscriptRef.current.trim();
+        const browserText = [browserTranscriptRef.current, browserInterimRef.current].filter(Boolean).join(" ").trim();
         browserTranscriptRef.current = "";
+        browserInterimRef.current = "";
         recognitionDoneRef.current = null;
         if (browserText) {
-          setTexto((current) => [current.trim(), browserText].filter(Boolean).join(current.trim() ? "\n\n" : ""));
+          setTexto([speechBaseRef.current, browserText].filter(Boolean).join(speechBaseRef.current ? "\n\n" : ""));
           setTranscribing(false);
-          toast.success("Audio transcrito");
+          toast.success("Ditado concluído");
         } else if (blob.size) {
           void transcribeBlob(blob);
         } else {
@@ -369,12 +430,14 @@ export function RegistrosClient() {
       setRecordingSeconds(0);
       setRecording(true);
       recorder.start(1000);
+      if (!liveTranscription) toast.info("A transcrição será exibida ao terminar a gravação.");
     } catch {
+      clearSilenceTimer();
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
       toast.error("Permita o uso do microfone para gravar.");
     }
   };
-
-  const stopRecording = () => recorderRef.current?.state === "recording" && recorderRef.current.stop();
 
   const saveRecord = async () => {
     if (!novoAlunoId || texto.trim().length < 3) {
@@ -670,11 +733,11 @@ export function RegistrosClient() {
               <a href="/dashboard/turmas" className="mt-3 inline-flex h-10 items-center gap-2 rounded-md border border-[#dcd3f7] bg-[#f8f6ff] px-3 text-sm font-bold text-[#6757c8]"><Plus className="size-4" /> Cadastrar turma e crianca</a>
             ) : null}
             <label className="mt-4 block"><span className="pf-label">Data do registro</span><input type="date" className="pf-input h-11 max-w-[220px]" value={dataRegistro} onChange={(event) => setDataRegistro(event.target.value)} /></label>
-            <label className="mt-4 block"><span className="pf-label">Anotacao pedagogica</span><Textarea value={texto} onChange={(event) => setTexto(event.target.value)} rows={10} className="min-h-[240px] text-[15px] leading-7" placeholder="Escreva o que aconteceu, como a crianca participou e quais estrategias utilizou..." /></label>
+            <label className="mt-4 block"><span className="pf-label">Anotação pedagógica</span><Textarea value={texto} readOnly={recording} onChange={(event) => setTexto(event.target.value)} rows={10} className={cn("min-h-[240px] text-[15px] leading-7", recording && "border-[#a995ec] bg-[#faf9ff] ring-4 ring-[#6757c8]/10")} placeholder="Escreva o que aconteceu, como a criança participou e quais estratégias utilizou..." /></label>
             <div className="mt-3 flex flex-wrap gap-2">
               <Button type="button" variant="outline" onClick={recording ? stopRecording : startRecording} disabled={transcribing} className={cn("h-11", recording && "border-red-300 bg-red-50 text-red-700")}>
                 {transcribing ? <Loader2 className="size-4 animate-spin" /> : recording ? <Square className="size-4 fill-current" /> : <Mic className="size-4" />}
-                {transcribing ? "Transcrevendo" : recording ? `Parar ${Math.floor(recordingSeconds / 60)}:${String(recordingSeconds % 60).padStart(2, "0")}` : "Gravar audio"}
+                {transcribing ? "Transcrevendo" : recording ? `Parar ${Math.floor(recordingSeconds / 60)}:${String(recordingSeconds % 60).padStart(2, "0")}` : "Ditar registro"}
               </Button>
               <label className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-md border border-[#dcd3f7] bg-white px-4 text-sm font-bold text-[#4f3ca6] hover:bg-[#f8f6ff]">
                 <Camera className="size-4" /> Adicionar fotos
@@ -682,6 +745,7 @@ export function RegistrosClient() {
               </label>
               {fotos.length ? <span className="inline-flex h-11 items-center gap-2 rounded-md bg-[#f3f0ff] px-3 text-sm font-bold text-[#6757c8]"><Images className="size-4" /> {fotos.length}/6</span> : null}
             </div>
+            {recording ? <p aria-live="polite" className="mt-2 text-xs font-bold text-[#6757c8]">Escrevendo enquanto você fala. O ditado encerra após 3 segundos de silêncio.</p> : null}
             <div className="mt-5 flex justify-end border-t border-[#e8e3f0] pt-4"><Button type="button" onClick={saveRecord} disabled={saving || transcribing || recording} className="pf-btn-success h-11 px-6">{saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />} Salvar registro</Button></div>
           </div>
           <aside className="rounded-lg border border-[#e8e3f0] bg-[#faf9ff] p-5 lg:self-start">

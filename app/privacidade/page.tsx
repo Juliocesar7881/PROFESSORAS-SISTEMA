@@ -24,7 +24,7 @@ export default function PrivacidadePage() {
             Direitos LGPD: acesso, correção e apagamento. A exclusão de conta dispara cascata real dos dados de alunos e rotinas de hard delete após janela de 30 dias para turmas e alunos em soft delete.
           </p>
           <p>
-            Para remover sua conta e os dados associados, use a opção dentro do aplicativo ou acesse a{" "}
+            Para remover sua conta e os dados associados, use o caminho de privacidade dentro do aplicativo ou acesse a{" "}
             <Link href="/excluir-conta" className="text-[#8b4164] underline underline-offset-4">
               página de exclusão de conta
             </Link>.

@@ -1,4 +1,5 @@
 import { fail, ok } from "@/lib/http";
+import { deleteAccountSchema } from "@/dtos/account.dto";
 import type { RequestContext } from "@/middleware/api";
 import { AccountService } from "@/services/account.service";
 
@@ -14,8 +15,9 @@ export class AccountController {
     }
   };
 
-  deleteAccount = async (_request: Request, context: RequestContext) => {
+  deleteAccount = async (request: Request, context: RequestContext) => {
     try {
+      deleteAccountSchema.parse(await request.json());
       const data = await this.accountService.deleteAccount(context.userId!);
       return ok(data);
     } catch (error) {

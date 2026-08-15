@@ -254,6 +254,10 @@ export function NewRecordScreen({
     if (selectedChild?.turmaId !== id) setAlunoId("");
     void setPreference("last-turma-id", id, ownerUserId);
     setSelection(null);
+    setTimeout(() => {
+      if (criancas.some((child) => child.turmaId === id)) setSelection("crianca");
+      else onManage();
+    }, 220);
   };
 
   const chooseChild = (id: string) => {
@@ -264,6 +268,7 @@ export function NewRecordScreen({
     }
     setAlunoId(id);
     setSelection(null);
+    setTimeout(() => textInputRef.current?.focus(), 220);
   };
 
   const pickPhotos = async (camera = false) => {

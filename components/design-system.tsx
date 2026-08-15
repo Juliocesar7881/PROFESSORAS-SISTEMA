@@ -66,7 +66,7 @@ export function PageHeader({
   return (
     <section
       className={cn(
-        "relative overflow-hidden rounded-2xl border border-[#e8e3f0] bg-[linear-gradient(135deg,#ffffff_0%,#f8f6ff_58%,#fffaf3_100%)] p-4 shadow-[0_14px_34px_-27px_rgba(43,35,91,0.24)] md:p-5",
+        "relative overflow-hidden rounded-2xl border border-[#e8e3f0] bg-[linear-gradient(135deg,#ffffff_0%,#f8f6ff_58%,#fffaf3_100%)] p-4 shadow-[0_14px_34px_-27px_rgba(43,35,91,0.24)] transition-[border-color,box-shadow] duration-200 hover:border-[#ddd4f7] hover:shadow-[0_22px_48px_-36px_rgba(43,35,91,0.3)] md:p-5",
         className,
       )}
     >
@@ -112,7 +112,7 @@ export function ModuleCard({
   const toneClasses = toneMap[tone];
 
   return (
-    <article className={cn("rounded-2xl border border-[#e8e3f0] bg-white p-4 shadow-[0_14px_34px_-28px_rgba(43,35,91,0.22)]", className)}>
+    <article className={cn("rounded-2xl border border-[#e8e3f0] bg-white p-4 shadow-[0_14px_34px_-28px_rgba(43,35,91,0.22)] transition-[transform,border-color,box-shadow] duration-200 motion-safe:hover:-translate-y-0.5 hover:border-[#d9d0f4] hover:shadow-[0_24px_48px_-34px_rgba(43,35,91,0.3)]", className)}>
       <div className="flex items-start gap-3">
         {Icon ? (
           <span className={cn("inline-flex size-10 shrink-0 items-center justify-center rounded-[0.65rem] border", toneClasses.bg, toneClasses.border)}>
@@ -145,7 +145,7 @@ export function MetricCard({
   const toneClasses = toneMap[tone];
 
   return (
-    <article className="rounded-2xl border border-[#e8e3f0] bg-white p-4 shadow-[0_14px_30px_-26px_rgba(43,35,91,0.2)]">
+    <article className="rounded-2xl border border-[#e8e3f0] bg-white p-4 shadow-[0_14px_30px_-26px_rgba(43,35,91,0.2)] transition-[transform,border-color,box-shadow] duration-200 motion-safe:hover:-translate-y-0.5 hover:border-[#d9d0f4] hover:shadow-[0_22px_42px_-32px_rgba(43,35,91,0.28)]">
       <div className="flex items-center justify-between gap-3">
         <span className="text-xs font-bold uppercase tracking-[0.08em] text-[#6d6c82]">{label}</span>
         {Icon ? (
@@ -184,11 +184,11 @@ export function EmptyState({
 }
 
 export function FormPanel({ children, className }: { children: ReactNode; className?: string }) {
-  return <section className={cn("rounded-2xl border border-[#e8e3f0] bg-white p-4 shadow-[0_14px_34px_-28px_rgba(43,35,91,0.22)] md:p-5", className)}>{children}</section>;
+  return <section className={cn("rounded-2xl border border-[#e8e3f0] bg-white p-4 shadow-[0_14px_34px_-28px_rgba(43,35,91,0.22)] transition-[border-color,box-shadow] duration-200 hover:border-[#ddd4f7] hover:shadow-[0_20px_42px_-34px_rgba(43,35,91,0.28)] md:p-5", className)}>{children}</section>;
 }
 
 export function FilterBar({ children, className }: { children: ReactNode; className?: string }) {
-  return <section className={cn("rounded-2xl border border-[#e8e3f0] bg-white p-3 shadow-[0_12px_28px_-26px_rgba(43,35,91,0.18)]", className)}>{children}</section>;
+  return <section className={cn("rounded-2xl border border-[#e8e3f0] bg-white p-3 shadow-[0_12px_28px_-26px_rgba(43,35,91,0.18)] transition-[border-color,box-shadow] duration-200 hover:border-[#ddd4f7] hover:shadow-[0_18px_36px_-30px_rgba(43,35,91,0.26)]", className)}>{children}</section>;
 }
 
 export function MobileActionBar({ children, className }: { children: ReactNode; className?: string }) {
