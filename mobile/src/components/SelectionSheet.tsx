@@ -1,4 +1,4 @@
-import { Check, Search, X } from "lucide-react-native";
+import { Check, Plus, Search, X } from "lucide-react-native";
 import { useMemo, useState } from "react";
 import { FlatList, Keyboard, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -16,6 +16,11 @@ export function SelectionSheet({
   items,
   selectedId,
   searchPlaceholder = "Buscar...",
+  emptyMessage = "Nenhum resultado encontrado.",
+  actionLabel,
+  actionHint,
+  actionDisabled = false,
+  onAction,
   onSelect,
   onClose,
 }: {
@@ -24,6 +29,11 @@ export function SelectionSheet({
   items: SelectionItem[];
   selectedId?: string;
   searchPlaceholder?: string;
+  emptyMessage?: string;
+  actionLabel?: string;
+  actionHint?: string;
+  actionDisabled?: boolean;
+  onAction?: () => void;
   onSelect: (item: SelectionItem) => void;
   onClose: () => void;
 }) {
@@ -69,13 +79,36 @@ export function SelectionSheet({
               />
             </View>
           ) : null}
+          {actionLabel && onAction ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ disabled: actionDisabled }}
+              disabled={actionDisabled}
+              onPress={() => {
+                Keyboard.dismiss();
+                setQuery("");
+                onAction();
+              }}
+              style={({ pressed }) => [
+                styles.action,
+                pressed && styles.actionPressed,
+                actionDisabled && styles.actionDisabled,
+              ]}
+            >
+              <View style={styles.actionIcon}><Plus size={19} color={colors.primary} /></View>
+              <View style={styles.itemText}>
+                <Text style={styles.actionLabel}>{actionLabel}</Text>
+                {actionHint ? <Text style={styles.actionHint}>{actionHint}</Text> : null}
+              </View>
+            </Pressable>
+          ) : null}
           <FlatList
             data={filtered}
             keyExtractor={(item) => item.id}
             keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={styles.list}
-            ListEmptyComponent={<Text style={styles.empty}>Nenhum resultado encontrado.</Text>}
+            ListEmptyComponent={<Text style={styles.empty}>{emptyMessage}</Text>}
             renderItem={({ item }) => {
               const selected = item.id === selectedId;
               return (
@@ -110,6 +143,12 @@ const styles = StyleSheet.create({
   close: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   searchWrap: { minHeight: 50, marginHorizontal: 16, flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, borderWidth: 1, borderColor: colors.border, borderRadius: 14 },
   searchInput: { flex: 1, minHeight: 46, paddingHorizontal: 0, borderWidth: 0, backgroundColor: "transparent" },
+  action: { minHeight: 64, marginHorizontal: 12, marginTop: 6, flexDirection: "row", alignItems: "center", gap: 11, paddingHorizontal: 12, paddingVertical: 9, borderWidth: 1, borderColor: colors.borderStrong, borderRadius: 15, backgroundColor: colors.surfaceSoft },
+  actionPressed: { opacity: 0.78, transform: [{ scale: 0.995 }] },
+  actionDisabled: { opacity: 0.5 },
+  actionIcon: { width: 38, height: 38, alignItems: "center", justifyContent: "center", borderRadius: 12, backgroundColor: colors.surface },
+  actionLabel: { fontSize: 14, fontWeight: "900", color: colors.primary },
+  actionHint: { marginTop: 2, fontSize: 11, lineHeight: 15, fontWeight: "600", color: colors.muted },
   list: { padding: 12, paddingBottom: 20 },
   item: { minHeight: 56, flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 8, borderRadius: 14 },
   itemSelected: { backgroundColor: colors.surfaceSoft },

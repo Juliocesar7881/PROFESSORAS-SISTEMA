@@ -1,11 +1,8 @@
-import { useRouter } from "expo-router";
-
 import { useApp } from "../../src/providers/AppProvider";
 import { NewRecordScreen } from "../../src/screens/NewRecordScreen";
 
 export default function NewRecordRoute() {
-  const router = useRouter();
-  const { token, user, online, turmas, criancas, queueDraft, recordSaved } = useApp();
+  const { token, user, online, turmas, criancas, queueDraft, recordSaved, saveTurma, saveCrianca } = useApp();
   if (!token || !user) return null;
 
   return (
@@ -16,7 +13,8 @@ export default function NewRecordRoute() {
       criancas={criancas}
       onSaved={recordSaved}
       onQueue={queueDraft}
-      onManage={() => router.navigate("/(tabs)/gestao")}
+      onSaveTurma={saveTurma}
+      onSaveCrianca={saveCrianca}
     />
   );
 }

@@ -57,12 +57,28 @@ import {
 import { colors } from "../theme";
 import type { Crianca, DraftPhoto, OfflineDraft, OfflineMutation, PendingPhotoUpload, Registro, Turma, User } from "../types";
 import { decidePhotoFailure } from "../utils/photo-upload";
+import { sortByName, upsertById } from "../utils/school-entities";
 import { compareVersions } from "../utils/version";
 import { useFeedback } from "./FeedbackProvider";
 
 const TOKEN_KEY = "planejei_mobile_token";
 const USER_KEY = "planejei_mobile_user";
 const SESSION_EXPIRY_KEY = "planejei_mobile_session_expiry";
+
+export type SaveTurmaInput = {
+  nome: string;
+  faixaEtaria?: string;
+  turno?: string;
+  instituicao?: string;
+  ano?: number;
+};
+
+export type SaveCriancaInput = {
+  nome: string;
+  turmaId: string;
+  dataNasc?: string;
+  contexto?: string;
+};
 
 type AppContextValue = {
   token: string | null;
@@ -82,6 +98,8 @@ type AppContextValue = {
   completeLoginCode: (code: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshBase: () => Promise<void>;
+  saveTurma: (input: SaveTurmaInput, id?: string) => Promise<Turma>;
+  saveCrianca: (input: SaveCriancaInput, id?: string) => Promise<Crianca>;
   syncNow: (forcePhotos?: boolean) => Promise<void>;
   retryPhoto: (id: string) => Promise<void>;
   discardPhoto: (id: string) => Promise<void>;
@@ -134,11 +152,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const tokenRef = useRef<string | null>(null);
   const userRef = useRef<User | null>(null);
   const onlineRef = useRef(true);
+  const turmasRef = useRef<Turma[]>([]);
+  const criancasRef = useRef<Crianca[]>([]);
   const loginExchangeRef = useRef<{ code: string; promise: Promise<void> } | null>(null);
 
   useEffect(() => { tokenRef.current = token; }, [token]);
   useEffect(() => { userRef.current = user; }, [user]);
   useEffect(() => { onlineRef.current = online; }, [online]);
+  useEffect(() => { turmasRef.current = turmas; }, [turmas]);
+  useEffect(() => { criancasRef.current = criancas; }, [criancas]);
 
   const refreshPendingState = useCallback(async (ownerUserId?: string) => {
     const owner = ownerUserId ?? userRef.current?.id;
@@ -169,6 +191,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     userRef.current = null;
     setToken(null);
     setUser(null);
+    turmasRef.current = [];
+    criancasRef.current = [];
     setTurmas([]);
     setCriancas([]);
     setPendingCount(0);
@@ -183,12 +207,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
   }, [clearSession, feedback]);
 
-  const refreshBaseWithToken = useCallback(async (activeToken: string, ownerUserId: string) => {
-    const base = await loadBase(activeToken);
+  const commitBase = useCallback(async (nextTurmas: Turma[], nextCriancas: Crianca[], ownerUserId: string) => {
+    const base = {
+      turmas: sortByName(nextTurmas),
+      criancas: sortByName(nextCriancas),
+    };
+    turmasRef.current = base.turmas;
+    criancasRef.current = base.criancas;
     setTurmas(base.turmas);
     setCriancas(base.criancas);
-    await storeBase(base, ownerUserId);
-  }, []);
+    try {
+      await storeBase(base, ownerUserId);
+    } catch {
+      feedback("Os dados foram salvos, mas o cache offline será atualizado na próxima sincronização.", {
+        tone: "warning",
+      });
+    }
+  }, [feedback]);
+
+  const refreshBaseWithToken = useCallback(async (activeToken: string, ownerUserId: string) => {
+    const base = await loadBase(activeToken);
+    await commitBase(base.turmas, base.criancas, ownerUserId);
+  }, [commitBase]);
 
   const refreshBase = useCallback(async () => {
     const activeToken = tokenRef.current;
@@ -347,8 +387,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (storedUser) {
         await claimLegacyLocalData(storedUser.id);
         const cachedBase = await getBase(storedUser.id);
-        setTurmas(cachedBase.turmas);
-        setCriancas(cachedBase.criancas);
+        turmasRef.current = sortByName(cachedBase.turmas);
+        criancasRef.current = sortByName(cachedBase.criancas);
+        setTurmas(turmasRef.current);
+        setCriancas(criancasRef.current);
         setUser(storedUser);
         userRef.current = storedUser;
         await refreshPendingState(storedUser.id);
@@ -446,8 +488,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setUser(session.user);
       await claimLegacyLocalData(session.user.id);
       const cachedBase = await getBase(session.user.id);
-      setTurmas(cachedBase.turmas);
-      setCriancas(cachedBase.criancas);
+      turmasRef.current = sortByName(cachedBase.turmas);
+      criancasRef.current = sortByName(cachedBase.criancas);
+      setTurmas(turmasRef.current);
+      setCriancas(criancasRef.current);
       await refreshBaseWithToken(session.token, session.user.id);
       await refreshPendingState(session.user.id);
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -504,6 +548,57 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     await disconnectAccount();
   }, [disconnectAccount]);
+
+  const saveTurma = useCallback(async (input: SaveTurmaInput, id?: string) => {
+    const activeToken = tokenRef.current;
+    const activeUser = userRef.current;
+    if (!activeToken || !activeUser) throw new Error("Entre novamente para cadastrar a turma.");
+    if (!onlineRef.current) throw new ApiError("O cadastro de turma precisa de internet. Seus registros já salvos continuam disponíveis.", 0, "OFFLINE");
+
+    try {
+      const saved = await request<Turma>(activeToken, id ? `/api/turmas/${id}` : "/api/turmas", {
+        method: id ? "PATCH" : "POST",
+        body: JSON.stringify(input),
+      });
+      const normalized = {
+        ...saved,
+        _count: saved._count ?? turmasRef.current.find((item) => item.id === saved.id)?._count ?? { alunos: 0 },
+      };
+      const nextTurmas = sortByName(upsertById(turmasRef.current, normalized));
+      const nextCriancas = criancasRef.current.map((child) => child.turmaId === normalized.id
+        ? { ...child, turma: { id: normalized.id, nome: normalized.nome } }
+        : child);
+      await commitBase(nextTurmas, nextCriancas, activeUser.id);
+      return normalized;
+    } catch (error) {
+      if (isExpiredSession(error)) await expireSession();
+      throw error;
+    }
+  }, [commitBase, expireSession]);
+
+  const saveCrianca = useCallback(async (input: SaveCriancaInput, id?: string) => {
+    const activeToken = tokenRef.current;
+    const activeUser = userRef.current;
+    if (!activeToken || !activeUser) throw new Error("Entre novamente para cadastrar a criança.");
+    if (!onlineRef.current) throw new ApiError("O cadastro de criança precisa de internet. Seus registros já salvos continuam disponíveis.", 0, "OFFLINE");
+
+    try {
+      const payload = await request<Omit<Crianca, "turma"> & { turma?: Crianca["turma"] }>(
+        activeToken,
+        id ? `/api/criancas/${id}` : "/api/criancas",
+        { method: id ? "PATCH" : "POST", body: JSON.stringify(input) },
+      );
+      const turma = payload.turma ?? turmasRef.current.find((item) => item.id === payload.turmaId);
+      if (!turma) throw new Error("A turma da criança não foi encontrada.");
+      const saved: Crianca = { ...payload, turma: { id: turma.id, nome: turma.nome } };
+      const nextCriancas = sortByName(upsertById(criancasRef.current, saved));
+      await commitBase(turmasRef.current, nextCriancas, activeUser.id);
+      return saved;
+    } catch (error) {
+      if (isExpiredSession(error)) await expireSession();
+      throw error;
+    }
+  }, [commitBase, expireSession]);
 
   const queueDraft = useCallback(async (draft: OfflineDraft) => {
     const activeUser = userRef.current;
@@ -576,6 +671,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     completeLoginCode,
     logout,
     refreshBase,
+    saveTurma,
+    saveCrianca,
     syncNow,
     retryPhoto,
     discardPhoto,
@@ -601,6 +698,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     completeLoginCode,
     logout,
     refreshBase,
+    saveTurma,
+    saveCrianca,
     syncNow,
     retryPhoto,
     discardPhoto,

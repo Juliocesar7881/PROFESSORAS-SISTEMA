@@ -2,12 +2,13 @@ import DateTimePicker, { type DateTimePickerEvent } from "@react-native-communit
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from "expo-speech-recognition";
-import { CalendarDays, Camera, ChevronDown, ImagePlus, Mic, Save, Square, WifiOff, X } from "lucide-react-native";
+import { CalendarDays, Camera, ChevronDown, ImagePlus, Mic, Plus, Save, Square, WifiOff, X } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Keyboard, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
 import { AppTextInput } from "../components/AppTextInput";
+import { QuickSchoolEntitySheet, type QuickSchoolEntityMode } from "../components/QuickSchoolEntitySheet";
 import { SelectionSheet } from "../components/SelectionSheet";
 import { localDate } from "../date";
 import {
@@ -19,6 +20,7 @@ import {
   setPreference,
 } from "../offline";
 import { useFeedback } from "../providers/FeedbackProvider";
+import type { SaveCriancaInput, SaveTurmaInput } from "../providers/AppProvider";
 import { colors } from "../theme";
 import type { Crianca, DraftPhoto, OfflineDraft, Turma } from "../types";
 import { preparePhoto } from "../utils/photos";
@@ -39,7 +41,8 @@ export function NewRecordScreen({
   criancas,
   onSaved,
   onQueue,
-  onManage,
+  onSaveTurma,
+  onSaveCrianca,
 }: {
   ownerUserId: string;
   online: boolean;
@@ -47,7 +50,8 @@ export function NewRecordScreen({
   criancas: Crianca[];
   onSaved: () => void;
   onQueue: (draft: OfflineDraft) => Promise<void>;
-  onManage: () => void;
+  onSaveTurma: (input: SaveTurmaInput) => Promise<Turma>;
+  onSaveCrianca: (input: SaveCriancaInput) => Promise<Crianca>;
 }) {
   const feedback = useFeedback();
   const [draftId, setDraftId] = useState(newDraftId);
@@ -64,6 +68,8 @@ export function NewRecordScreen({
   const [draftState, setDraftState] = useState<"idle" | "saving" | "saved">("idle");
   const [showDate, setShowDate] = useState(false);
   const [selection, setSelection] = useState<"turma" | "crianca" | null>(null);
+  const [quickMode, setQuickMode] = useState<QuickSchoolEntityMode | null>(null);
+  const [quickSaving, setQuickSaving] = useState(false);
   const speechBaseRef = useRef("");
   const finalSpeechPartsRef = useRef<string[]>([]);
   const interimSpeechRef = useRef("");
@@ -256,7 +262,7 @@ export function NewRecordScreen({
     setSelection(null);
     setTimeout(() => {
       if (criancas.some((child) => child.turmaId === id)) setSelection("crianca");
-      else onManage();
+      else openQuickCreate("crianca", id);
     }, 220);
   };
 
@@ -269,6 +275,62 @@ export function NewRecordScreen({
     setAlunoId(id);
     setSelection(null);
     setTimeout(() => textInputRef.current?.focus(), 220);
+  };
+
+  const explainOfflineCreation = (kind: "turma" | "criança") => {
+    feedback(`Para cadastrar uma ${kind}, conecte o aparelho à internet. Seus registros já armazenados continuam funcionando offline.`, {
+      tone: "warning",
+      duration: 6000,
+    });
+  };
+
+  const openQuickCreate = (mode: QuickSchoolEntityMode, preferredTurmaId?: string) => {
+    setSelection(null);
+    if (!online) {
+      explainOfflineCreation(mode === "turma" ? "turma" : "criança");
+      return;
+    }
+    if (mode === "crianca" && !turmas.length) {
+      setQuickMode("turma");
+      return;
+    }
+    if (preferredTurmaId) setTurmaId(preferredTurmaId);
+    setQuickMode(mode);
+  };
+
+  const saveQuickTurma = async (nome: string) => {
+    if (quickSaving) return;
+    setQuickSaving(true);
+    try {
+      const created = await onSaveTurma({ nome });
+      setTurmaId(created.id);
+      setAlunoId("");
+      await setPreference("last-turma-id", created.id, ownerUserId);
+      setQuickMode("crianca");
+      feedback("Turma cadastrada. Agora adicione a primeira criança.", { tone: "success" });
+    } catch (error) {
+      feedback(error instanceof Error ? error.message : "Não foi possível cadastrar a turma.", { tone: "danger", duration: 5600 });
+    } finally {
+      setQuickSaving(false);
+    }
+  };
+
+  const saveQuickCrianca = async (nome: string, selectedTurmaId: string) => {
+    if (quickSaving) return;
+    setQuickSaving(true);
+    try {
+      const created = await onSaveCrianca({ nome, turmaId: selectedTurmaId });
+      setTurmaId(created.turmaId);
+      setAlunoId(created.id);
+      await setPreference("last-turma-id", created.turmaId, ownerUserId);
+      setQuickMode(null);
+      setTimeout(() => textInputRef.current?.focus(), 280);
+      feedback("Criança cadastrada e selecionada.", { tone: "success" });
+    } catch (error) {
+      feedback(error instanceof Error ? error.message : "Não foi possível cadastrar a criança.", { tone: "danger", duration: 5600 });
+    } finally {
+      setQuickSaving(false);
+    }
   };
 
   const pickPhotos = async (camera = false) => {
@@ -433,9 +495,22 @@ export function NewRecordScreen({
           <ChevronDown size={19} color={colors.primary} />
         </Pressable>
 
-        {!turmas.length || !criancas.length ? (
-          <Pressable onPress={onManage} style={styles.manageButton}>
-            <Text style={styles.manageButtonText}>Cadastrar turma e crianca</Text>
+        {!turmas.length || (turmaId && !filteredChildren.length) ? (
+          <Pressable
+            onPress={() => openQuickCreate(!turmas.length ? "turma" : "crianca", turmaId)}
+            style={({ pressed }) => [styles.manageButton, pressed && styles.pressed]}
+          >
+            <View style={styles.manageIcon}><Plus size={19} color={colors.primary} /></View>
+            <View style={styles.manageTextWrap}>
+              <Text style={styles.manageButtonText}>
+                {!turmas.length ? "Cadastrar a primeira turma" : "Cadastrar criança nesta turma"}
+              </Text>
+              <Text style={styles.manageButtonHint}>
+                {!turmas.length
+                  ? "Depois você cadastrará a primeira criança sem sair daqui."
+                  : "Nenhuma criança foi cadastrada nesta turma ainda."}
+              </Text>
+            </View>
           </Pressable>
         ) : null}
 
@@ -523,6 +598,10 @@ export function NewRecordScreen({
         items={turmas.map((item) => ({ id: item.id, label: item.nome, supportingText: item.faixaEtaria || item.turno || undefined }))}
         selectedId={turmaId}
         searchPlaceholder="Buscar turma"
+        emptyMessage="Nenhuma turma cadastrada ainda."
+        actionLabel="Cadastrar nova turma"
+        actionHint={online ? "Crie sem sair deste registro" : "Conecte-se à internet para cadastrar"}
+        onAction={() => openQuickCreate("turma")}
         onSelect={(item) => chooseTurma(item.id)}
         onClose={() => setSelection(null)}
       />
@@ -532,8 +611,22 @@ export function NewRecordScreen({
         items={filteredChildren.map((item) => ({ id: item.id, label: item.nome, supportingText: item.turma.nome }))}
         selectedId={alunoId}
         searchPlaceholder="Buscar crianca"
+        emptyMessage={turmaId ? "Nenhuma criança nesta turma." : "Nenhuma criança cadastrada ainda."}
+        actionLabel={turmaId ? "Cadastrar criança nesta turma" : "Cadastrar nova criança"}
+        actionHint={online ? "Ela será selecionada automaticamente" : "Conecte-se à internet para cadastrar"}
+        onAction={() => openQuickCreate("crianca", turmaId)}
         onSelect={(item) => chooseChild(item.id)}
         onClose={() => setSelection(null)}
+      />
+      <QuickSchoolEntitySheet
+        visible={Boolean(quickMode)}
+        mode={quickMode ?? "turma"}
+        turmas={turmas}
+        selectedTurmaId={turmaId}
+        saving={quickSaving}
+        onClose={() => setQuickMode(null)}
+        onSaveTurma={saveQuickTurma}
+        onSaveCrianca={saveQuickCrianca}
       />
     </View>
   );
@@ -569,6 +662,9 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.68 },
   offline: { marginBottom: 13, padding: 12, borderRadius: 14, backgroundColor: colors.amberSoft, flexDirection: "row", alignItems: "center", gap: 8 },
   offlineText: { flex: 1, color: colors.warning, fontSize: 12, fontWeight: "700" },
-  manageButton: { marginTop: 12, minHeight: 46, alignItems: "center", justifyContent: "center", borderRadius: 14, backgroundColor: colors.surfaceSoft },
-  manageButtonText: { color: colors.primary, fontWeight: "800" },
+  manageButton: { marginTop: 12, minHeight: 70, flexDirection: "row", alignItems: "center", gap: 11, padding: 11, borderWidth: 1, borderColor: colors.borderStrong, borderRadius: 15, backgroundColor: colors.surfaceSoft },
+  manageIcon: { width: 40, height: 40, alignItems: "center", justifyContent: "center", borderRadius: 13, backgroundColor: colors.surface },
+  manageTextWrap: { flex: 1, minWidth: 0 },
+  manageButtonText: { color: colors.primary, fontSize: 14, fontWeight: "900" },
+  manageButtonHint: { marginTop: 2, color: colors.muted, fontSize: 11, lineHeight: 16, fontWeight: "600" },
 });

@@ -10,13 +10,28 @@ import { AppKeyboardToolbar } from "../components/AppKeyboardToolbar";
 import { AppTextInput } from "../components/AppTextInput";
 import { SelectionSheet } from "../components/SelectionSheet";
 import { localDate } from "../date";
+import type { SaveCriancaInput, SaveTurmaInput } from "../providers/AppProvider";
 import { useFeedback } from "../providers/FeedbackProvider";
 import { colors } from "../theme";
 import type { Crianca, Turma } from "../types";
 
 type Mode = "turma" | "crianca" | null;
 
-export function ManagementScreen({ token, turmas, criancas, onChanged }: { token: string; turmas: Turma[]; criancas: Crianca[]; onChanged: () => Promise<void> }) {
+export function ManagementScreen({
+  token,
+  turmas,
+  criancas,
+  onChanged,
+  onSaveTurma,
+  onSaveCrianca,
+}: {
+  token: string;
+  turmas: Turma[];
+  criancas: Crianca[];
+  onChanged: () => Promise<void>;
+  onSaveTurma: (input: SaveTurmaInput, id?: string) => Promise<Turma>;
+  onSaveCrianca: (input: SaveCriancaInput, id?: string) => Promise<Crianca>;
+}) {
   const insets = useSafeAreaInsets();
   const feedback = useFeedback();
   const [mode, setMode] = useState<Mode>(null); const [editingId, setEditingId] = useState<string | null>(null); const [trash, setTrash] = useState(false);
@@ -40,7 +55,7 @@ export function ManagementScreen({ token, turmas, criancas, onChanged }: { token
   const openChild=(item?:Crianca, turmaId?:string)=>{setMode("crianca");setEditingId(item?.id||null);setChild({nome:item?.nome||"",turmaId:item?.turmaId||turmaId||turmas[0]?.id||"",dataNasc:item?.dataNasc?.slice(0,10)||"",contexto:item?.contexto||""});};
   const close=()=>{Keyboard.dismiss();setMode(null);setEditingId(null);};
 
-  const save=async()=>{Keyboard.dismiss();setSaving(true);try{if(mode==="turma"){if(!turma.nome.trim())return feedback("Informe o nome da turma.",{tone:"warning"});await request(token,editingId?`/api/turmas/${editingId}`:"/api/turmas",{method:editingId?"PATCH":"POST",body:JSON.stringify({nome:turma.nome,faixaEtaria:turma.faixaEtaria||undefined,turno:turma.turno||undefined,instituicao:turma.instituicao||undefined,ano:turma.ano?Number(turma.ano):undefined})});}else if(mode==="crianca"){if(!child.nome.trim()||!child.turmaId)return feedback("Informe o nome e a turma da crianca.",{tone:"warning"});await request(token,editingId?`/api/criancas/${editingId}`:"/api/criancas",{method:editingId?"PATCH":"POST",body:JSON.stringify({nome:child.nome,turmaId:child.turmaId,dataNasc:child.dataNasc||undefined,contexto:child.contexto||undefined})});}close();await onChanged();feedback("Dados salvos.",{tone:"success"});}catch(error){feedback(error instanceof Error?error.message:"Nao foi possivel salvar.",{tone:"danger"});}finally{setSaving(false);}};
+  const save=async()=>{if(saving)return;Keyboard.dismiss();setSaving(true);try{if(mode==="turma"){if(!turma.nome.trim())return feedback("Informe o nome da turma.",{tone:"warning"});await onSaveTurma({nome:turma.nome.trim(),faixaEtaria:turma.faixaEtaria.trim()||undefined,turno:turma.turno.trim()||undefined,instituicao:turma.instituicao.trim()||undefined,ano:turma.ano?Number(turma.ano):undefined},editingId||undefined);}else if(mode==="crianca"){if(!child.nome.trim()||!child.turmaId)return feedback("Informe o nome e a turma da crianca.",{tone:"warning"});await onSaveCrianca({nome:child.nome.trim(),turmaId:child.turmaId,dataNasc:child.dataNasc||undefined,contexto:child.contexto.trim()||undefined},editingId||undefined);}close();feedback("Dados salvos.",{tone:"success"});}catch(error){feedback(error instanceof Error?error.message:"Nao foi possivel salvar.",{tone:"danger"});}finally{setSaving(false);}};
   const remove=(kind:"turmas"|"criancas",id:string)=>Alert.alert("Mover para lixeira","O item podera ser restaurado por 30 dias.",[{text:"Cancelar"},{text:"Mover",style:"destructive",onPress:async()=>{try{await request(token,`/api/${kind}/${id}`,{method:"DELETE"});await onChanged();}catch(error){Alert.alert("Erro",error instanceof Error?error.message:"Falha ao remover.");}}}]);
   const restore=async(kind:"turmas"|"criancas",id:string)=>{try{await request(token,`/api/${kind}/${id}/restore`,{method:"POST"});await loadTrash();await onChanged();feedback("Item restaurado.",{tone:"success"});}catch(error){feedback(error instanceof Error?error.message:"Falha ao restaurar.",{tone:"danger"});}};
 

@@ -80,6 +80,14 @@ export class AlunoRepository extends BaseRepository {
         turmaId: data.turmaId,
         userId,
       },
+      include: {
+        turma: {
+          select: {
+            id: true,
+            nome: true,
+          },
+        },
+      },
     });
   }
 
@@ -109,6 +117,14 @@ export class AlunoRepository extends BaseRepository {
         id: aluno.id,
       },
       data,
+      include: {
+        turma: {
+          select: {
+            id: true,
+            nome: true,
+          },
+        },
+      },
     });
   }
 

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import {
+  Baby,
   CalendarDays,
   AlertTriangle,
   Camera,
@@ -17,6 +18,7 @@ import {
   Plus,
   RotateCcw,
   Save,
+  School,
   Sparkles,
   Square,
   Trash2,
@@ -25,10 +27,16 @@ import {
 import { toast } from "sonner";
 
 import { CopyTextButton } from "@/components/copy-text-button";
+import { RecordEntitySelect } from "@/components/record-entity-select";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ViewportModal } from "@/components/viewport-modal";
 import { getPaginatedPayload, getPayloadItems } from "@/lib/api-payload";
+import {
+  announceSchoolEntitiesChanged,
+  SCHOOL_ENTITIES_CHANGED_EVENT,
+  type SchoolEntitiesChangedDetail,
+} from "@/lib/client/school-entities-events";
 import {
   prepareRecordPhotos,
   type PreparedRecordPhoto,
@@ -124,6 +132,16 @@ function FilterSelect(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
   );
 }
 
+function sortByName<T extends { nome: string }>(items: T[]) {
+  return [...items].sort((left, right) => left.nome.localeCompare(right.nome, "pt-BR", { sensitivity: "base" }));
+}
+
+function upsertById<T extends { id: string }>(items: T[], nextItem: T) {
+  const existingIndex = items.findIndex((item) => item.id === nextItem.id);
+  if (existingIndex === -1) return [...items, nextItem];
+  return items.map((item, index) => index === existingIndex ? nextItem : item);
+}
+
 export function RegistrosClient() {
   const [tab, setTab] = useState<Tab>("novo");
   const [turmas, setTurmas] = useState<Turma[]>([]);
@@ -143,6 +161,12 @@ export function RegistrosClient() {
   const [saving, setSaving] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ completed: number; total: number; failed: number } | null>(null);
   const [pendingPhotoRetry, setPendingPhotoRetry] = useState<{ recordId: string; photos: PreparedRecordPhoto[] } | null>(null);
+  const [quickCreateMode, setQuickCreateMode] = useState<"turma" | "crianca" | null>(null);
+  const [quickTurmaNome, setQuickTurmaNome] = useState("");
+  const [quickCriancaNome, setQuickCriancaNome] = useState("");
+  const [quickCriancaTurmaId, setQuickCriancaTurmaId] = useState("");
+  const [quickSaving, setQuickSaving] = useState(false);
+  const recordTextRef = useRef<HTMLTextAreaElement>(null);
 
   const [filterTurmaId, setFilterTurmaId] = useState("");
   const [filterAlunoId, setFilterAlunoId] = useState("");
@@ -207,8 +231,8 @@ export function RegistrosClient() {
     return params;
   }, [dateFilters.end, dateFilters.start, filterAlunoId, filterTurmaId, lixeira]);
 
-  const loadBase = useCallback(async () => {
-    setLoadingBase(true);
+  const loadBase = useCallback(async (silent = false) => {
+    if (!silent) setLoadingBase(true);
     try {
       const [turmaResponse, criancaResponse, reportResponse] = await Promise.all([
         fetch("/api/turmas", { cache: "no-store" }),
@@ -220,13 +244,13 @@ export function RegistrosClient() {
       ]);
       if (!turmaResponse.ok) throw new Error(apiError(turmaJson, "Falha ao carregar turmas"));
       if (!criancaResponse.ok) throw new Error(apiError(criancaJson, "Falha ao carregar criancas"));
-      setTurmas((turmaJson.data ?? []) as Turma[]);
-      setCriancas(getPayloadItems<Crianca>(criancaJson.data));
+      setTurmas(sortByName((turmaJson.data ?? []) as Turma[]));
+      setCriancas(sortByName(getPayloadItems<Crianca>(criancaJson.data)));
       if (reportResponse.ok) setRelatorios((reportJson.data ?? []) as Relatorio[]);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Falha ao carregar dados");
     } finally {
-      setLoadingBase(false);
+      if (!silent) setLoadingBase(false);
     }
   }, []);
 
@@ -247,7 +271,15 @@ export function RegistrosClient() {
     }
   }, [nextCursor, recordQuery]);
 
-  useEffect(() => { void loadBase(); }, [loadBase]);
+  useEffect(() => {
+    void loadBase();
+    const handleEntitiesChanged = (event: Event) => {
+      const detail = (event as CustomEvent<SchoolEntitiesChangedDetail>).detail;
+      if (detail?.source !== "registros") void loadBase(true);
+    };
+    window.addEventListener(SCHOOL_ENTITIES_CHANGED_EVENT, handleEntitiesChanged);
+    return () => window.removeEventListener(SCHOOL_ENTITIES_CHANGED_EVENT, handleEntitiesChanged);
+  }, [loadBase]);
   useEffect(() => {
     setSelectedIds([]);
     setSelectedChildId(null);
@@ -277,6 +309,102 @@ export function RegistrosClient() {
     }
     streamRef.current?.getTracks().forEach((track) => track.stop());
   }, []);
+
+  const closeQuickCreate = () => {
+    if (quickSaving) return;
+    setQuickCreateMode(null);
+    setQuickTurmaNome("");
+    setQuickCriancaNome("");
+  };
+
+  const openQuickTurma = () => {
+    setQuickTurmaNome("");
+    setQuickCriancaNome("");
+    setQuickCreateMode("turma");
+  };
+
+  const openQuickCrianca = () => {
+    if (!turmas.length) {
+      openQuickTurma();
+      return;
+    }
+    setQuickCriancaNome("");
+    setQuickCriancaTurmaId(novoTurmaId || turmas[0].id);
+    setQuickCreateMode("crianca");
+  };
+
+  const saveQuickTurma = async () => {
+    const nome = quickTurmaNome.trim();
+    if (!nome) return toast.error("Informe o nome da turma.");
+    if (quickSaving) return;
+
+    setQuickSaving(true);
+    try {
+      const response = await fetch("/api/turmas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nome }),
+      });
+      const json = await response.json();
+      if (!response.ok) throw new Error(apiError(json, "Falha ao cadastrar turma"));
+
+      const created = json.data as Turma;
+      setTurmas((current) => sortByName(upsertById(current, created)));
+      setNovoTurmaId(created.id);
+      setNovoAlunoId("");
+      setQuickCriancaTurmaId(created.id);
+      setQuickTurmaNome("");
+      setQuickCriancaNome("");
+      setQuickCreateMode("crianca");
+      announceSchoolEntitiesChanged("registros");
+      void loadBase(true);
+      toast.success("Turma cadastrada. Agora adicione a primeira criança.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Falha ao cadastrar turma");
+    } finally {
+      setQuickSaving(false);
+    }
+  };
+
+  const saveQuickCrianca = async () => {
+    const nome = quickCriancaNome.trim();
+    const turmaId = quickCriancaTurmaId || novoTurmaId;
+    if (!nome || !turmaId) return toast.error("Informe o nome e a turma da criança.");
+    if (quickSaving) return;
+
+    setQuickSaving(true);
+    try {
+      const response = await fetch("/api/criancas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nome, turmaId }),
+      });
+      const json = await response.json();
+      if (!response.ok) throw new Error(apiError(json, "Falha ao cadastrar criança"));
+
+      const payload = json.data as Omit<Crianca, "turma"> & { turma?: Crianca["turma"] };
+      const turma = payload.turma ?? turmas.find((item) => item.id === turmaId);
+      if (!turma) throw new Error("A turma cadastrada não foi encontrada.");
+      const created: Crianca = {
+        ...payload,
+        turma: { id: turma.id, nome: turma.nome },
+      };
+
+      setCriancas((current) => sortByName(upsertById(current, created)));
+      setNovoTurmaId(turmaId);
+      setNovoAlunoId(created.id);
+      setQuickCriancaNome("");
+      setQuickCreateMode(null);
+      announceSchoolEntitiesChanged("registros");
+      void loadBase(true);
+      window.setTimeout(() => recordTextRef.current?.focus({ preventScroll: false }), 180);
+      toast.success("Criança cadastrada e selecionada.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Falha ao cadastrar criança");
+    } finally {
+      setQuickSaving(false);
+    }
+  };
 
   const transcribeBlob = async (blob: Blob) => {
     setTranscribing(true);
@@ -727,14 +855,47 @@ export function RegistrosClient() {
               <span className="inline-flex size-10 items-center justify-center rounded-md bg-[#f3f0ff] text-[#6757c8]"><Pencil className="size-5" /></span>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <label><span className="pf-label">Turma</span><FilterSelect value={novoTurmaId} onChange={(event) => { setNovoTurmaId(event.target.value); setNovoAlunoId(""); }}><option value="">Todas as turmas</option>{turmas.map((item) => <option key={item.id} value={item.id}>{item.nome}</option>)}</FilterSelect></label>
-              <label><span className="pf-label">Crianca</span><FilterSelect value={novoAlunoId} onChange={(event) => setNovoAlunoId(event.target.value)} disabled={!criancas.length}><option value="">Selecione a crianca</option>{newChildren.map((item) => <option key={item.id} value={item.id}>{item.nome}</option>)}</FilterSelect></label>
+              <label>
+                <span className="pf-label">Turma</span>
+                <RecordEntitySelect
+                  value={novoTurmaId}
+                  label="Turma do novo registro"
+                  placeholder="Selecionar turma"
+                  items={turmas.map((item) => ({ id: item.id, label: item.nome, supportingText: item.faixaEtaria ?? undefined }))}
+                  emptyMessage="Nenhuma turma cadastrada. Use a ação acima para começar."
+                  actionLabel="Cadastrar nova turma"
+                  actionHint="Crie sem sair deste registro"
+                  onSelect={(id) => { setNovoTurmaId(id); setNovoAlunoId(""); }}
+                  onAction={openQuickTurma}
+                />
+              </label>
+              <label>
+                <span className="pf-label">Criança</span>
+                <RecordEntitySelect
+                  value={novoAlunoId}
+                  label="Criança do novo registro"
+                  placeholder="Selecionar criança"
+                  items={newChildren.map((item) => ({ id: item.id, label: item.nome, supportingText: item.turma.nome }))}
+                  emptyMessage={novoTurmaId ? "Nenhuma criança nesta turma." : "Selecione uma turma ou cadastre a primeira criança."}
+                  actionLabel={novoTurmaId ? "Cadastrar criança nesta turma" : "Cadastrar nova criança"}
+                  actionHint={turmas.length ? "Ela será selecionada automaticamente" : "Primeiro criaremos a turma"}
+                  onSelect={setNovoAlunoId}
+                  onAction={openQuickCrianca}
+                />
+              </label>
             </div>
-            {!loadingBase && (!turmas.length || !criancas.length) ? (
-              <a href="/dashboard/turmas" className="mt-3 inline-flex h-10 items-center gap-2 rounded-md border border-[#dcd3f7] bg-[#f8f6ff] px-3 text-sm font-bold text-[#6757c8]"><Plus className="size-4" /> Cadastrar turma e crianca</a>
+            {!loadingBase && (!turmas.length || !newChildren.length) ? (
+              <div className="mt-3 flex items-start gap-3 rounded-xl border border-[#ddd4f7] bg-[#f8f6ff] p-3 text-sm text-[#5f5781]">
+                <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-white text-[#6757c8] shadow-sm"><Plus className="size-4" /></span>
+                <p className="font-semibold leading-relaxed">
+                  {!turmas.length
+                    ? "Comece cadastrando uma turma. Em seguida, abriremos o cadastro da primeira criança."
+                    : "Esta turma ainda não tem crianças. Use a ação destacada no seletor para cadastrar a primeira."}
+                </p>
+              </div>
             ) : null}
             <label className="mt-4 block"><span className="pf-label">Data do registro</span><input type="date" className="pf-input h-11 max-w-[220px]" value={dataRegistro} onChange={(event) => setDataRegistro(event.target.value)} /></label>
-            <label className="mt-4 block"><span className="pf-label">Anotação pedagógica</span><Textarea value={texto} readOnly={recording} onChange={(event) => setTexto(event.target.value)} rows={10} className={cn("min-h-[240px] text-[15px] leading-7", recording && "border-[#a995ec] bg-[#faf9ff] ring-4 ring-[#6757c8]/10")} placeholder="Escreva o que aconteceu, como a criança participou e quais estratégias utilizou..." /></label>
+            <label className="mt-4 block"><span className="pf-label">Anotação pedagógica</span><Textarea ref={recordTextRef} value={texto} readOnly={recording} onChange={(event) => setTexto(event.target.value)} rows={10} className={cn("min-h-[240px] text-[15px] leading-7", recording && "border-[#a995ec] bg-[#faf9ff] ring-4 ring-[#6757c8]/10")} placeholder="Escreva o que aconteceu, como a criança participou e quais estratégias utilizou..." /></label>
             <div className="mt-3 flex flex-wrap gap-2">
               <Button type="button" variant="outline" onClick={recording ? stopRecording : startRecording} disabled={transcribing} className={cn("h-11", recording && "border-red-300 bg-red-50 text-red-700")}>
                 {transcribing ? <Loader2 className="size-4 animate-spin" /> : recording ? <Square className="size-4 fill-current" /> : <Mic className="size-4" />}
@@ -813,6 +974,94 @@ export function RegistrosClient() {
       {selectedIds.length > 0 && tab === "visualizar" ? <div className="fixed bottom-[76px] left-3 right-3 z-30 mx-auto max-w-3xl rounded-lg border border-[#cfa9bb] bg-white p-3 shadow-[0_20px_60px_-20px_rgba(70,38,58,.45)] md:bottom-5 md:left-[316px]">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center"><div className="min-w-0 flex-1"><p className="text-sm font-black text-[#17213f]">{selectedIds.length} registro(s) de {selectedChild?.nome}</p><input value={periodo} onChange={(event) => setPeriodo(event.target.value)} className="mt-1 h-8 w-full max-w-[260px] rounded-md border border-[#dcd3f7] px-2 text-xs" aria-label="Periodo da avaliacao" /></div><div className="flex flex-wrap gap-2"><Button type="button" onClick={generateReport} disabled={generating}>{generating ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />} Gerar avaliacao com IA</Button><Button type="button" variant="outline" onClick={exportRecords}><FileText className="size-4" /> Word</Button><Button type="button" variant="ghost" onClick={clearSelection}><X className="size-4" /> Limpar</Button></div></div>
       </div> : null}
+
+      <ViewportModal
+        open={quickCreateMode === "turma"}
+        title="Cadastrar nova turma"
+        description="Só precisamos do nome para você continuar o registro."
+        onClose={closeQuickCreate}
+        className="max-w-lg"
+        footer={(
+          <>
+            <Button type="button" variant="outline" onClick={closeQuickCreate} disabled={quickSaving}>Cancelar</Button>
+            <Button type="button" onClick={() => void saveQuickTurma()} disabled={quickSaving || !quickTurmaNome.trim()}>
+              {quickSaving ? <Loader2 className="size-4 animate-spin" /> : <School className="size-4" />}
+              Salvar e cadastrar criança
+            </Button>
+          </>
+        )}
+      >
+        <label className="block">
+          <span className="pf-label">Nome da turma</span>
+          <input
+            autoFocus
+            value={quickTurmaNome}
+            onChange={(event) => setQuickTurmaNome(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                void saveQuickTurma();
+              }
+            }}
+            className="pf-input h-12"
+            maxLength={120}
+            placeholder="Ex.: Maternal II"
+            disabled={quickSaving}
+          />
+          <p className="mt-2 text-xs font-semibold leading-relaxed text-[#7b788c]">
+            Depois de salvar, abriremos automaticamente o cadastro da primeira criança.
+          </p>
+        </label>
+      </ViewportModal>
+
+      <ViewportModal
+        open={quickCreateMode === "crianca"}
+        title="Cadastrar nova criança"
+        description="Ela será selecionada automaticamente neste registro."
+        onClose={closeQuickCreate}
+        className="max-w-lg"
+        footer={(
+          <>
+            <Button type="button" variant="outline" onClick={closeQuickCreate} disabled={quickSaving}>Cancelar</Button>
+            <Button type="button" onClick={() => void saveQuickCrianca()} disabled={quickSaving || !quickCriancaNome.trim() || !quickCriancaTurmaId}>
+              {quickSaving ? <Loader2 className="size-4 animate-spin" /> : <Baby className="size-4" />}
+              Salvar criança
+            </Button>
+          </>
+        )}
+      >
+        <div className="space-y-4">
+          <label className="block">
+            <span className="pf-label">Nome da criança</span>
+            <input
+              autoFocus
+              value={quickCriancaNome}
+              onChange={(event) => setQuickCriancaNome(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  void saveQuickCrianca();
+                }
+              }}
+              className="pf-input h-12"
+              maxLength={120}
+              placeholder="Nome completo"
+              disabled={quickSaving}
+            />
+          </label>
+          <label className="block">
+            <span className="pf-label">Turma</span>
+            <FilterSelect
+              value={quickCriancaTurmaId}
+              onChange={(event) => setQuickCriancaTurmaId(event.target.value)}
+              disabled={quickSaving}
+              aria-label="Turma da nova criança"
+            >
+              {turmas.map((item) => <option key={item.id} value={item.id}>{item.nome}</option>)}
+            </FilterSelect>
+          </label>
+        </div>
+      </ViewportModal>
 
       <ViewportModal
         open={Boolean(editingRecord)}

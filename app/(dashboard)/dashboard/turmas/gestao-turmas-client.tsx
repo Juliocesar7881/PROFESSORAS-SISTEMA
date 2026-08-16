@@ -8,6 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ViewportModal } from "@/components/viewport-modal";
 import { getPayloadItems } from "@/lib/api-payload";
+import {
+  announceSchoolEntitiesChanged,
+  SCHOOL_ENTITIES_CHANGED_EVENT,
+  type SchoolEntitiesChangedDetail,
+} from "@/lib/client/school-entities-events";
 
 type Turma = {
   id: string;
@@ -36,6 +41,15 @@ function errorMessage(json: unknown, fallback: string) {
   return fallback;
 }
 
+function sortByName<T extends { nome: string }>(items: T[]) {
+  return [...items].sort((left, right) => left.nome.localeCompare(right.nome, "pt-BR", { sensitivity: "base" }));
+}
+
+function upsertById<T extends { id: string }>(items: T[], nextItem: T) {
+  const found = items.some((item) => item.id === nextItem.id);
+  return found ? items.map((item) => item.id === nextItem.id ? nextItem : item) : [...items, nextItem];
+}
+
 export function GestaoTurmasClient() {
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [criancas, setCriancas] = useState<Crianca[]>([]);
@@ -51,8 +65,8 @@ export function GestaoTurmasClient() {
   const [criancaForm, setCriancaForm] = useState({ nome: "", turmaId: "", dataNasc: "", contexto: "" });
   const [saving, setSaving] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const [activeT, activeC, trashT, trashC] = await Promise.all([
         fetch("/api/turmas", { cache: "no-store" }),
@@ -62,18 +76,26 @@ export function GestaoTurmasClient() {
       ]);
       const [activeTJ, activeCJ, trashTJ, trashCJ] = await Promise.all([activeT.json(), activeC.json(), trashT.json(), trashC.json()]);
       if (!activeT.ok || !activeC.ok) throw new Error("Falha ao carregar turmas e criancas");
-      setTurmas((activeTJ.data ?? []) as Turma[]);
-      setCriancas(getPayloadItems<Crianca>(activeCJ.data));
-      setTrashTurmas(trashT.ok ? (trashTJ.data ?? []) as Turma[] : []);
-      setTrashCriancas(trashC.ok ? getPayloadItems<Crianca>(trashCJ.data) : []);
+      setTurmas(sortByName((activeTJ.data ?? []) as Turma[]));
+      setCriancas(sortByName(getPayloadItems<Crianca>(activeCJ.data)));
+      setTrashTurmas(sortByName(trashT.ok ? (trashTJ.data ?? []) as Turma[] : []));
+      setTrashCriancas(sortByName(trashC.ok ? getPayloadItems<Crianca>(trashCJ.data) : []));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Falha ao carregar dados");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    void load();
+    const handleEntitiesChanged = (event: Event) => {
+      const detail = (event as CustomEvent<SchoolEntitiesChangedDetail>).detail;
+      if (detail?.source !== "gestao-turmas") void load(true);
+    };
+    window.addEventListener(SCHOOL_ENTITIES_CHANGED_EVENT, handleEntitiesChanged);
+    return () => window.removeEventListener(SCHOOL_ENTITIES_CHANGED_EVENT, handleEntitiesChanged);
+  }, [load]);
 
   const childrenByClass = useMemo(() => {
     const map = new Map<string, Crianca[]>();
@@ -105,39 +127,71 @@ export function GestaoTurmasClient() {
 
   const saveTurma = async () => {
     if (!turmaForm.nome.trim()) return toast.error("Informe o nome da turma.");
+    if (saving) return;
     setSaving(true);
-    const response = await fetch(editingTurma ? `/api/turmas/${editingTurma.id}` : "/api/turmas", {
-      method: editingTurma ? "PATCH" : "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        nome: turmaForm.nome.trim(),
-        faixaEtaria: turmaForm.faixaEtaria.trim() || undefined,
-        turno: turmaForm.turno.trim() || undefined,
-        instituicao: turmaForm.instituicao.trim() || undefined,
-        ano: turmaForm.ano ? Number(turmaForm.ano) : undefined,
-      }),
-    });
-    const json = await response.json(); setSaving(false);
-    if (!response.ok) return toast.error(errorMessage(json, "Falha ao salvar turma"));
-    resetTurma(); await load(); toast.success("Turma salva");
+    try {
+      const response = await fetch(editingTurma ? `/api/turmas/${editingTurma.id}` : "/api/turmas", {
+        method: editingTurma ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nome: turmaForm.nome.trim(),
+          faixaEtaria: turmaForm.faixaEtaria.trim() || undefined,
+          turno: turmaForm.turno.trim() || undefined,
+          instituicao: turmaForm.instituicao.trim() || undefined,
+          ano: turmaForm.ano ? Number(turmaForm.ano) : undefined,
+        }),
+      });
+      const json = await response.json();
+      if (!response.ok) throw new Error(errorMessage(json, "Falha ao salvar turma"));
+
+      const saved = json.data as Turma;
+      setTurmas((current) => sortByName(upsertById(current, {
+        ...saved,
+        _count: saved._count ?? editingTurma?._count ?? { alunos: 0 },
+      })));
+      resetTurma();
+      announceSchoolEntitiesChanged("gestao-turmas");
+      void load(true);
+      toast.success("Turma salva");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Falha ao salvar turma");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const saveCrianca = async () => {
     if (!criancaForm.nome.trim() || !criancaForm.turmaId) return toast.error("Informe nome e turma.");
+    if (saving) return;
     setSaving(true);
-    const response = await fetch(editingCrianca ? `/api/criancas/${editingCrianca.id}` : "/api/criancas", {
-      method: editingCrianca ? "PATCH" : "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        nome: criancaForm.nome.trim(),
-        turmaId: criancaForm.turmaId,
-        dataNasc: criancaForm.dataNasc || undefined,
-        contexto: criancaForm.contexto.trim() || undefined,
-      }),
-    });
-    const json = await response.json(); setSaving(false);
-    if (!response.ok) return toast.error(errorMessage(json, "Falha ao salvar crianca"));
-    resetCrianca(); await load(); toast.success("Crianca salva");
+    try {
+      const response = await fetch(editingCrianca ? `/api/criancas/${editingCrianca.id}` : "/api/criancas", {
+        method: editingCrianca ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nome: criancaForm.nome.trim(),
+          turmaId: criancaForm.turmaId,
+          dataNasc: criancaForm.dataNasc || undefined,
+          contexto: criancaForm.contexto.trim() || undefined,
+        }),
+      });
+      const json = await response.json();
+      if (!response.ok) throw new Error(errorMessage(json, "Falha ao salvar criança"));
+
+      const payload = json.data as Omit<Crianca, "turma"> & { turma?: Crianca["turma"] };
+      const turma = payload.turma ?? turmas.find((item) => item.id === payload.turmaId);
+      if (!turma) throw new Error("A turma da criança não foi encontrada.");
+      const saved: Crianca = { ...payload, turma: { id: turma.id, nome: turma.nome } };
+      setCriancas((current) => sortByName(upsertById(current, saved)));
+      resetCrianca();
+      announceSchoolEntitiesChanged("gestao-turmas");
+      void load(true);
+      toast.success("Criança salva");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Falha ao salvar criança");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const remove = async (kind: "turmas" | "criancas", id: string) => {
@@ -145,14 +199,18 @@ export function GestaoTurmasClient() {
     const response = await fetch(`/api/${kind}/${id}`, { method: "DELETE" });
     const json = await response.json();
     if (!response.ok) return toast.error(errorMessage(json, "Falha ao mover para lixeira"));
-    await load(); toast.success("Item movido para a lixeira");
+    await load();
+    announceSchoolEntitiesChanged("gestao-turmas");
+    toast.success("Item movido para a lixeira");
   };
 
   const restore = async (kind: "turmas" | "criancas", id: string) => {
     const response = await fetch(`/api/${kind}/${id}/restore`, { method: "POST" });
     const json = await response.json();
     if (!response.ok) return toast.error(errorMessage(json, "Falha ao restaurar"));
-    await load(); toast.success("Item restaurado");
+    await load();
+    announceSchoolEntitiesChanged("gestao-turmas");
+    toast.success("Item restaurado");
   };
 
   return <div className="mx-auto max-w-[1300px] space-y-4">
