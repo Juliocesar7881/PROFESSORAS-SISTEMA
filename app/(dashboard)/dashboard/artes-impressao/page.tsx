@@ -472,8 +472,11 @@ export default function ArtesImpressaoPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => removePhoto(photo.id)}
-                          className="absolute left-1.5 top-1.5 inline-flex size-7 items-center justify-center rounded-lg border border-rose-100 bg-white/95 text-rose-600 shadow-sm transition hover:scale-105 hover:bg-rose-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            removePhoto(photo.id);
+                          }}
+                          className="absolute left-1.5 top-1.5 z-20 inline-flex size-7 items-center justify-center rounded-lg border border-white/80 bg-rose-600 text-white shadow-md transition hover:scale-105 hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:ring-offset-2"
                           title="Excluir imagem do material"
                           aria-label={`Excluir ${photo.file.name} do material`}
                         >
