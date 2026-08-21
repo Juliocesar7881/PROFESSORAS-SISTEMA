@@ -137,7 +137,7 @@ export default function LoginPage() {
   return (
     <main className="relative min-h-[100dvh] overflow-x-hidden bg-[linear-gradient(180deg,#fffdfa_0%,#f7f4ff_100%)] px-4 py-4 text-[#17213f] sm:px-6 md:px-8 md:py-6 lg:h-[100dvh] lg:overflow-hidden">
       <div className="relative z-10 mx-auto flex min-h-[calc(100dvh-2rem)] w-full max-w-[1500px] items-center lg:h-full lg:min-h-0">
-        <section className="grid w-full overflow-hidden rounded-2xl border border-[#e8e3f0] bg-white shadow-[0_32px_90px_-54px_rgba(43,35,91,0.42)] lg:h-[calc(100dvh-3rem)] lg:max-h-[1100px] lg:grid-cols-[1.15fr_.85fr]">
+        <section className="grid w-full overflow-hidden rounded-2xl border border-[#e8e3f0] bg-white shadow-[0_32px_90px_-54px_rgba(43,35,91,0.42)] lg:h-[calc(100dvh-3rem)] lg:max-h-[920px] lg:grid-cols-[1.15fr_.85fr]">
           <div className="relative overflow-hidden bg-[linear-gradient(160deg,#493696_0%,#6757c8_58%,#9a86e6_100%)] p-5 text-white md:p-8 xl:p-10">
             <div className="relative z-10 lg:flex lg:h-full lg:min-h-0 lg:flex-col">
               <BrandMark href="/" markClassName="ring-white/15" textClassName="[&_strong]:text-white [&_span]:text-white/52" />
