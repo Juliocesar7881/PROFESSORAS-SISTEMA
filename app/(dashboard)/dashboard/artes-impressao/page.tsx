@@ -276,6 +276,7 @@ export default function ArtesImpressaoPage() {
     }
     setUploadedPhotos((current) => current.filter((item) => item.id !== id));
     setSelectedIds((current) => current.filter((item) => item !== id));
+    if (photo) toast.success("Imagem removida do material");
   };
 
   const moveSelectedItem = (index: number, direction: -1 | 1) => {
@@ -449,21 +450,36 @@ export default function ArtesImpressaoPage() {
                   {uploadedPhotos.map((photo) => {
                     const selected = selectedIds.includes(photo.id);
                     return (
-                      <button
+                      <div
                         key={photo.id}
-                        type="button"
-                        onClick={() => togglePhoto(photo.id)}
                         className={cn(
-                          "group relative overflow-hidden rounded-lg border-2 bg-[#fbfaf8] text-left transition",
+                          "group relative overflow-hidden rounded-lg border-2 bg-[#fbfaf8] transition",
                           selected ? "border-[#6757c8] ring-2 ring-[#ebe6fb]" : "border-[#e8e3f0] hover:border-[#a995ec]",
                         )}
                       >
-                        <span className="relative block aspect-square overflow-hidden bg-[#f4f1fb]">
-                          <Image src={photo.previewUrl} alt={photo.file.name} fill unoptimized sizes="140px" className="object-cover" />
-                          {selected ? <span className="absolute right-1.5 top-1.5 inline-flex size-6 items-center justify-center rounded-full bg-[#6757c8] text-white"><Check className="size-3.5" /></span> : null}
-                        </span>
-                        <span className="block truncate px-2 py-1.5 text-[11px] font-bold text-[#6d6c82]">{photo.file.name}</span>
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => togglePhoto(photo.id)}
+                          aria-pressed={selected}
+                          aria-label={`${selected ? "Remover da folha" : "Adicionar na folha"}: ${photo.file.name}`}
+                          className="block w-full text-left"
+                        >
+                          <span className="relative block aspect-square overflow-hidden bg-[#f4f1fb]">
+                            <Image src={photo.previewUrl} alt={photo.file.name} fill unoptimized sizes="140px" className="object-cover" />
+                            {selected ? <span className="absolute right-1.5 top-1.5 inline-flex size-6 items-center justify-center rounded-full bg-[#6757c8] text-white"><Check className="size-3.5" /></span> : null}
+                          </span>
+                          <span className="block truncate px-2 py-1.5 text-[11px] font-bold text-[#6d6c82]">{photo.file.name}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removePhoto(photo.id)}
+                          className="absolute left-1.5 top-1.5 inline-flex size-7 items-center justify-center rounded-lg border border-rose-100 bg-white/95 text-rose-600 shadow-sm transition hover:scale-105 hover:bg-rose-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
+                          title="Excluir imagem do material"
+                          aria-label={`Excluir ${photo.file.name} do material`}
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      </div>
                     );
                   })}
                 </div>

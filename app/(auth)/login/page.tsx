@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signIn, useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
-import { BookOpen, CheckCircle2, FileText, Loader2, ShieldCheck, Sparkles } from "lucide-react";
+import { BookOpen, CheckCircle2, FileText, Loader2, Sparkles } from "lucide-react";
 
 import { BrandMark } from "@/components/brand-mark";
 import { PrefeituraNote } from "@/components/prefeitura-note";
@@ -16,7 +16,6 @@ const features = [
   { icon: BookOpen, label: "Planejamento", tone: "bg-[#eaf9f6] text-[#278b7f]" },
   { icon: Sparkles, label: "Avaliações assistidas", tone: "bg-[#fff0f5] text-[#c64975]" },
   { icon: FileText, label: "Impressão fácil", tone: "bg-[#fff5df] text-[#b46d18]" },
-  { icon: ShieldCheck, label: "Dados protegidos", tone: "bg-[#eef4ff] text-[#4c78d0]" },
 ];
 
 const proofPoints = ["Sem cartão de crédito", "Acesso completo grátis", "Sem assinatura"];
@@ -135,14 +134,14 @@ export default function LoginPage() {
       : "Nenhum método de acesso configurado.";
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#fffdfa_0%,#f7f4ff_100%)] px-4 py-6 text-[#17213f] md:px-8 md:py-10">
-      <div className="relative z-10 mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-6xl items-center">
-        <section className="grid w-full overflow-hidden rounded-2xl border border-[#e8e3f0] bg-white shadow-[0_32px_90px_-54px_rgba(43,35,91,0.42)] lg:grid-cols-[1fr_.86fr]">
-          <div className="relative overflow-hidden bg-[linear-gradient(160deg,#493696_0%,#6757c8_58%,#9a86e6_100%)] p-5 text-white md:p-10">
-            <div className="relative z-10">
+    <main className="relative min-h-[100dvh] overflow-x-hidden bg-[linear-gradient(180deg,#fffdfa_0%,#f7f4ff_100%)] px-4 py-4 text-[#17213f] sm:px-6 md:px-8 md:py-6 lg:h-[100dvh] lg:overflow-hidden">
+      <div className="relative z-10 mx-auto flex min-h-[calc(100dvh-2rem)] w-full max-w-6xl items-center lg:h-full lg:min-h-0">
+        <section className="grid w-full overflow-hidden rounded-2xl border border-[#e8e3f0] bg-white shadow-[0_32px_90px_-54px_rgba(43,35,91,0.42)] lg:h-[min(820px,calc(100dvh-3rem))] lg:grid-cols-[1fr_.86fr]">
+          <div className="relative overflow-hidden bg-[linear-gradient(160deg,#493696_0%,#6757c8_58%,#9a86e6_100%)] p-5 text-white md:p-8 xl:p-10">
+            <div className="relative z-10 lg:flex lg:h-full lg:min-h-0 lg:flex-col">
               <BrandMark href="/" markClassName="ring-white/15" textClassName="[&_strong]:text-white [&_span]:text-white/52" />
 
-              <div className="mt-10 hidden max-w-2xl lg:block">
+              <div className="mt-6 hidden max-w-2xl lg:block xl:mt-8">
                 <p className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.08] px-3 py-1.5 text-xs font-bold uppercase tracking-[0.12em] text-white/72">
                   Acesso Pequenos Passos
                 </p>
@@ -154,7 +153,7 @@ export default function LoginPage() {
                 </p>
               </div>
 
-              <div className="mt-8 hidden gap-3 sm:grid-cols-2 lg:grid">
+              <div className="mt-6 hidden gap-3 sm:grid-cols-2 lg:grid">
                 {features.map((feature) => (
                   <div key={feature.label} className="flex items-center gap-3 rounded-xl border border-white/12 bg-white/[0.08] p-3">
                     <span className={`inline-flex size-10 shrink-0 items-center justify-center rounded-xl ${feature.tone}`}>
@@ -165,13 +164,13 @@ export default function LoginPage() {
                 ))}
               </div>
 
-              <div className="mt-8 hidden justify-center lg:flex">
-                <Image src="/brand/pequenos-passos-icon.png" alt="" width={420} height={420} className="h-auto w-[68%] rounded-[2rem] shadow-[0_28px_70px_-36px_rgba(23,33,63,.45)]" />
+              <div className="mt-auto hidden justify-center pt-5 lg:flex">
+                <Image src="/brand/pequenos-passos-icon.png" alt="" width={420} height={420} className="h-auto max-h-[220px] w-auto max-w-[60%] rounded-[2rem] object-contain shadow-[0_28px_70px_-36px_rgba(23,33,63,.45)] xl:max-h-[250px]" />
               </div>
             </div>
           </div>
 
-          <div className="p-6 md:p-10">
+          <div className="p-6 md:p-8 xl:p-10">
             <div className="mx-auto flex h-full max-w-md flex-col justify-center">
               <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6757c8]">Acesso seguro</p>
               <h2 className="mt-2 text-3xl font-extrabold text-[#17213f]">Entre na sua conta</h2>
